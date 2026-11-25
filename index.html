@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SIG – Sistema Integrado de Gestão da Prefeitura Municipal da Estância Turística de Paraguaçu Paulista. MVP web para planejamento, licitações, convênios, emendas, parcerias, execução, prestação de contas e transparência." />
+  <meta name="theme-color" content="#1e3a8a" />
+  <title>SIG | Prefeitura de Paraguaçu Paulista</title>
+
+  <!-- Tailwind CSS via CDN (design system institucional) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    if (window.tailwind) {
+      tailwind.config = {
+        theme: { extend: {
+          colors: {
+            inst: { 900: '#1e3a8a', 800: '#1e40af', 700: '#1d4ed8', 100: '#dbeafe' },
+            verd: { 700: '#15803d', 500: '#22c55e', 100: '#dcfce7' },
+            neutro: '#f3f4f6'
+          },
+          fontFamily: { sans: ['Inter', 'Segoe UI', 'Arial', 'sans-serif'] }
+        }}
+      };
+    }
+  </script>
+  <!-- Bibliotecas opcionais: XLSX (leitura/escrita) e PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* Fallback crítico caso o CDN não carregue + ajustes e-MAG */
+    :root { --azul:#1e3a8a; --verde:#15803d; --fundo:#f3f4f6; --borda:#e2e8f0; }
+    html { scroll-behavior:smooth; }
+    body { background:var(--fundo); }
+    :focus-visible { outline:3px solid #f59e0b !important; outline-offset:2px !important; }
+    .skip-link { position:absolute; left:-9999px; top:0; z-index:9999; background:#fff; padding:10px 16px; border-radius:0 0 8px 0; }
+    .skip-link:focus { left:8px; top:8px; }
+    .sig-card { background:#fff; border:1px solid var(--borda); border-radius:14px; box-shadow:0 1px 2px rgba(15,23,42,.06); }
+    .sig-btn { display:inline-flex; align-items:center; gap:.4rem; padding:.5rem .75rem; border-radius:9px; font-size:.875rem; font-weight:600; border:1px solid transparent; cursor:pointer; }
+    .sig-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .sig-input { width:100%; border:1px solid #cbd5e1; border-radius:9px; padding:.55rem .7rem; font-size:.875rem; background:#fff; }
+    .sig-input:focus { border-color:#1d4ed8; box-shadow:0 0 0 3px rgba(29,78,216,.15); outline:none; }
+    .sig-tag { display:inline-flex; align-items:center; gap:.3rem; padding:.15rem .55rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+    .mic { border:1px solid #cbd5e1; background:#f8fafc; border-radius:8px; padding:0 .55rem; cursor:pointer; }
+    .rep-row { padding:.75rem; border:1px dashed #cbd5e1; border-radius:10px; margin-bottom:.6rem; background:#f8fafc; }
+    .hc { filter:contrast(1.28) saturate(1.1); }
+    .fs-large { font-size:112.5%; }
+    .assist-open #ia-panel { transform:translateX(0); }
+    #ia-panel { transition:transform .25s ease; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    table { border-collapse:collapse; }
+    th,td { text-align:left; }
+    .nowrap { white-space:nowrap; }
+    @media print {
+      .no-print, #sidebar, header, #lgpd-banner, #ia-panel, #modal-root, #toast-root { display:none !important; }
+      body { background:#fff; }
+      #conteudo { padding:0 !important; max-width:none !important; }
+      .sig-card { border:0; box-shadow:none; }
+      main { max-width:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo principal</a>
+
+  <!-- LGPD: banner de consentimento -->
+  <div id="lgpd-banner" class="no-print hidden fixed bottom-0 left-0 right-0 z-50 bg-inst-900 text-white shadow-2xl">
+    <div class="max-w-7xl mx-auto p-4 flex flex-col md:flex-row gap-3 md:items-center justify-between">
+      <div class="text-sm">
+        <strong class="block mb-1">Privacidade e LGPD</strong>
+        Este protótipo armazena dados apenas no seu navegador (localStorage). Ao continuar, você concorda com o uso de dados necessários ao funcionamento do SIG. Nenhum dado é enviado a servidores.
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <button class="sig-btn bg-white text-inst-900" data-action="lgpd-policy">Ver política</button>
+        <button class="sig-btn bg-white/15 border-white/40" data-action="lgpd-refuse">Recusar</button>
+        <button class="sig-btn bg-verd-700 text-white" data-action="lgpd-accept">Aceitar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cabeçalho institucional -->
+  <header class="no-print sticky top-0 z-30 bg-inst-900 text-white shadow-lg">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-5 py-2.5 flex items-center gap-3">
+      <button class="sig-btn md:hidden border-white/40" data-action="toggle-sidebar" aria-label="Abrir menu">☰</button>
+      <img src="assets/brasao_prefeitura.png" alt="Brasão da Prefeitura Municipal de Paraguaçu Paulista" class="h-11 w-11 object-contain bg-white/10 rounded-lg p-1" onerror="this.style.display='none'" />
+      <div class="min-w-0 flex-1">
+        <h1 class="text-sm sm:text-base font-bold leading-tight truncate">SIG — Sistema Integrado de Gestão</h1>
+        <p class="text-[11px] sm:text-xs text-blue-100 truncate">Prefeitura Municipal da Estância Turística de Paraguaçu Paulista</p>
+      </div>
+      <label class="hidden lg:flex items-center bg-white/10 rounded-lg px-2 py-1.5">
+        <span class="sr-only">Busca global</span>
+        <span aria-hidden="true" class="text-blue-100">⌕</span>
+        <input id="global-search" type="search" placeholder="Buscar processos, convênios, emendas..." class="bg-transparent outline-none text-sm placeholder-blue-200 px-2 w-64" />
+      </label>
+      <button class="sig-btn bg-white/10 border-white/30 relative" data-action="alerts" aria-label="Ver alertas e notificações">
+        <span aria-hidden="true">🔔</span><span id="alert-count" class="absolute -top-1 -right-1 bg-red-600 rounded-full text-[10px] px-1.5">0</span>
+      </button>
+      <button class="sig-btn bg-white/10 border-white/30" data-action="a11y" aria-label="Acessibilidade">A+</button>
+      <button class="sig-btn bg-white/10 border-white/30" data-action="toggle-ia" aria-expanded="false" aria-controls="ia-panel">✨ <span class="hidden sm:inline">IA</span></button>
+      <div class="hidden sm:flex items-center gap-2 border-l border-white/25 pl-3">
+        <div class="h-8 w-8 rounded-full bg-verd-700 grid place-items-center text-xs font-bold" aria-hidden="true">SM</div>
+        <div class="text-xs leading-tight">
+          <div class="font-semibold">Gestor/Fiscal</div>
+          <div class="text-blue-200">Paraguaçu Paulista</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex min-h-[calc(100vh-64px)]">
+    <!-- Navegação lateral gerada via JS -->
+    <aside id="sidebar" class="no-print w-72 shrink-0 bg-white border-r border-slate-200 overflow-y-auto sticky top-[64px] h-[calc(100vh-64px)] hidden md:block"></aside>
+
+    <!-- Conteúdo principal -->
+    <main id="conteudo" tabindex="-1" class="flex-1 min-w-0 max-w-[1500px] mx-auto p-4 sm:p-6">
+      <div id="view"></div>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" class="no-print fixed bottom-5 right-5 z-[80] space-y-2" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Painel de IA embarcada (heurística local + ponto de extensão para API) -->
+  <aside id="ia-panel" class="no-print fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white border-l border-slate-200 shadow-2xl z-[70] translate-x-full flex flex-col" aria-label="Assistente inteligente">
+    <div class="p-4 bg-inst-900 text-white flex items-center justify-between">
+      <div><strong>✨ Assistente SIG</strong><p class="text-xs text-blue-100">IA embarcada · heurística local</p></div>
+      <button class="sig-btn bg-white/15" data-action="toggle-ia" aria-label="Fechar assistente">✕</button>
+    </div>
+    <div id="ia-log" class="flex-1 overflow-y-auto p-4 space-y-3 text-sm" aria-live="polite">
+      <div class="sig-card p-3">Olá! Posso auditar cadastros, sugerir riscos, gerar minutas de ETP/DFD e resumir prazos. <strong>Nunca substitui a validação jurídica/contábil.</strong></div>
+    </div>
+    <div class="p-3 border-t border-slate-200">
+      <textarea id="ia-input" rows="3" class="sig-input" placeholder="Ex.: analise riscos do convênio atual"></textarea>
+      <div class="flex gap-2 mt-2">
+        <button class="sig-btn bg-inst-900 text-white flex-1 justify-center" data-action="ia-run">Analisar</button>
+        <button class="sig-btn bg-slate-100" data-action="ia-audit">Auditar módulo</button>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-2">LGPD: o texto digitado não é enviado a servidores nesta versão.</p>
+    </div>
+  </aside>
+
+  <script>
+  /* =====================================================================
+     SIG v1.0 — SPA em arquivo único. Dados simulados em localStorage.
+     Estrutura: constantes → catálogo → estado → views → actions → init.
+     ===================================================================== */
+  (function () {
+    'use strict';
+
+    const KEY = 'sig_paraguacu_v1';
+    const SOURCES = ['União', 'Estado', 'Emendas', 'OSCs'];
+    const STATUS = ['Solicitado', 'Em Execução', 'Aprovado', 'Repassado', 'Concluído', 'Suspenso'];
+    const SECRETARIAS = [
+      ['PARAG-GAP', 'Gabinete do Prefeito'],
+      ['PARAG-IMSS', 'Instituto Municipal de Seguridade Social'],
+      ['PARAG-SMAA', 'Secretaria Municipal de Agricultura e Abastecimento'],
+      ['PARAG-SMAF', 'Secretaria Municipal de Administração e Finanças'],
+      ['PARAG-SMAJ', 'Secretaria Municipal de Assuntos Jurídicos'],
+      ['PARAG-SMAS', 'Secretaria Municipal de Assistência Social'],
+      ['PARAG-SMC', 'Secretaria Municipal de Cultura'],
+      ['PARAG-SMDE', 'Secretaria Municipal de Desenvolvimento Econômico'],
+      ['PARAG-SME', 'Secretaria Municipal de Educação'],
+      ['PARAG-SMEL', 'Secretaria Municipal de Esportes E Lazer'],
+      ['PARAG-SMMA', 'Secretaria Municipal de Meio Ambiente e Projetos Especiais'],
+      ['PARAG-SMMUS', 'Secretaria Municipal de Mobilidade Urbana e Segurança Pública'],
+      ['PARAG-SMOS', 'Secretaria Municipal de Obras e Serviços Públicos'],
+      ['PARAG-SMPG', 'Secretaria Municipal de Planejamento e Gestão Orçamentária'],
+      ['PARAG-SMRH', 'Secretaria Municipal de Recursos Humanos'],
+      ['PARAG-SMS', 'Secretaria Municipal de Saúde'],
+      ['PARAG-SMT', 'Secretaria Municipal de Turismo'],
+      ['PARAG-SMUH', 'Secretaria Municipal de Urbanismo e Habitação']
+    ];
+    const SEC_OPTS = SECRETARIAS.map(s => s[0] + ' - ' + s[1]);
+    const ROLES = ['Administrador', 'Controle Interno', 'Gestor/Fiscal', 'Operador', 'Cidadão (Portal)'];
+
+    // Classes utilitárias (Tailwind) reutilizadas nos renderizadores
+    const C = {
+      card: 'sig-card p-4 sm:p-5',
+      btn: 'sig-btn bg-slate-100 hover:bg-slate-200 text-slate-800',
+      primary: 'sig-btn bg-inst-900 hover:bg-inst-800 text-white',
+      green: 'sig-btn bg-verd-700 hover:bg-green-800 text-white',
+      ghost: 'sig-btn border border-slate-300 bg-white text-slate-700',
+      danger: 'sig-btn bg-red-50 text-red-700 hover:bg-red-100',
+      input: 'sig-input',
+      label: 'block text-xs font-semibold text-slate-600 mb-1',
+      th: 'px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-500 border-b border-slate-200',
+      td: 'px-3 py-2 text-sm border-b border-slate-100 align-top',
+      h2: 'text-lg font-bold text-inst-900',
+      muted: 'text-sm text-slate-500'
+    };
+
+    // Helpers
+    const $ = (s, r) => (r || document).querySelector(s);
+    const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+    const uid = () => 'SIG-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+    const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const money = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+    const dateBR = v => { if (!v) return '—'; const d = new Date(v); return isNaN(d) ? v : d.toLocaleDateString('pt-BR'); };
+    const f = (k, l, t, o) => Object.assign({ k, l, t: t || 'text' }, o || {});
+    const baseFinancial = extra => [
+      f('numero', 'Número / Identificador', 'text', { req: true }),
+      f('objeto', 'Objeto', 'textarea', { req: true, w: 'full' }),
+      f('origem', 'Fonte de Recurso', 'select', { opts: SOURCES, req: true }),
+      f('secretaria', 'Secretaria Responsável', 'select', { opts: SEC_OPTS, req: true }),
+      f('valor', 'Valor (R$)', 'currency', { req: true }),
+      f('status', 'Status', 'select', { opts: STATUS, req: true }),
+      f('dataInicio', 'Data de Início', 'date'),
+      f('dataFim', 'Vencimento / Fim', 'date'),
+      f('concedente', 'Concedente / Órgão', 'text'),
+      f('beneficiario', 'Entidade Beneficiária', 'text'),
+      f('observacoes', 'Observações', 'textarea', { w: 'full' })
+    ].concat(extra || []);
+
+    /* ===================== CATÁLOGO DE MÓDULOS (parte 1) ===================== */
+    const CATALOG = [];
+    CATALOG.push(
+      { id: 'dashboard', label: 'Painel Executivo', group: 'Início', icon: '▦', type: 'dashboard', desc: 'Visão consolidada financeira, movimentações e prazos.' },
+
+      /* 1. Administração e Cadastros */
+      { id: 'admin-perfis', label: 'Usuários e Perfis', group: '1. Administração e Cadastros', icon: '👤', desc: 'Perfis de acesso: Administrador, Controle Interno, Gestor/Fiscal, Operador e Cidadão (Portal). Segurança de acesso separada dos dados mestres.',
+        fields: [f('perfil', 'Perfil', 'select', { opts: ROLES, req: true }), f('descricao', 'Descrição / Escopo', 'textarea', { w: 'full' }), f('permissoes', 'Permissões (módulos)', 'textarea', { w: 'full' }), f('usuarios', 'Usuários vinculados', 'number'), f('situacao', 'Situação', 'select', { opts: ['Ativo', 'Inativo'] })],
+        seed: ROLES.map((r, i) => ({ perfil: r, descricao: 'Perfil institucional do SIG — ' + r, permissoes: i === 0 ? 'Todos os módulos' : i === 4 ? 'Portal da Transparência (somente leitura)' : 'Módulos conforme matriz de competências', usuarios: [2, 3, 18, 12, 0][i], situacao: 'Ativo' })) },
+
+      { id: 'admin-organizacao', label: 'Estrutura Organizacional', group: '1. Administração e Cadastros', icon: '🏛', desc: 'Secretarias (siglas e denominações oficiais), Fundos Municipais e Autarquias.',
+        fields: [f('sigla', 'Sigla', 'text', { req: true }), f('denominacao', 'Denominação', 'text', { req: true, w: 'full' }), f('tipo', 'Tipo', 'select', { opts: ['Secretaria', 'Fundo Municipal', 'Autarquia'] }), f('titular', 'Titular / Responsável', 'text'), f('contato', 'Contato', 'text'), f('situacao', 'Situação', 'select', { opts: ['Ativo', 'Inativo'] })],
+        seed: SECRETARIAS.map(s => ({ sigla: s[0], denominacao: s[1], tipo: 'Secretaria', titular: 'A designar', contato: 'sig@paraguacupaulista.sp.gov.br', situacao: 'Ativo' })).concat([
+          { sigla: 'PARAG-FMS', denominacao: 'Fundo Municipal de Saúde', tipo: 'Fundo Municipal', titular: 'Secretário Municipal de Saúde', situacao: 'Ativo' },
+          { sigla: 'PARAG-FMAS', denominacao: 'Fundo Municipal de Assistência Social', tipo: 'Fundo Municipal', titular: 'Secretária Municipal de Assistência Social', situacao: 'Ativo' },
+          { sigla: 'PARAG-IMSS', denominacao: 'Instituto Municipal de Seguridade Social', tipo: 'Autarquia', titular: 'Diretor-Presidente', situacao: 'Ativo' }
+        ]) },
+
+      { id: 'admin-servidores', label: 'Servidores', group: '1. Administração e Cadastros', icon: '🧾', desc: 'Ordenadores de despesa, Controle Interno, fiscais de contrato e agentes de contratação.',
+        fields: [f('nome', 'Nome', 'text', { req: true }), f('cpf', 'CPF', 'text'), f('funcao', 'Função', 'select', { opts: ['Ordenador de despesa', 'Controle Interno', 'Fiscal de contrato', 'Agente de contratação', 'Gestor de convênio', 'Servidor'] }), f('secretaria', 'Secretaria', 'select', { opts: SEC_OPTS }), f('email', 'E-mail institucional', 'email'), f('telefone', 'Telefone', 'tel'), f('situacao', 'Situação', 'select', { opts: ['Ativo', 'Afastado', 'Inativo'] })],
+        seed: [
+          { nome: 'Ana Paula Ferreira', cpf: '***.456.789-**', funcao: 'Ordenador de despesa', secretaria: SEC_OPTS[15], email: 'ana.ferreira@paraguacupaulista.sp.gov.br', situacao: 'Ativo' },
+          { nome: 'Carlos Eduardo Lima', cpf: '***.123.456-**', funcao: 'Controle Interno', secretaria: SEC_OPTS[3], email: 'controle.interno@paraguacupaulista.sp.gov.br', situacao: 'Ativo' },
+          { nome: 'Marina Costa', cpf: '***.789.012-**', funcao: 'Gestor de convênio', secretaria: SEC_OPTS[8], email: 'marina.costa@paraguacupaulista.sp.gov.br', situacao: 'Ativo' },
+          { nome: 'Rafael Nogueira', cpf: '***.321.654-**', funcao: 'Fiscal de contrato', secretaria: SEC_OPTS[12], email: 'rafael.nogueira@paraguacupaulista.sp.gov.br', situacao: 'Ativo' },
+          { nome: 'Juliana Prado', cpf: '***.654.321-**', funcao: 'Agente de contratação', secretaria: SEC_OPTS[13], email: 'juliana.prado@paraguacupaulista.sp.gov.br', situacao: 'Ativo' }
+        ] },
+
+      { id: 'admin-fornecedores', label: 'Fornecedores', group: '1. Administração e Cadastros', icon: '🏢', desc: 'Cadastro de empresas e fornecedores (dados mestres).',
+        fields: [f('razao', 'Razão Social', 'text', { req: true }), f('cnpj', 'CNPJ', 'text'), f('objeto', 'Objeto Social', 'textarea', { w: 'full' }), f('email', 'E-mail', 'email'), f('telefone', 'Telefone', 'tel'), f('situacao', 'Situação Cadastral', 'select', { opts: ['Habilitado', 'Pendente', 'Suspenso', 'Inadimplente'] }), f('endereco', 'Endereço', 'text', { w: 'full' })],
+        seed: [
+          { razao: 'Paraguaçu Construções e Serviços Ltda', cnpj: '00.000.000/0001-01', objeto: 'Obras e serviços de engenharia', situacao: 'Habilitado' },
+          { razao: 'Comércio Regional São Paulo Ltda', cnpj: '00.000.000/0001-02', objeto: 'Fornecimento de materiais e equipamentos', situacao: 'Habilitado' },
+          { razao: 'Tech Gestão Pública ME', cnpj: '00.000.000/0001-03', objeto: 'Soluções em tecnologia da informação', situacao: 'Pendente' }
+        ] },
+
+      { id: 'admin-oscs', label: 'Organizações da Sociedade Civil', group: '1. Administração e Cadastros', icon: '🤝', desc: 'Cadastro de OSCs para parcerias MROSC (Lei 13.019/2014).',
+        fields: [f('nome', 'Nome da OSC', 'text', { req: true }), f('cnpj', 'CNPJ', 'text'), f('area', 'Área de Atuação', 'select', { opts: ['Saúde', 'Assistência Social', 'Educação', 'Cultura', 'Esporte e Lazer', 'Meio Ambiente', 'Outras'] }), f('certificacao', 'Certificação (utilidade pública / CEBAS)', 'text'), f('representante', 'Representante Legal', 'text'), f('email', 'E-mail', 'email'), f('situacao', 'Situação', 'select', { opts: ['Credenciada', 'Em análise', 'Suspensa'] })],
+        seed: [
+          { nome: 'Associação Paraguaçuana de Combate ao Câncer', cnpj: '00.000.000/0001-11', area: 'Saúde', certificacao: 'CEBAS – Saúde', representante: 'Maria Aparecida Souza', situacao: 'Credenciada' },
+          { nome: 'Instituto Educar Paraguaçu', cnpj: '00.000.000/0001-12', area: 'Educação', certificacao: 'Utilidade Pública Municipal', representante: 'José Roberto Alves', situacao: 'Credenciada' },
+          { nome: 'ONG Vida Ativa', cnpj: '00.000.000/0001-13', area: 'Assistência Social', representante: 'Sonia Regina Lima', situacao: 'Em análise' }
+        ] },
+
+      /* 2. Planejamento */
+      { id: 'planejamento-dfd', label: 'DFD — Documento de Formalização de Demanda', group: '2. Planejamento', icon: '📄', desc: 'Primeiro elo do fluxo legal de contratações (Lei 14.133/2021).',
+        fields: [f('numero', 'Número DFD', 'text', { req: true }), f('secretaria', 'Secretaria', 'select', { opts: SEC_OPTS, req: true }), f('objeto', 'Objeto da Demanda', 'textarea', { req: true, w: 'full' }), f('quantidade', 'Quantidade', 'text'), f('valor', 'Valor Estimado (R$)', 'currency'), f('data', 'Data', 'date'), f('responsavel', 'Responsável', 'text'), f('justificativa', 'Justificativa da Necessidade', 'textarea', { w: 'full' }), f('status', 'Status', 'select', { opts: ['Rascunho', 'Enviado', 'Aprovado', 'Rejeitado'] })],
+        seed: [
+          { numero: 'DFD-012/2026', secretaria: SEC_OPTS[8], objeto: 'Aquisição de 10 aparelhos de ar condicionado para salas de aula', quantidade: '10 unidades', valor: 48000, data: '2026-03-11', responsavel: 'Marina Costa', justificativa: 'Conforto térmico e melhoria do ambiente de aprendizagem.', status: 'Aprovado' },
+          { numero: 'DFD-027/2026', secretaria: SEC_OPTS[12], objeto: 'Pavimentação asfáltica de via pública no Jardim Paulista', quantidade: '1.200 m²', valor: 480000, data: '2026-05-02', responsavel: 'Rafael Nogueira', justificativa: 'Mobilidade e segurança viária.', status: 'Aprovado' }
+        ] },
+
+      { id: 'planejamento-pca', label: 'PCA — Plano de Contratações Anual', group: '2. Planejamento', icon: '🗓', desc: 'Consolidação dos DFDs por exercício.',
+        fields: [f('exercicio', 'Exercício', 'text', { req: true }), f('secretaria', 'Secretaria', 'select', { opts: SEC_OPTS }), f('item', 'Item / Descrição', 'text', { req: true, w: 'full' }), f('dfd', 'DFD de Origem', 'text'), f('valor', 'Valor Previsto (R$)', 'currency'), f('dataPrevista', 'Data Prevista', 'date'), f('status', 'Status', 'select', { opts: ['Planejado', 'Em contratação', 'Contratado', 'Cancelado'] })],
+        seed: [
+          { exercicio: '2026', secretaria: SEC_OPTS[8], item: 'Ar-conditionamento – EMEFs municipais', dfd: 'DFD-012/2026', valor: 48000, dataPrevista: '2026-08-01', status: 'Em contratação' },
+          { exercicio: '2026', secretaria: SEC_OPTS[12], item: 'Pavimentação – Jardim Paulista', dfd: 'DFD-027/2026', valor: 480000, dataPrevista: '2026-09-15', status: 'Contratado' }
+        ] },
+
+      { id: 'planejamento-etp', label: 'ETP — Estudo Técnico Preliminar', group: '2. Planejamento', icon: '🔎', desc: 'Análise de viabilidade e soluções (art. 18 da Lei 14.133/2021).',
+        fields: [f('numero', 'Número ETP', 'text', { req: true }), f('dfd', 'DFD de Origem', 'text'), f('objeto', 'Objeto', 'textarea', { req: true, w: 'full' }), f('justificativa', 'Justificativa', 'textarea', { w: 'full' }), f('solucoes', 'Soluções Consideradas', 'textarea', { w: 'full' }), f('analiseRiscos', 'Análise de Riscos', 'textarea', { w: 'full' }), f('recomendacao', 'Recomendação Técnica', 'textarea', { w: 'full' }), f('valor', 'Valor Estimado (R$)', 'currency'), f('status', 'Status', 'select', { opts: ['Rascunho', 'Concluído', 'Revisado'] })],
+        seed: [{ numero: 'ETP-009/2026', dfd: 'DFD-012/2026', objeto: 'Aquisição de aparelhos de ar condicionado', justificativa: 'Necessidade comprovada de climatização.', solucoes: 'Aquisição definitiva x locação. Aquisição mais vantajosa.', analiseRiscos: 'Risco de incompatibilidade elétrica; mitigado por vistoria prévia.', recomendacao: 'Aquisição definitiva, pregão eletrônico.', valor: 48000, status: 'Concluído' }] },
+
+      { id: 'planejamento-pesquisa', label: 'Pesquisa de Preços', group: '2. Planejamento', icon: '💲', desc: 'Cotações e parâmetros de preço (art. 23 da Lei 14.133/2021).',
+        fields: [f('numero', 'Número', 'text', { req: true }), f('objeto', 'Objeto', 'text', { w: 'full' }), f('fornecedor', 'Fornecedor Cotado', 'text'), f('origemCotacao', 'Origem', 'select', { opts: ['Portal de Compras', 'Banco de Preços', 'Nota Fiscal', 'Site do Fabricante', 'Outras'] }), f('quantidade', 'Quantidade', 'text'), f('valorUnitario', 'Valor Unitário (R$)', 'currency'), f('valorTotal', 'Valor Total (R$)', 'currency'), f('data', 'Data', 'date'), f('anexos', 'Anexos', 'text', { w: 'full' })],
+        seed: [{ numero: 'PP-021/2026', objeto: 'Aparelho de ar condicionado 12.000 BTUs', fornecedor: 'Comércio Regional São Paulo Ltda', origemCotacao: 'Portal de Compras', quantidade: '10', valorUnitario: 4800, valorTotal: 48000, data: '2026-04-18' }] },
+
+      { id: 'planejamento-riscos', label: 'Matriz de Riscos', group: '2. Planejamento', icon: '⚠', desc: 'Probabilidade, impacto e mitigação.',
+        fields: [f('risco', 'Risco Identificado', 'text', { req: true, w: 'full' }), f('probabilidade', 'Probabilidade', 'select', { opts: ['Baixa', 'Média', 'Alta'] }), f('impacto', 'Impacto', 'select', { opts: ['Baixo', 'Médio', 'Alto'] }), f('mitigacao', 'Medida de Mitigação', 'textarea', { w: 'full' }), f('responsavel', 'Responsável', 'text'), f('status', 'Status', 'select', { opts: ['Aberto', 'Mitigado', 'Monitorado'] })],
+        seed: [{ risco: 'Atraso na entrega por falta de estoque do fabricante', probabilidade: 'Média', impacto: 'Médio', mitigacao: 'Exigir garantia de estoque e prazo de substituição em até 48h.', responsavel: 'Juliana Prado', status: 'Monitorado' }] },
+
+      { id: 'planejamento-tr', label: 'Termo de Referência', group: '2. Planejamento', icon: '📑', desc: 'Especificações, prazos, garantia e penalidades.',
+        fields: [f('numero', 'Número TR', 'text', { req: true }), f('objeto', 'Objeto', 'textarea', { req: true, w: 'full' }), f('especificacoes', 'Especificações Técnicas', 'textarea', { w: 'full' }), f('prazo', 'Prazo de Entrega', 'text'), f('garantia', 'Garantia', 'text'), f('penalidades', 'Penalidades', 'textarea', { w: 'full' }), f('valor', 'Valor (R$)', 'currency'), f('status', 'Status', 'select', { opts: ['Rascunho', 'Aprovado', 'Em licitação'] })],
+        seed: [{ numero: 'TR-018/2026', objeto: 'Aquisição de aparelhos de ar condicionado', especificacoes: '12.000 BTUs, ciclo reverso, classe A, garantia mínima de 12 meses.', prazo: '30 dias corridos', garantia: '12 meses', valor: 48000, status: 'Aprovado' }] },
+
+      { id: 'planejamento-projeto-basico', label: 'Projeto Básico', group: '2. Planejamento', icon: '📐', desc: 'Projeto básico de engenharia e serviços especializados.',
+        fields: [f('numero', 'Número', 'text', { req: true }), f('objeto', 'Objeto', 'textarea', { req: true, w: 'full' }), f('memoria', 'Memória de Cálculo', 'textarea', { w: 'full' }), f('desenho', 'Desenhos / Anexos', 'text', { w: 'full' }), f('prazo', 'Prazo de Execução', 'text'), f('valor', 'Valor (R$)', 'currency'), f('responsavel', 'Responsável Técnico', 'text'), f('status', 'Status', 'select', { opts: ['Rascunho', 'Aprovado'] })],
+        seed: [{ numero: 'PB-006/2026', objeto: 'Pavimentação asfáltica – Jardim Paulista', memoria: 'Área de 1.200 m², camada de 5 cm de CBUQ.', prazo: '90 dias', valor: 480000, responsavel: 'Eng. Rafael Nogueira', status: 'Aprovado' }] },
+
+      /* 3. Licitações e Contratações */
+      { id: 'licitacoes', label: 'Processos Licitatórios', group: '3. Licitações e Contratações', icon: '⚖', desc: 'Pregão, Concorrência, Concurso, Leilão e Diálogo Competitivo — inclui fase de editais. Integração via API com o sistema contábil/financeiro.',
+        fields: [f('numero', 'Número do Processo', 'text', { req: true }), f('modalidade', 'Modalidade', 'select', { opts: ['Pregão Eletrônico', 'Pregão Presencial', 'Concorrência', 'Concurso', 'Leilão', 'Diálogo Competitivo'], req: true }), f('objeto', 'Objeto', 'textarea', { req: true, w: 'full' }), f('secretaria', 'Secretaria', 'select', { opts: SEC_OPTS }), f('valor', 'Valor Estimado (R$)', 'currency'), f('publicacao', 'Publicação do Edital', 'date'), f('sessao', 'Sessão', 'date'), f('edital', 'Edital (arquivo/SEI)', 'text', { w: 'full' }), f('vencedor', 'Vencedor', 'text'), f('status', 'Status', 'select', { opts: ['Edital', 'Sessão', 'Julgado', 'Homologado', 'Contratado', 'Deserto/Fracassado'] })],
+        seed: [
+          { numero: 'PE-045/2026', modalidade: 'Pregão Eletrônico', objeto: 'Aquisição de aparelhos de ar condicionado para EMEFs', secretaria: SEC_OPTS[8], valor: 48000, publicacao: '2026-06-10', sessao: '2026-06-24', edital: 'SEI 12.345.678/2026-01', vencedor: 'Comércio Regional São Paulo Ltda', status: 'Homologado' },
+          { numero: 'PC-012/2026', modalidade: 'Concorrência', objeto: 'Pavimentação asfáltica – Jardim Paulista', secretaria: SEC_OPTS[12], valor: 480000, publicacao: '2026-08-02', sessao: '2026-09-05', edital: 'SEI 12.345.678/2026-02', status: 'Edital' }
+        ] },
+
+      { id: 'contratacao-direta', label: 'Contratação Direta (Dispensa/Inexigibilidade)', group: '3. Licitações e Contratações', icon: '📌', desc: 'Dispensa e inexigibilidade de licitação (novo).',
+        fields: [f('numero', 'Número', 'text', { req: true }), f('tipo', 'Tipo', 'select', { opts: ['Dispensa de Licitação', 'Inexigibilidade de Licitação'], req: true }), f('fundamento', 'Fundamento Legal', 'text'), f('objeto', 'Objeto', 'textarea', { req: true, w: 'full' }), f('fornecedor', 'Fornecedor', 'text'), f('valor', 'Valor (R$)', 'currency'), f('data', 'Data', 'date'), f('justificativa', 'Justificativa', 'textarea', { w: 'full' }), f('status', 'Status', 'select', { opts: ['Em análise', 'Ratificado', 'Publicado', 'Contratado'] })],
+        seed: [{ numero: 'DIS-019/2026', tipo: 'Dispensa de Licitação', fundamento: 'Art. 75, II, Lei 14.133/2021', objeto: 'Serviço emergencial de manutenção elétrica', fornecedor: 'Tech Gestão Pública ME', valor: 9800, data: '2026-10-03', status: 'Ratificado' }] },
+
+      { id: 'arp', label: 'Atas de Registro de Preços (ARP)', group: '3. Licitações e Contratações', icon: '📋', desc: 'Controle de saldos, validade e adesões (“caronas”) (novo).',
+        fields: [f('numero', 'Número ATA/ARP', 'text', { req: true }), f('objeto', 'Objeto', 'textarea', { w: 'full' }), f('fornecedor', 'Fornecedor', 'text'), f('valorUnitario', 'Valor Unitário (R$)', 'currency'), f('quantidade', 'Quantidade Registrada', 'text'), f('saldo', 'Saldo Disponível', 'text'), f('validade', 'Validade', 'date'), f('secretaria', 'Secretaria Gestora', 'select', { opts: SEC_OPTS }), f('adesoes', 'Adesões / Caronas', 'textarea', { w: 'full' }), f('status', 'Status', 'select', { opts: ['Vigente', 'Esgotada', 'Vencida', 'Suspensa'] })],
+        seed: [{ numero: 'ARP-008/2026', objeto: 'Registro de preços para material de limpeza', fornecedor: 'Comércio Regional São Paulo Ltda', valorUnitario: 28.9, quantidade: '5.000 unidades', saldo: '1.850 unidades', validade: '2027-04-30', secretaria: SEC_OPTS[3], status: 'Vigente' }] },
+
+      { id: 'contratos', label: 'Contratos (Instrumentos e Aditivos)', group: '3. Licitações e Contratações', icon: '📃', desc: 'Instrumentos, aditivos, apostilamentos, fiscais e gestores.',
+        fields: [f('numero', 'Número do Contrato', 'text', { req: true }), f('processo', 'Processo de Origem', 'text'), f('tipo', 'Tipo', 'select', { opts: ['Contrato', 'Termo de Compromisso', 'Ata de Registro de Preços'] }), f('contratado', 'Contratado', 'text'), f('objeto', 'Objeto', 'textarea', { w: 'full' }), f('valor', 'Valor (R$)', 'currency'), f('assinatura', 'Data de Assinatura', 'date'), f('vigencia', 'Vigência Até', 'date'), f('fiscal', 'Fiscal', 'text'), f('gestor', 'Gestor', 'text'), f('status', 'Status', 'select', { opts: ['Vigente', 'Encerrado', 'Suspenso', 'Em aditamento'] }), f('aditivos', 'Aditivos / Apostilamentos', 'repeater', { subLabel: 'aditivo', sub: [f('numero', 'Número', 'text'), f('tipo', 'Tipo', 'select', { opts: ['Aditivo de valor', 'Aditivo de prazo', 'Apostilamento', 'Reequilíbrio'] }), f('valor', 'Valor (R$)', 'currency'), f('data', 'Data', 'date'), f('descricao', 'Descrição', 'text')] })],
+        seed: [{ numero: 'CON-072/2026', processo: 'PE-045/2026', tipo: 'Contrato', contratado: 'Comércio Regional São Paulo Ltda', objeto: 'Aquisição de aparelhos de ar condicionado', valor: 48000, assinatura: '2026-07-15', vigencia: '2026-12-31', fiscal: 'Rafael Nogueira', gestor: 'Marina Costa', status: 'Vigente' }] }
+    );
+    /* ===================== CATÁLOGO DE MÓDULOS (parte 2) ===================== */
+    CATALOG.push(
+      /* 4. Convênios e Transferências */
+      { id: 'convenios-federais', label: 'Convênios Federais', group: '4. Convênios e Transferências', icon: '🇧🇷', desc: 'Entrada de recursos conforme Transferegov (Fundo a Fundo, Transferências Especiais, Discricionárias e Legais), InvestSUS, SIMEC e outras plataformas.',
+        fields: baseFinancial([
+          f('plataforma', 'Plataforma', 'select', { opts: ['Transferegov – Fundo a Fundo', 'Transferegov – Transferências Especiais', 'Transferegov – Discricionárias e Legais', 'InvestSUS', 'SIMEC', 'Outras plataformas federais'] }),
+          f('convenio', 'Nº Convênio / Termo', 'text'), f('planoTrabalho', 'Plano de Trabalho (SEI/arquivo)', 'text', { w: 'full' }), f('contrapartida', 'Contrapartida (R$)', 'currency'), f('dataRepasse', 'Data do Repasse', 'date'), f('prestacaoPrazo', 'Prazo Prestação de Contas', 'date'), f('situacaoPlataforma', 'Situação na Plataforma', 'text')
+        ]),
+        seed: [
+          { numero: 'TC-897123/2026', objeto: 'Aquisição de equipamentos para Unidades Básicas de Saúde', origem: 'União', secretaria: SEC_OPTS[15], valor: 1250000, status: 'Repassado', dataInicio: '2026-01-15', dataFim: '2027-03-31', concedente: 'Ministério da Saúde / Fundo Nacional de Saúde', beneficiario: 'Fundo Municipal de Saúde', plataforma: 'InvestSUS', convenio: '897123/2026', contrapartida: 125000, dataRepasse: '2026-02-10', prestacaoPrazo: '2027-06-30', situacaoPlataforma: 'Em execução – sem pendências', planoTrabalho: 'SEI 14.002.119/2026' },
+          { numero: 'TC-945210/2026', objeto: 'Aquisição de ar condicionado e mobiliário para EMEFs', origem: 'União', secretaria: SEC_OPTS[8], valor: 2300000, status: 'Em Execução', dataInicio: '2026-04-01', dataFim: '2027-12-31', concedente: 'FNDE / PDE Escola', beneficiario: 'Secretaria Municipal de Educação', plataforma: 'Transferegov – Transferências Discricionárias e Legais', convenio: '945210/2026', contrapartida: 0, prestacaoPrazo: '2028-03-31', situacaoPlataforma: 'Prestação de contas parcial pendente' },
+          { numero: 'TC-910088/2026', objeto: 'Apoyo à agricultura familiar e abastecimento', origem: 'União', secretaria: SEC_OPTS[2], valor: 320000, status: 'Aprovado', dataInicio: '2026-09-01', dataFim: '2027-08-31', concedente: 'MDA', plataforma: 'Transferegov – Fundo a Fundo', situacaoPlataforma: 'Aprovado – aguardando repasse' }
+        ] },
+
+      { id: 'convenios-estaduais', label: 'Convênios Estaduais', group: '4. Convênios e Transferências', icon: '🏛', desc: 'Controle completo de entrada de recursos conforme a plataforma SP Demandas e demais repasses estaduais.',
+        fields: baseFinancial([
+          f('plataforma', 'Plataforma', 'select', { opts: ['SP Demandas', 'Fundo Estadual', 'Convênio Direto – Estado de SP', 'Outras plataformas estaduais'] }),
+          f('demanda', 'Nº Demanda / Protocolo', 'text'), f('convenio', 'Nº Convênio', 'text'), f('planoTrabalho', 'Plano de Trabalho', 'text', { w: 'full' }), f('contrapartida', 'Contrapartida (R$)', 'currency'), f('dataRepasse', 'Data do Repasse', 'date'), f('prestacaoPrazo', 'Prazo Prestação de Contas', 'date')
+        ]),
+        seed: [
+          { numero: 'SD-118842/2026', objeto: 'Aquisição de equipamentos esportivos para praças e ginásios', origem: 'Estado', secretaria: SEC_OPTS[9], valor: 95000, status: 'Em Execução', dataInicio: '2026-06-01', dataFim: '2026-12-15', concedente: 'Secretaria de Estado de Esportes – SP', plataforma: 'SP Demandas', demanda: '118842', contrapartida: 9500, prestacaoPrazo: '2027-02-28' },
+          { numero: 'SD-119007/2026', objeto: 'Recuperação de estrada rural – Bairro do Salto', origem: 'Estado', secretaria: SEC_OPTS[12], valor: 640000, status: 'Solicitado', dataInicio: '2027-01-01', dataFim: '2027-12-31', concedente: 'Secretaria de Estado de Transportes', plataforma: 'SP Demandas', demanda: '119007' }
+        ] },
+
+      { id: 'emendas-diretas', label: 'Emendas Parlamentares — Execução Direta', group: '4.3 Emendas Parlamentares', icon: '🎯', desc: 'Rastreabilidade desde a indicação até o pagamento, conforme exigências do TCESP. Inclui os três formulários oficiais do exercício.',
+        fields: baseFinancial([
+          f('tipoEmenda', 'Tipo de Emenda', 'select', { opts: ['Emenda Municipal Impositiva', 'Emenda Estadual', 'Emenda Federal'] }),
+          f('numeroEmenda', 'Nº da Emenda', 'text'), f('autor', 'Autor da Emenda', 'text'), f('indicacao', 'Indicação / Processo', 'text', { w: 'full' }), f('orgaoExecutor', 'Órgão Executor', 'select', { opts: SEC_OPTS }), f('tipoDespesa', 'Tipo de Despesa', 'select', { opts: ['Custeio', 'Investimento'] }), f('empenho', 'Empenho', 'text'), f('pagamento', 'Data do Pagamento', 'date'), f('sei', 'Processo SEI', 'text')
+        ]),
+        seed: [
+          { numero: 'EM-087/2026', objeto: 'Pavimentação asfáltica – Jardim Paulista', origem: 'Emendas', secretaria: SEC_OPTS[12], valor: 480000, status: 'Repassado', dataInicio: '2026-05-20', dataFim: '2026-12-20', tipoEmenda: 'Emenda Municipal Impositiva', numeroEmenda: 'EM-087/2026', autor: 'Vereador João Batista', indicacao: 'Indicação nº 210/2026', orgaoExecutor: SEC_OPTS[12], tipoDespesa: 'Investimento', empenho: '2026NE001234', pagamento: '2026-11-10', sei: 'SEI 13.220.441/2026', concedente: 'Câmara Municipal de Paraguaçu Paulista', beneficiario: 'Município de Paraguaçu Paulista' },
+          { numero: 'EM-103/2026', objeto: 'Custeio das atividades da EMEF Cel Antonio Nogueira', origem: 'Emendas', secretaria: SEC_OPTS[8], valor: 150000, status: 'Aprovado', dataInicio: '2026-08-01', dataFim: '2026-12-31', tipoEmenda: 'Emenda Municipal Impositiva', numeroEmenda: 'EM-103/2026', autor: 'Vereadora Maria Helena', orgaoExecutor: SEC_OPTS[8], tipoDespesa: 'Custeio', sei: 'SEI 13.220.512/2026' }
+        ] },
+
+      /* Formulários oficiais derivados dos DOCX (campos fiéis aos modelos) */
+      { id: 'form-plano-trabalho-resumido', label: 'Plano de Trabalho Resumido', group: '4.3 Emendas Parlamentares', icon: '📝', type: 'form',
+        desc: 'Formulário conforme modelo oficial plano_trabalho_resumido.docx (11 seções).',
+        sections: [
+          { title: '1. Dados Cadastrais', fields: [f('beneficiario', 'Nome do beneficiário', 'text', { req: true }), f('suborgao', 'Subórgão (se houver)', 'text'), f('cnpj', 'CNPJ (quando aplicável)', 'text'), f('endereco', 'Endereço completo', 'text', { w: 'full' }), f('responsavel', 'Nome do responsável', 'text'), f('telefone', 'Telefone de contato', 'tel'), f('email', 'E-mail', 'email')] },
+          { title: '2. Dados Orçamentários', fields: [f('valorObjeto', 'Valor do objeto (R$)', 'currency', { req: true }), f('orgaoExecutor', 'Órgão Executor', 'select', { opts: SEC_OPTS }), f('emendaVinculada', 'Emenda vinculada', 'text')] },
+          { title: '3. Projeto a ser executado — finalidade', fields: [f('finalidade', 'Descreva sucintamente a finalidade do recurso', 'textarea', { w: 'full', req: true })] },
+          { title: '4. Público alvo', fields: [f('publicoAlvo', 'Público beneficiado', 'textarea', { w: 'full', req: true })] },
+          { title: '5. Objetivo específico do objeto', fields: [f('objetivo', 'Objetivo específico / problema a resolver', 'textarea', { w: 'full', req: true })] },
+          { title: '6. Meta proposta', fields: [f('meta', 'Entrega física — quantidade, local e prazo', 'textarea', { w: 'full', req: true })] },
+          { title: '7. Indicador de desempenho', fields: [f('indicador', 'Métrica que comprova o atingimento da meta', 'textarea', { w: 'full' })] },
+          { title: '8. Impacto esperado', fields: [f('impacto', 'Mudança real na vida do cidadão', 'textarea', { w: 'full' })] },
+          { title: '9. Observações', fields: [f('observacoes', 'Informações relevantes / divisão do valor entre vereadores', 'textarea', { w: 'full' })] },
+          { title: '10 e 11. Local, data e assinatura', fields: [f('localData', 'Paraguaçu Paulista (SP), ____ de _______ de ______', 'text', { w: 'full' }), f('assinatura', 'Assinatura digital do responsável', 'signature', { w: 'full' })] }
+        ] },
+
+      { id: 'form-declaracao-custeio', label: 'Declaração — Custeio das Atividades', group: '4.3 Emendas Parlamentares', icon: '✍', type: 'form',
+        desc: 'Formulário conforme modelo oficial declaracao_custeio.docx.',
+        sections: [
+          { title: 'Dados do beneficiário', fields: [f('beneficiario', 'Nome do beneficiário', 'text', { req: true }), f('cnpj', 'CNPJ', 'text'), f('endereco', 'Endereço completo', 'text', { w: 'full' }), f('responsavel', 'Nome do responsável', 'text'), f('telefone', 'Telefone de contato', 'tel'), f('email', 'E-mail', 'email')] },
+          { title: 'Declaração', fields: [f('declaracao', 'Texto da declaração (configuredo conforme modelo)', 'textarea', { w: 'full', value: 'O responsável que abaixo subscreve, DECLARA, para os devidos fins, que o valor pleiteado por meio de Emenda Impositiva para o "custeio" das atividades do beneficiário é suficiente para suprir o objetivo específico do objeto da Emenda, conforme discriminado no Plano Resumido de Trabalho.' }) ] },
+          { title: 'Base de cálculo / critérios', fields: [f('baseCalculo', 'Demonstrar a base utilizada para compor o valor pleiteado (ex.: dados financeiros de exercícios anteriores)', 'textarea', { w: 'full', req: true })] },
+          { title: 'Local, data e assinatura', fields: [f('localData', 'Estância Turística de Paraguaçu Paulista, ___ de _________ de _____', 'text', { w: 'full' }), f('assinatura', 'Nome e assinatura do responsável', 'signature', { w: 'full' })] }
+        ] },
+
+      { id: 'form-relatorio-gestao', label: 'Relatório de Gestão', group: '4.3 Emendas Parlamentares', icon: '📊', type: 'form',
+        desc: 'Formulário conforme modelo oficial relatorio_gestao.docx.',
+        sections: [
+          { title: 'Identificação', fields: [f('exercicio', 'Exercício Financeiro', 'text', { req: true, value: '2026' }), f('tipoEmenda', 'Tipo de Emenda', 'text'), f('numeroAutor', 'Número e Autor da Emenda', 'text'), f('beneficiario', 'Beneficiário', 'text'), f('finalidade', 'Finalidade', 'text', { w: 'full' }), f('valor', 'Valor (R$)', 'currency')] },
+          { title: '2. Alinhamento Programático', fields: [f('orgaoExecutor', 'Órgão Executor', 'select', { opts: SEC_OPTS }), f('tipoDespesa', 'Tipo de Despesa', 'select', { opts: ['Custeio', 'Investimento'] })] },
+          { title: '3. Quadro Técnico de Resultados', fields: [f('objetivo', '3.1 Objetivo (conforme plano de trabalho)', 'textarea', { w: 'full' }), f('meta', '3.2 Meta Proposta', 'textarea', { w: 'full' }), f('indicador', '3.3 Indicador de Desempenho', 'textarea', { w: 'full' }), f('impacto', '3.4 Impacto Esperado', 'textarea', { w: 'full' })] },
+          { title: '4. Execução da Meta', fields: [f('execucao', 'Instrumento / Empenho / Nota(s) / Valor / Recebimento / Pagamento (e patrimônio, quando aplicável)', 'repeater', { w: 'full', subLabel: 'item de execução', sub: [f('instrumento', 'Instrumento', 'text'), f('empenho', 'Empenho', 'text'), f('nota', 'Nota(s)', 'text'), f('descricao', 'Descrição do Produto', 'text'), f('quantidade', 'Quantidade', 'text'), f('valor', 'Valor (R$)', 'currency'), f('recebimento', 'Data do Recebimento', 'date'), f('pagamento', 'Data do Pagamento', 'date'), f('patrimonio', 'Nº do Patrimônio', 'text')] })] },
+          { title: '5. Resultado', fields: [f('resultado', 'Descrever o resultado frente ao impacto esperado', 'textarea', { w: 'full' })] },
+          { title: '6. Conclusão e assinatura', fields: [f('conclusao', 'Conclusão', 'textarea', { w: 'full', value: 'Conclui-se, com a devida demonstração, que os recursos públicos da Emenda Parlamentar foram aplicados em estrita consonância com o plano de trabalho na execução física e financeira.' }), f('signatario', 'Nome do Signatário', 'text'), f('cargo', 'Cargo / Secretaria', 'text'), f('assinatura', 'Assinatura digital', 'signature', { w: 'full' })] }
+        ] },
+
+      /* 4.4 Terceiro Setor */
+      { id: 'parcerias-emendas', label: 'Emendas — Terceiro Setor', group: '4.4 Parcerias Terceiro Setor', icon: '💠', desc: 'Entrada de recursos por emendas federais, estaduais e municipais destinadas a OSCs, com rastreabilidade TCESP.',
+        fields: baseFinancial([
+          f('tipoEmenda', 'Tipo de Emenda', 'select', { opts: ['Emenda Federal', 'Emenda Estadual', 'Emenda Municipal'] }),
+          f('numeroEmenda', 'Nº da Emenda', 'text'), f('autor', 'Autor', 'text'), f('osc', 'OSC Beneficiária', 'text'), f('cnpjOsc', 'CNPJ da OSC', 'text'), f('instrumento', 'Instrumento', 'text')
+        ]),
+        seed: [{ numero: 'EM-OSC-041/2026', objeto: 'Custeio de tratamento e acompanhamento de pacientes em quimioterapia', origem: 'OSCs', secretaria: SEC_OPTS[15], valor: 180000, status: 'Repassado', dataInicio: '2026-03-01', dataFim: '2026-12-31', tipoEmenda: 'Emenda Federal', numeroEmenda: 'EM-041/2026', autor: 'Deputado Federal Exemplo', osc: 'Associação Paraguaçuana de Combate ao Câncer', cnpjOsc: '00.000.000/0001-11', instrumento: 'Termo de Colaboração 018/2026' }] },
+
+      { id: 'form-eti', label: 'Estudo Técnico Inicial — ETI', group: '4.4 Parcerias Terceiro Setor', icon: '🔬', type: 'embed', src: 'assets/embedded/form-eti.html', desc: 'Formulário oficial incorporado integralmente (versão adaptada à identidade visual do SIG), com auditoria, versionamento, documentos e exportação próprios.' },
+      { id: 'parcerias-credenciamento', label: 'Credenciamento', group: '4.4 Parcerias Terceiro Setor', icon: '✅', desc: 'Edital de credenciamento e certificados emitidos.',
+        fields: [f('numero', 'Número', 'text', { req: true }), f('edital', 'Edital', 'text', { w: 'full' }), f('publicacao', 'Publicação', 'date'), f('osc', 'OSC', 'text'), f('certificado', 'Certificado nº', 'text'), f('validade', 'Validade', 'date'), f('situacao', 'Situação', 'select', { opts: ['Publicado', 'Credenciada', 'Indeferida', 'Suspensa'] })],
+        seed: [{ numero: 'CRE-003/2026', edital: 'Edital de Credenciamento 003/2026 – Saúde', publicacao: '2026-02-10', osc: 'Associação Paraguaçuana de Combate ao Câncer', certificado: 'CERT-018/2026', validade: '2028-02-10', situacao: 'Credenciada' }] },
+
+      { id: 'parcerias-chamamento', label: 'Chamamento Público', group: '4.4 Parcerias Terceiro Setor', icon: '📢', desc: 'Edital de chamamento público (Lei 13.019/2014).',
+        fields: [f('numero', 'Número', 'text', { req: true }), f('objeto', 'Objeto', 'textarea', { w: 'full' }), f('publicacao', 'Publicação', 'date'), f('sessao', 'Sessão de seleção', 'date'), f('participantes', 'Participantes', 'text'), f('selecionada', 'OSC Selecionada', 'text'), f('situacao', 'Situação', 'select', { opts: ['Em andamento', 'Selecionada', 'Deserto', 'Homologado'] })],
+        seed: [{ numero: 'CH-007/2026', objeto: 'Seleção de OSC para execução de atividades de educação complementar', publicacao: '2026-04-05', sessao: '2026-05-10', participantes: 'Instituto Educar Paraguaçu; ONG Vida Ativa', selecionada: 'Instituto Educar Paraguaçu', situacao: 'Homologado' }] },
+
+      { id: 'parcerias-justificativa', label: 'Justificativa (Sem Chamamento / Dispensa / Inexigibilidade)', group: '4.4 Parcerias Terceiro Setor', icon: '🧷', desc: 'Hipóteses do art. 30 da Lei 13.019/2014.',
+        fields: [f('numero', 'Número', 'text', { req: true }), f('hipotese', 'Hipótese Legal', 'select', { opts: ['Sem chamamento – art. 30, caput', 'Chamamento dispensado – incisos do art. 30', 'Inexigibilidade – incisos do art. 31'] }), f('fundamento', 'Fundamento', 'text', { w: 'full' }), f('osc', 'OSC', 'text'), f('justificativa', 'Justificativa', 'textarea', { w: 'full' }), f('status', 'Status', 'select', { opts: ['Rascunho', 'Aprovada', 'Publicada'] })],
+        seed: [{ numero: 'JUS-014/2026', hipotese: 'Inexigibilidade – incisos do art. 31', fundamento: 'Atuação exclusiva em atendimento oncológico no município', osc: 'Associação Paraguaçuana de Combate ao Câncer', justificativa: 'Única entidade com CEBAS em oncologia no território municipal.', status: 'Aprovada' }] },
+
+      { id: 'form-plano-trabalho-osc', label: 'Plano de Trabalho — OSC', group: '4.4 Parcerias Terceiro Setor', icon: '📑', type: 'embed', src: 'assets/embedded/form-plano-trabalho-osc.html', desc: 'Formulário oficial incorporado integralmente, com metas, indicadores, cronograma e plano de aplicação.' },
+
+      { id: 'parcerias-termos', label: 'Termos (Contrato de Gestão, Parceria, Colaboração, Fomento e Convênio)', group: '4.4 Parcerias Terceiro Setor', icon: '📜', desc: 'Instrumentos de parceria com subseção integrada para eventual Termo Aditivo.',
+        fields: [f('numero', 'Número do Instrumento', 'text', { req: true }), f('tipo', 'Tipo de Termo', 'select', { opts: ['Contrato de Gestão', 'Termo de Parceria', 'Termo de Colaboração', 'Termo de Fomento', 'Convênio com OSC'], req: true }), f('osc', 'OSC', 'text'), f('cnpj', 'CNPJ', 'text'), f('objeto', 'Objeto', 'textarea', { w: 'full' }), f('valor', 'Valor (R$)', 'currency'), f('vigencia', 'Vigência', 'text'), f('gestor', 'Gestor da Parceria', 'text'), f('status', 'Status', 'select', { opts: ['Em elaboração', 'Assinado', 'Em execução', 'Prestação de contas', 'Concluído'] }), f('aditivos', 'Termos Aditivos (subseção integrada)', 'repeater', { subLabel: 'termo aditivo', sub: [f('numero', 'Nº do Aditivo', 'text'), f('tipo', 'Tipo', 'select', { opts: ['Aditivo de valor', 'Aditivo de prazo', 'Aditivo de metas', 'Apostilamento'] }), f('data', 'Data', 'date'), f('descricao', 'Descrição', 'text', { w: 'full' })] })],
+        seed: [{ numero: 'TC-018/2026', tipo: 'Termo de Colaboração', osc: 'Associação Paraguaçuana de Combate ao Câncer', cnpj: '00.000.000/0001-11', objeto: 'Custeio de atividades de apoio a pacientes oncológicos', valor: 210000, vigencia: '01/03/2026 a 31/12/2026', gestor: 'Ana Paula Ferreira', status: 'Em execução', aditivos: [{ numero: '1º Aditivo', tipo: 'Aditivo de prazo', data: '2026-09-30', descricao: 'Prorrogação por 60 dias' }] }] },
+
+      { id: 'form-avaliacao-gestor', label: 'Avaliação do Gestor', group: '4.4 Parcerias Terceiro Setor', icon: '⭐', type: 'embed', src: 'assets/embedded/form-avaliacao-gestor.html', desc: 'Formulário oficial de avaliação técnica de planos de trabalho incorporado integralmente.' },
+      { id: 'form-lista-verificacao', label: 'Lista de Verificação', group: '4.4 Parcerias Terceiro Setor', icon: '☑', type: 'embed', src: 'assets/embedded/form-lista-verificacao.html', desc: 'Lista de verificação documental incorporada integralmente.' },
+
+      /* 5. Execução Orçamentária e Física */
+      { id: 'execucao-direta', label: 'Execução Direta', group: '5. Execução Orçamentária e Física', icon: '🚚', desc: 'Ordens de fornecimento/serviço, medições e recebimento provisório/definitivo (API com contábil/financeiro).',
+        fields: [f('ordem', 'Ordem de Fornecimento/Serviço', 'text', { req: true }), f('tipo', 'Tipo', 'select', { opts: ['Fornecimento', 'Serviço'] }), f('contrato', 'Contrato de Origem', 'text'), f('secretaria', 'Secretaria', 'select', { opts: SEC_OPTS }), f('descricao', 'Descrição', 'textarea', { w: 'full' }), f('valorMedido', 'Valor Medido (R$)', 'currency'), f('dataMedicao', 'Data da Medição', 'date'), f('recebimento', 'Recebimento', 'select', { opts: ['Provisório', 'Definitivo', 'Pendente'] }), f('responsavel', 'Responsável', 'text'), f('status', 'Status', 'select', { opts: ['Em execução', 'Medido', 'Recebido', 'Pago'] })],
+        seed: [{ ordem: 'OF-056/2026', tipo: 'Fornecimento', contrato: 'CON-072/2026', secretaria: SEC_OPTS[8], descricao: 'Entrega de 10 aparelhos de ar condicionado', valorMedido: 48000, dataMedicao: '2026-10-22', recebimento: 'Definitivo', responsavel: 'Marina Costa', status: 'Pago' }] },
+
+      { id: 'execucao-convenios', label: 'Execução de Convênios e Parcerias', group: '5. Execução Orçamentária e Física', icon: '📈', desc: 'Repasses financeiros, cronograma de desembolso e execução de metas.',
+        fields: [f('instrumento', 'Instrumento de Origem', 'text', { req: true }), f('tipo', 'Tipo', 'select', { opts: ['Repasse', 'Desembolso', 'Meta física', 'Prestação de contas'] }), f('descricao', 'Descrição', 'textarea', { w: 'full' }), f('valor', 'Valor (R$)', 'currency'), f('dataPrevista', 'Data Prevista', 'date'), f('dataRealizada', 'Data Realizada', 'date'), f('metaFisica', 'Meta Física (%)', 'number'), f('status', 'Status', 'select', { opts: ['Previsto', 'Realizado', 'Atrasado', 'Cancelado'] })],
+        seed: [
+          { instrumento: 'TC-897123/2026', tipo: 'Repasse', descricao: '1ª parcela – Fundo Nacional de Saúde', valor: 625000, dataPrevista: '2026-02-10', dataRealizada: '2026-02-10', metaFisica: 40, status: 'Realizado' },
+          { instrumento: 'TC-945210/2026', tipo: 'Desembolso', descricao: 'Pagamento de fornecedor de equipamentos', valor: 310000, dataPrevista: '2026-11-30', metaFisica: 55, status: 'Previsto' },
+          { instrumento: 'TC-018/2026', tipo: 'Meta física', descricao: 'Atendimento a 120 pacientes', valor: 70000, dataPrevista: '2026-10-31', dataRealizada: '2026-11-05', metaFisica: 100, status: 'Realizado' }
+        ] },
+
+      { id: 'execucao-emendas', label: 'Emendas — Rastreabilidade', group: '5. Execução Orçamentária e Física', icon: '🔗', desc: 'Rastreabilidade específica da indicação ao pagamento (TCESP).',
+        fields: [f('emenda', 'Emenda de Origem', 'text', { req: true }), f('indicacao', 'Indicação', 'text'), f('orgao', 'Órgão Executor', 'select', { opts: SEC_OPTS }), f('beneficiario', 'Beneficiário', 'text'), f('empenho', 'Empenho', 'text'), f('valor', 'Valor (R$)', 'currency'), f('indicacaoData', 'Data da Indicação', 'date'), f('pagamento', 'Data do Pagamento', 'date'), f('comprovante', 'Comprovante / SEI', 'text', { w: 'full' }), f('status', 'Status', 'select', { opts: ['Indicada', 'Empenhada', 'Liquidada', 'Paga', 'Prestada'] })],
+        seed: [{ emenda: 'EM-087/2026', indicacao: 'Indicação 210/2026', orgao: SEC_OPTS[12], beneficiario: 'Município de Paraguaçu Paulista', empenho: '2026NE001234', valor: 480000, indicacaoData: '2026-05-20', pagamento: '2026-11-10', comprovante: 'SEI 13.220.441/2026', status: 'Paga' }] },
+
+      /* 6. Prestação de Contas e Controle Interno */
+      { id: 'pc-parcerias', label: 'Prestação de Contas de Parcerias (MROSC)', group: '6. Prestação de Contas e Controle Interno', icon: '🧐', desc: 'Monitoramento, avaliação e parecer conclusivo (Lei 13.019/2014).',
+        fields: [f('instrumento', 'Instrumento', 'text', { req: true }), f('osc', 'OSC', 'text'), f('periodo', 'Período', 'text'), f('tipo', 'Tipo', 'select', { opts: ['Monitoramento', 'Avaliação', 'Parecer Conclusivo'] }), f('nota', 'Nota / Conceito', 'text'), f('parecer', 'Parecer', 'textarea', { w: 'full' }), f('pendencias', 'Pendências', 'textarea', { w: 'full' }), f('prazo', 'Prazo', 'date'), f('status', 'Status', 'select', { opts: ['Em análise', 'Regular', 'Com ressalvas', 'Irregular', 'Aprovado'] })],
+        seed: [{ instrumento: 'TC-018/2026', osc: 'Associação Paraguaçuana de Combate ao Câncer', periodo: '01/03/2026 a 31/08/2026', tipo: 'Monitoramento', nota: '8,5', parecer: 'Execução satisfatória das metas, com documentação regular.', pendencias: 'Anexar relatório de atividades do mês de agosto.', prazo: '2026-12-05', status: 'Com ressalvas' }] },
+
+      { id: 'pc-convenios', label: 'Prestação de Contas de Convênios', group: '6. Prestação de Contas e Controle Interno', icon: '🧾', desc: 'Transferegov, SP Demandas e Tribunais de Contas.',
+        fields: [f('instrumento', 'Instrumento', 'text', { req: true }), f('plataforma', 'Plataforma', 'select', { opts: ['Transferegov', 'InvestSUS', 'SIMEC', 'SP Demandas', 'TCESP / AUDESP'] }), f('periodo', 'Período', 'text'), f('prazo', 'Prazo', 'date'), f('documentos', 'Documentos', 'text', { w: 'full' }), f('analise', 'Análise', 'textarea', { w: 'full' }), f('parecer', 'Parecer', 'textarea', { w: 'full' }), f('status', 'Status', 'select', { opts: ['Pendente', 'Em análise', 'Aprovada', 'Rejeitada', 'Em diligência'] })],
+        seed: [{ instrumento: 'TC-897123/2026', plataforma: 'InvestSUS', periodo: '1º semestre/2026', prazo: '2026-12-05', documentos: 'Notas fiscais, relatório de execução, extrato bancário', analise: 'Aguardando conferência de 12 notas fiscais.', parecer: '', status: 'Pendente' }] },
+
+      { id: 'auditoria', label: 'Auditoria e Conformidade', group: '6. Prestação de Contas e Controle Interno', icon: '🔍', desc: 'Trilhas de auditoria, alertas de prazos e apontamentos do Controle Interno.',
+        fields: [f('tipo', 'Tipo', 'select', { opts: ['Trilha de auditoria', 'Alerta de prazo', 'Apontamento do Controle Interno', 'Recomendação'] }), f('origem', 'Origem / Módulo', 'text'), f('descricao', 'Descrição', 'textarea', { req: true, w: 'full' }), f('data', 'Data', 'date'), f('responsavel', 'Responsável', 'text'), f('severidade', 'Severidade', 'select', { opts: ['Baixa', 'Média', 'Alta', 'Crítica'] }), f('prazo', 'Prazo de Resposta', 'date'), f('status', 'Status', 'select', { opts: ['Aberto', 'Em resposta', 'Resolvido', 'Arquivado'] })],
+        seed: [
+          { tipo: 'Apontamento do Controle Interno', origem: 'pc-parcerias', descricao: 'Anexar relatório de atividades pendente da OSC Assistência.', data: '2026-11-18', responsavel: 'Carlos Eduardo Lima', severidade: 'Média', prazo: '2026-11-30', status: 'Em resposta' },
+          { tipo: 'Trilha de auditoria', origem: 'convenios-federais', descricao: 'Alteração de valor contrapartida registrada por Marina Costa.', data: '2026-11-20', responsavel: 'Marina Costa', severidade: 'Baixa', status: 'Arquivado' }
+        ] },
+
+      /* 7 e 8 */
+      { id: 'relatorios', label: 'Relatórios e Inteligência (BI)', group: '7. Relatórios e Inteligência (BI)', icon: '📊', type: 'reports', desc: 'Gerador com filtros por exercício, fonte, secretaria, status, beneficiário e inadimplência; exportação AUDESP/TCESP, PDF, JSON, CSV e XLSX.' },
+      { id: 'transparencia', label: 'Portal da Transparência', group: '8. Portal da Transparência', icon: '🌐', type: 'transparency', desc: 'Espelho público automático, alimentado pelos módulos anteriores — nenhuma digitação manual.' }
+    );
+
+    // Catálogo auxiliar: visões do Portal da Transparência
+    const TRANSPARENCY_VIEWS = [
+      { id: 'licitacoes', label: 'Licitações, Dispensas e Contratos', mods: ['licitacoes', 'contratacao-direta', 'arp', 'contratos'] },
+      { id: 'execucao', label: 'Execução Orçamentária (Despesas e Receitas)', mods: ['execucao-direta', 'execucao-convenios', 'execucao-emendas'] },
+      { id: 'terceiro-setor', label: 'Parcerias Terceiro Setor', mods: ['parcerias-emendas', 'parcerias-termos', 'parcerias-credenciamento', 'parcerias-chamamento', 'pc-parcerias'] },
+      { id: 'convenios', label: 'Convênios e Transferências', mods: ['convenios-federais', 'convenios-estaduais'] },
+      { id: 'emendas', label: 'Emendas Parlamentares', mods: ['emendas-diretas', 'execucao-emendas'] },
+      { id: 'planejamento', label: 'PCA e Planejamento', mods: ['planejamento-dfd', 'planejamento-pca', 'planejamento-etp'] }
+    ];
+
+    // Alertas e movimentações iniciais (dados mockados de Paraguaçu Paulista)
+    const SEED_ALERTS = [
+      { id: 'al1', titulo: 'Prestação de Contas — TC-897123/2026 (InvestSUS)', categoria: 'Prestação de Contas', vencimento: '2026-12-05', severidade: 'vermelho', modulo: 'pc-convenios', descricao: 'Prazo para envio da prestação de contas parcial ao InvestSUS.' },
+      { id: 'al2', titulo: 'Resposta ao TCESP — Apontamento de Controle Interno', categoria: 'TCESP / CGU', vencimento: '2026-11-28', severidade: 'vermelho', modulo: 'auditoria', descricao: 'Manifestar-se sobre apontamento de pendência documental.' },
+      { id: 'al3', titulo: 'Vigência do Termo de Colaboração TC-018/2026', categoria: 'Vigência de instrumento', vencimento: '2026-12-31', severidade: 'amarelo', modulo: 'parcerias-termos', descricao: 'Avaliar prorrogação ou encerramento e prestação de contas final.' },
+      { id: 'al4', titulo: 'Licitação PC-012/2026 — sessão de julgamento', categoria: 'Licitação', vencimento: '2026-12-12', severidade: 'amarelo', modulo: 'licitacoes', descricao: 'Concorrência para pavimentação – Jardim Paulista.' },
+      { id: 'al5', titulo: 'Convênio TC-945210/2026 — vigência', categoria: 'Vigência de instrumento', vencimento: '2027-12-31', severidade: 'verde', modulo: 'convenios-federais', descricao: 'Vigência regular, sem pendências imediatas.' }
+    ];
+    const SEED_MOVEMENTS = [
+      { id: 'mv1', data: '2026-11-24T09:12:00', acao: 'Documento enviado', modulo: 'convenios-federais', descricao: 'Relatório de execução física do TC-897123/2026 enviado ao InvestSUS (SEI 14.002.119).', usuario: 'Marina Costa' },
+      { id: 'mv2', data: '2026-11-23T15:40:00', acao: 'Cadastro atualizado', modulo: 'emendas-diretas', descricao: 'EM-087/2026 — registro de pagamento de R$ 480.000,00.', usuario: 'Ana Paula Ferreira' },
+      { id: 'mv3', data: '2026-11-22T11:05:00', acao: 'Parecer registrado', modulo: 'pc-parcerias', descricao: 'Monitoramento do Termo de Colaboração TC-018/2026 — conceito 8,5.', usuario: 'Carlos Eduardo Lima' },
+      { id: 'mv4', data: '2026-11-20T10:30:00', acao: 'Alteração registrada', modulo: 'convenios-federais', descricao: 'Contrapartida do convênio TC-897123/2026 ajustada para R$ 125.000,00.', usuario: 'Marina Costa' },
+      { id: 'mv5', data: '2026-11-18T08:15:00', acao: 'Apontamento criado', modulo: 'auditoria', descricao: 'Controle Interno solicita relatório de atividades da OSC.', usuario: 'Carlos Eduardo Lima' }
+    ];
+
+    /* ===================== ESTADO E PERSISTÊNCIA ===================== */
+    const state = { current: 'dashboard', search: '', filter: '', transTab: 'licitacoes', iaOpen: false };
+    let DB = null;
+
+    function allFields(mod) {
+      if (!mod) return [];
+      if (mod.sections) return mod.sections.reduce((a, s) => a.concat(s.fields), []);
+      return mod.fields || [];
+    }
+    function mod(id) { return CATALOG.find(m => m.id === id); }
+    function recs(id) { return (DB && DB.records && DB.records[id]) || []; }
+    function sourceOf(r, modId) {
+      if (r.origem) return r.origem;
+      if (/parcerias|osc|termo/i.test(modId)) return 'OSCs';
+      return 'Emendas';
+    }
+    function statusOf(r) { return r.status || r.situacao || '—'; }
+
+    function seedRecords() {
+      const out = {};
+      CATALOG.forEach(m => {
+        if (!m.fields && !m.sections) return;
+        out[m.id] = (m.seed || []).map(r => Object.assign({ id: uid(), _created: new Date().toISOString() }, r));
+      });
+      return out;
+    }
+    function freshDB() {
+      return {
+        records: seedRecords(),
+        movements: SEED_MOVEMENTS.map(m => Object.assign({}, m)),
+        alerts: SEED_ALERTS.map(a => Object.assign({}, a)),
+        documents: [],
+        settings: { contrast: false, largeFont: false, lgpd: null },
+        formsMeta: {}
+      };
+    }
+    function loadDB() {
+      let raw = null;
+      try { raw = JSON.parse(localStorage.getItem(KEY)); } catch (e) { raw = null; }
+      const base = freshDB();
+      if (!raw) { DB = base; saveDB(); return; }
+      DB = Object.assign(base, raw);
+      DB.records = Object.assign(base.records, raw.records || {});
+      DB.settings = Object.assign(base.settings, raw.settings || {});
+      // Garante que novos módulos do catálogo tenham coleção inicial
+      Object.keys(base.records).forEach(k => { if (!DB.records[k]) DB.records[k] = base.records[k]; });
+    }
+    function saveDB() {
+      try { localStorage.setItem(KEY, JSON.stringify(DB)); }
+      catch (e) { toast('Armazenamento local cheio. Exporte os dados e limpe registros antigos.', 'error'); }
+    }
+    function logMovement(acao, descricao, modulo, usuario) {
+      DB.movements.unshift({ id: uid(), data: new Date().toISOString(), acao, descricao, modulo, usuario: usuario || 'Gestor/Fiscal' });
+      DB.movements = DB.movements.slice(0, 200);
+    }
+    function toast(msg, kind) {
+      const colors = { success: 'bg-verd-700', error: 'bg-red-700', info: 'bg-inst-900', warn: 'bg-amber-600' };
+      const el = document.createElement('div');
+      el.className = 'no-print text-white px-4 py-3 rounded-lg shadow-xl text-sm max-w-sm ' + (colors[kind] || colors.info);
+      el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+      el.textContent = msg;
+      $('#toast-root').appendChild(el);
+      setTimeout(() => el.remove(), 4500);
+    }
+
+    /* ===================== NAVEGAÇÃO / LAYOUT ===================== */
+    function renderSidebar() {
+      const groups = [];
+      CATALOG.forEach(m => { if (m.group && groups.indexOf(m.group) < 0) groups.push(m.group); });
+      const html = groups.map(g => {
+        const items = CATALOG.filter(m => m.group === g);
+        return '<div class="mb-3">' +
+          '<div class="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">' + esc(g) + '</div>' +
+          items.map(m => {
+            const active = state.current === m.id;
+            const count = (m.fields || m.sections) ? recs(m.id).length : '';
+            return '<button data-action="nav" data-id="' + m.id + '" ' +
+              'class="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg text-[13px] transition ' +
+              (active ? 'bg-inst-900 text-white font-semibold' : 'text-slate-700 hover:bg-blue-50 hover:text-inst-900') + '" ' +
+              'aria-current="' + (active ? 'page' : 'false') + '">' +
+              '<span class="w-5 text-center" aria-hidden="true">' + (m.icon || '•') + '</span>' +
+              '<span class="flex-1">' + esc(m.label) + '</span>' +
+              (count !== '' && count > 0 ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full ' + (active ? 'bg-white/20' : 'bg-slate-100 text-slate-500') + '">' + count + '</span>' : '') +
+              '</button>';
+          }).join('') + '</div>';
+      }).join('');
+      $('#sidebar').innerHTML = '<nav aria-label="Módulos do SIG">' + html + '</nav>';
+    }
+
+    function render() {
+      renderSidebar();
+      const m = mod(state.current);
+      let html = '';
+      if (state.current === 'dashboard') html = dashView();
+      else if (state.current === 'search') html = searchView();
+      else if (!m) html = '<div class="sig-card p-8 text-center">Módulo não encontrado.</div>';
+      else if (m.type === 'dashboard') html = dashView();
+      else if (m.type === 'form') html = formView(m);
+      else if (m.type === 'embed') html = embedView(m);
+      else if (m.type === 'reports') html = reportsView();
+      else if (m.type === 'transparency') html = transparencyView();
+      else html = listView(m);
+      $('#view').innerHTML = html;
+      const alertOpen = DB.alerts.filter(a => a.severidade !== 'verde').length;
+      $('#alert-count').textContent = alertOpen;
+      applySettings();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    function applySettings() {
+      document.body.classList.toggle('hc', !!DB.settings.contrast);
+      document.body.classList.toggle('fs-large', !!DB.settings.largeFont);
+      if (DB.settings.lgpd == null) $('#lgpd-banner').classList.remove('hidden');
+      else $('#lgpd-banner').classList.add('hidden');
+    }
+
+    /* ===================== DASHBOARD ===================== */
+    function financialSummary() {
+      const ids = ['convenios-federais', 'convenios-estaduais', 'emendas-diretas', 'parcerias-emendas', 'parcerias-termos'];
+      const totals = {
+        solicitado: 0, execucao: 0, aprovado: 0, repassado: 0, saldo: 0,
+        bySource: SOURCES.reduce((a, s) => (a[s] = { solicitado: 0, execucao: 0, aprovado: 0, repassado: 0 }, a), {})
+      };
+      ids.forEach(id => recs(id).forEach(r => {
+        const v = Number(r.valor) || 0;
+        const src = sourceOf(r, id);
+        const st = statusOf(r);
+        totals.solicitado += v;
+        totals.bySource[src].solicitado += v;
+        if (st === 'Em Execução' || st === 'Em execução') { totals.execucao += v; totals.bySource[src].execucao += v; }
+        if (['Aprovado', 'Repassado', 'Concluído', 'Em execução', 'Em Execução'].indexOf(st) >= 0) { totals.aprovado += v; totals.bySource[src].aprovado += v; }
+        if (['Repassado', 'Pago', 'Concluído'].indexOf(st) >= 0) { totals.repassado += v; totals.bySource[src].repassado += v; }
+      }));
+      totals.saldo = Math.max(0, totals.solicitado - totals.repassado);
+      SOURCES.forEach(s => {
+        const b = totals.bySource[s];
+        b.saldo = Math.max(0, b.solicitado - b.repassado);
+      });
+      return totals;
+    }
+    function dashView() {
+      const t = financialSummary();
+      const cards = [
+        { k: 'solicitado', l: 'Total Solicitado', c: 'border-l-inst-900', icon: '📥' },
+        { k: 'execucao', l: 'Em Execução', c: 'border-l-blue-500', icon: '⚙' },
+        { k: 'aprovado', l: 'Aprovados', c: 'border-l-verd-700', icon: '✅' },
+        { k: 'repassado', l: 'Repassados', c: 'border-l-emerald-600', icon: '💸' },
+        { k: 'saldo', l: 'Saldo a Executar', c: 'border-l-amber-500', icon: '📌' }
+      ];
+      const cardHTML = cards.map(x =>
+        '<div class="sig-card border-l-4 ' + x.c + '">' +
+          '<div class="flex items-start justify-between gap-2">' +
+            '<div><p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">' + x.l + '</p>' +
+            '<p class="text-xl sm:text-2xl font-extrabold text-inst-900 mt-1">' + money(t[x.k]) + '</p></div>' +
+            '<span class="text-xl" aria-hidden="true">' + x.icon + '</span>' +
+          '</div>' +
+          '<div class="mt-3 grid grid-cols-2 gap-1 text-[10px]">' +
+            SOURCES.map(s => '<div class="flex justify-between bg-slate-50 rounded px-2 py-1"><span class="text-slate-500">' + s + '</span><strong class="text-slate-700">' + money(t.bySource[s][x.k] || 0) + '</strong></div>').join('') +
+          '</div>' +
+        '</div>').join('');
+
+      const max = Math.max(1, t.solicitado);
+      const bars = SOURCES.map(s => {
+        const v = t.bySource[s].solicitado;
+        const pct = (v / max * 100).toFixed(1);
+        return '<div class="mb-3"><div class="flex justify-between text-xs mb-1"><span class="font-semibold">' + s + '</span><span>' + money(v) + ' · ' + (t.solicitado ? (v / t.solicitado * 100).toFixed(1) : '0') + '%</span></div>' +
+          '<div class="h-2.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full rounded-full ' +
+          ({ 'União': 'bg-inst-900', 'Estado': 'bg-blue-500', 'Emendas': 'bg-verd-700', 'OSCs': 'bg-amber-500' }[s]) +
+          '" style="width:' + pct + '%"></div></div></div>';
+      }).join('');
+
+      const sev = { vermelho: { c: 'bg-red-50 border-red-400 text-red-800', b: 'bg-red-600', l: 'Vermelho' }, amarelo: { c: 'bg-amber-50 border-amber-400 text-amber-900', b: 'bg-amber-500', l: 'Amarelo' }, verde: { c: 'bg-green-50 border-green-400 text-green-800', b: 'bg-verd-700', l: 'Verde' } };
+      const alerts = DB.alerts.slice().sort((a, b) => (a.vencimento || '').localeCompare(b.vencimento || '')).map(a => {
+        const s = sev[a.severidade] || sev.verde;
+        return '<li class="border-l-4 ' + s.b + ' ' + s.c + ' rounded-r-lg p-3 mb-2">' +
+          '<div class="flex flex-wrap items-center justify-between gap-2">' +
+          '<strong class="text-sm">' + esc(a.titulo) + '</strong>' +
+          '<span class="sig-tag bg-white/70">' + esc(a.categoria) + '</span></div>' +
+          '<p class="text-xs mt-1">' + esc(a.descricao) + '</p>' +
+          '<p class="text-[11px] mt-2 font-semibold">Vencimento: ' + dateBR(a.vencimento) + ' · ' + s.l + '</p></li>';
+      }).join('');
+
+      const timeline = DB.movements.slice(0, 8).map(m =>
+        '<li class="relative pl-6 pb-5 border-l-2 border-blue-100 last:border-0">' +
+        '<span class="absolute -left-[6px] top-1 w-3 h-3 rounded-full bg-inst-900 ring-4 ring-blue-100" aria-hidden="true"></span>' +
+        '<div class="text-[11px] text-slate-500">' + new Date(m.data).toLocaleString('pt-BR') + ' · ' + esc(m.usuario || 'Sistema') + '</div>' +
+        '<div class="text-sm font-semibold text-slate-800">' + esc(m.acao) + '</div>' +
+        '<div class="text-xs text-slate-600">' + esc(m.descricao) + '</div>' +
+        '<button class="text-[11px] text-inst-700 underline" data-action="nav" data-id="' + esc(m.modulo) + '">Abrir módulo</button></li>').join('');
+
+      return '<div class="mb-6 flex flex-wrap items-end justify-between gap-3">' +
+        '<div><h2 class="text-2xl font-extrabold text-inst-900">Painel Executivo</h2>' +
+        '<p class="text-sm text-slate-500">Paraguaçu Paulista · Exercício 2026 · dados Consolidados do SIG</p></div>' +
+        '<div class="flex flex-wrap gap-2">' +
+          '<button class="' + C.primary + '" data-action="new" data-id="convenios-federais">+ Novo convênio</button>' +
+          '<button class="' + C.ghost + '" data-action="nav" data-id="relatorios">📊 Relatórios</button>' +
+          '<button class="' + C.ghost + '" data-action="print">🖨 Imprimir</button>' +
+        '</div></div>' +
+        '<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 mb-6" aria-label="Resumo financeiro">' + cardHTML + '</section>' +
+        '<div class="grid gap-6 lg:grid-cols-3">' +
+          '<section class="sig-card lg:col-span-2" aria-labelledby="dash-titulo-recursos">' +
+            '<h3 id="dash-titulo-recursos" class="' + C.h2 + ' mb-4">Recursos por fonte</h3>' + bars +
+            '<div class="mt-5 p-3 bg-blue-50 rounded-lg text-xs text-blue-900">' +
+              '<strong>Leitura executiva:</strong> saldo a executar corresponde a ' + money(t.saldo) +
+              '. Repasses representam ' + (t.solicitado ? (t.repassado / t.solicitado * 100).toFixed(1) : '0') + '% do total solicitado.</div>' +
+          '</section>' +
+          '<section class="sig-card" aria-labelledby="dash-titulo-alertas">' +
+            '<div class="flex items-center justify-between mb-4"><h3 id="dash-titulo-alertas" class="' + C.h2 + '">Alertas e Prazos</h3>' +
+            '<span class="sig-tag bg-red-100 text-red-800">' + DB.alerts.filter(a => a.severidade !== 'verde').length + ' atenção</span></div>' +
+            '<ul>' + alerts + '</ul>' +
+            '<button class="' + C.ghost + ' w-full justify-center mt-2" data-action="nav" data-id="auditoria">Ver conformidade</button>' +
+          '</section>' +
+        '</div>' +
+        '<div class="grid gap-6 lg:grid-cols-2 mt-6">' +
+          '<section class="sig-card" aria-labelledby="dash-titulo-timeline">' +
+            '<h3 id="dash-titulo-timeline" class="' + C.h2 + ' mb-5">Últimas Movimentações</h3>' +
+            '<ol>' + timeline + '</ol></section>' +
+          '<section class="sig-card" aria-labelledby="dash-titulo-acoes">' +
+            '<h3 id="dash-titulo-acoes" class="' + C.h2 + ' mb-4">Acesso rápido</h3>' +
+            '<div class="grid sm:grid-cols-2 gap-2">' +
+            ['licitacoes', 'convenios-estaduais', 'emendas-diretas', 'parcerias-termos', 'pc-convenios', 'transparencia'].map(id => {
+              const m2 = mod(id);
+              return '<button class="' + C.btn + ' justify-start" data-action="nav" data-id="' + id + '"><span aria-hidden="true">' + m2.icon + '</span> ' + esc(m2.label) + '</button>';
+            }).join('') + '</div>' +
+            '<div class="mt-5 p-4 rounded-lg bg-inst-900 text-white">' +
+              '<h4 class="font-bold text-sm">Integração contábil/financeira</h4>' +
+              '<p class="text-xs text-blue-100 mt-1">Versão 1.0 simula a troca por eventos locais. Na v2.0, contratos, execução, repasses e contas sincronizam via API Gateway e fila de eventos.</p></div>' +
+          '</section></div>';
+    }
+
+    /* ===================== RENDERIZAÇÃO DE CAMPOS ===================== */
+    function fieldHTML(fld, val, moduleId, suffix) {
+      const id = 'fld-' + moduleId + '-' + fld.k + (suffix || '');
+      const req = fld.req ? ' required aria-required="true"' : '';
+      const described = fld.hint ? ' aria-describedby="' + id + '-hint"' : '';
+      const hint = fld.hint ? '<p class="text-[11px] text-slate-500 mt-1" id="' + id + '-hint">' + esc(fld.hint) + '</p>' : '';
+      let input = '';
+      switch (fld.t) {
+        case 'textarea':
+          input = '<textarea id="' + id + '" name="' + fld.k + '" rows="' + (fld.rows || 3) + '" class="' + C.input + '"' + req + described + '>' + esc(val == null ? (fld.value || '') : val) + '</textarea>';
+          break;
+        case 'number':
+          input = '<input type="number" id="' + id + '" name="' + fld.k + '" value="' + esc(val == null ? (fld.value || '') : val) + '" class="' + C.input + '"' + req + described + ' />';
+          break;
+        case 'currency':
+          input = '<div class="flex items-center gap-2"><span class="text-sm font-bold text-slate-500">R$</span><input type="number" step="0.01" min="0" id="' + id + '" name="' + fld.k + '" value="' + esc(val == null ? (fld.value || '') : val) + '" class="' + C.input + '"' + req + described + ' /></div>';
+          break;
+        case 'date':
+          input = '<input type="date" id="' + id + '" name="' + fld.k + '" value="' + esc(val || '') + '" class="' + C.input + '"' + req + described + ' />';
+          break;
+        case 'email':
+        case 'tel':
+          input = '<input type="' + fld.t + '" id="' + id + '" name="' + fld.k + '" value="' + esc(val || '') + '" class="' + C.input + '"' + req + described + ' />';
+          break;
+        case 'select':
+          input = '<select id="' + id + '" name="' + fld.k + '" class="' + C.input + '"' + req + described + '>' +
+            '<option value="">Selecione…</option>' +
+            (fld.opts || []).map(o => '<option value="' + esc(o) + '"' + (val === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select>';
+          break;
+        case 'checkbox':
+          input = '<input type="checkbox" id="' + id + '" name="' + fld.k + '"' + (val ? ' checked' : '') + ' />';
+          break;
+        case 'signature':
+          input = '<div class="flex flex-col gap-2">' +
+            '<button type="button" class="' + C.ghost + '" data-action="sign" data-target="' + id + '">✍ Assinar digitalmente (Sisyema / GOV.BR / Certificado)</button>' +
+            '<input type="hidden" id="' + id + '" name="' + fld.k + '" value="' + esc(val || '') + '" />' +
+            '<div id="' + id + '-preview" class="text-[11px] text-verd-700 font-semibold">' + (val ? '✔ Assinatura registrada' : '') + '</div></div>';
+          break;
+        case 'repeater': {
+          const rows = Array.isArray(val) && val.length ? val : [{}];
+          input = '<div class="repeater" data-repeater="' + fld.k + '">' +
+            rows.map((r, i) => '<div class="rep-row" data-rep-index="' + i + '">' +
+              '<div class="grid sm:grid-cols-2 gap-3">' + (fld.sub || []).map(sf => fieldHTML(sf, r[sf.k], moduleId + '-r' + i)).join('') + '</div>' +
+              '<button type="button" class="' + C.danger + ' mt-2" data-action="remove-repeat" data-rep="' + fld.k + '" data-index="' + i + '">Remover item</button>' +
+              '</div>').join('') +
+            '<button type="button" class="' + C.ghost + '" data-action="add-repeat" data-rep="' + fld.k + '" data-module="' + esc(moduleId) + '">+ Adicionar ' + esc(fld.subLabel || 'item') + '</button></div>';
+          break;
+        }
+        default:
+          input = '<input type="text" id="' + id + '" name="' + fld.k + '" value="' + esc(val == null ? (fld.value || '') : val) + '" class="' + C.input + '"' + req + described + ' />';
+      }
+      const voice = ['text', 'textarea', 'email'].indexOf(fld.t) >= 0
+        ? '<button type="button" class="mic" data-action="voice" data-target="' + id + '" title="Digitação por voz" aria-label="Ditar conteúdo de ' + esc(fld.l) + '">🎙</button>' : '';
+      return '<div class="' + (fld.w === 'full' ? 'sm:col-span-2' : '') + '">' +
+        '<label class="' + C.label + '" for="' + id + '">' + esc(fld.l) + (fld.req ? ' <span class="text-red-600" aria-hidden="true">*</span>' : '') + '</label>' +
+        '<div class="flex items-start gap-1">' + input + voice + '</div>' + hint + '</div>';
+    }
+
+    function statusBadge(st) {
+      const s = String(st || '');
+      let c = 'bg-slate-100 text-slate-700';
+      if (/repassado|concluído|aprovado|regular|homologado|vigente|pago/i.test(s)) c = 'bg-green-100 text-green-800';
+      else if (/execução|andamento|em análise|monitorado|parcial/i.test(s)) c = 'bg-blue-100 text-blue-800';
+      else if (/pendente|ressalva|solicitado|aberto/i.test(s)) c = 'bg-amber-100 text-amber-900';
+      else if (/suspenso|irregular|rejeitado|crítico|atrasado/i.test(s)) c = 'bg-red-100 text-red-800';
+      return '<span class="sig-tag ' + c + '">' + esc(s) + '</span>';
+    }
+
+    /* ===================== VIEWS: LISTAS, FORMULÁRIOS, RELATÓRIOS ===================== */
+    function getFiltered(m) {
+      let list = recs(m.id).slice();
+      const q = norm(state.search);
+      if (q) list = list.filter(r => norm(JSON.stringify(r)).indexOf(q) >= 0);
+      if (state.filter) list = list.filter(r => sourceOf(r, m.id) === state.filter);
+      return list;
+    }
+    function cellValue(r, fld) {
+      const v = r[fld.k];
+      if (v == null || v === '') return '<span class="text-slate-400">—</span>';
+      if (fld.t === 'currency') return '<span class="font-semibold text-slate-800">' + money(v) + '</span>';
+      if (fld.t === 'date') return dateBR(v);
+      if (fld.t === 'select' && /status|situacao/i.test(fld.k)) return statusBadge(v);
+      if (fld.t === 'signature') return '<span class="text-verd-700">✔ Assinado</span>';
+      if (fld.t === 'checkbox') return v ? 'Sim' : 'Não';
+      if (fld.t === 'repeater') return Array.isArray(v) ? v.length + ' item(ns)' : '—';
+      const s = String(v);
+      return esc(s.length > 70 ? s.slice(0, 70) + '…' : s);
+    }
+    function listView(m) {
+      const list = getFiltered(m);
+      const cols = (m.fields || []).filter(x => ['textarea', 'repeater', 'signature', 'file'].indexOf(x.t) < 0).slice(0, 5);
+      const hasStatus = (m.fields || []).some(x => /status|situacao/i.test(x.k));
+      const head = cols.map(x => '<th scope="col" class="' + C.th + '">' + esc(x.l) + '</th>').join('') +
+        (hasStatus ? '<th scope="col" class="' + C.th + '">Situação</th>' : '') +
+        '<th scope="col" class="' + C.th + ' text-right">Ações</th>';
+      const body = list.map(r => '<tr>' +
+        cols.map(x => '<td class="' + C.td + '">' + cellValue(r, x) + '</td>').join('') +
+        (hasStatus ? '<td class="' + C.td + '">' + statusBadge(statusOf(r)) + '</td>' : '') +
+        '<td class="' + C.td + ' text-right nowrap">' +
+          '<button class="text-inst-700 hover:underline text-xs font-semibold" data-action="view" data-id="' + r.id + '">Ver</button> · ' +
+          '<button class="text-inst-700 hover:underline text-xs font-semibold" data-action="edit" data-id="' + r.id + '">Editar</button> · ' +
+          '<button class="text-amber-700 hover:underline text-xs font-semibold" data-action="duplicate" data-id="' + r.id + '">Duplicar</button> · ' +
+          '<button class="text-red-700 hover:underline text-xs font-semibold" data-action="delete" data-id="' + r.id + '">Excluir</button>' +
+        '</td></tr>').join('');
+      return '<div class="mb-5 flex flex-wrap items-end justify-between gap-3">' +
+        '<div><nav class="text-xs text-slate-500 mb-1"><span>SIG</span> › <span>' + esc(m.group) + '</span></nav>' +
+        '<h2 class="text-2xl font-extrabold text-inst-900">' + esc(m.label) + '</h2>' +
+        '<p class="' + C.muted + ' max-w-3xl">' + esc(m.desc || '') + '</p></div>' +
+        '<div class="flex flex-wrap gap-2">' +
+          '<button class="' + C.primary + '" data-action="new">+ Novo cadastro</button>' +
+          '<button class="' + C.ghost + '" data-action="import">⇪ Importar</button>' +
+          '<button class="' + C.ghost + '" data-action="export">⇩ Exportar</button>' +
+          '<button class="' + C.ghost + '" data-action="docs">📎 Documentos</button>' +
+          '<button class="' + C.ghost + '" data-action="print">🖨 Imprimir</button>' +
+        '</div></div>' +
+        '<section class="sig-card overflow-hidden" aria-label="Registros de ' + esc(m.label) + '">' +
+          '<div class="p-3 border-b border-slate-100 flex flex-wrap gap-3 items-center bg-slate-50/60">' +
+            '<label class="flex-1 min-w-[220px]"><span class="sr-only">Buscar neste módulo</span>' +
+              '<input type="search" class="' + C.input + '" data-filter="search" placeholder="Buscar neste módulo…" value="' + esc(state.search) + '" /></label>' +
+            ((m.fields || []).some(x => x.k === 'origem')
+              ? '<label class="text-xs text-slate-600">Fonte: <select class="' + C.input + ' !w-auto inline-block" data-filter="source"><option value="">Todas</option>' +
+                SOURCES.map(s => '<option' + (state.filter === s ? ' selected' : '') + '>' + s + '</option>').join('') + '</select></label>'
+              : '') +
+            '<span class="sig-tag bg-slate-200 text-slate-700">' + list.length + ' registro(s)</span>' +
+            '<button class="' + C.ghost + '" data-action="ia-audit">✨ Auditar com IA</button>' +
+          '</div>' +
+          '<div class="overflow-x-auto"><table class="w-full"><thead><tr>' + head + '</tr></thead><tbody>' +
+          (body || '<tr><td colspan="' + (cols.length + (hasStatus ? 2 : 1)) + '" class="px-4 py-10 text-center text-sm text-slate-500">Nenhum registro. Utilize “Novo cadastro” ou importe dados CSV/JSON/XLSX.</td></tr>') +
+          '</tbody></table></div></section>';
+    }
+
+    function showModal(title, body, footer, size) {
+      closeModal();
+      const wrap = document.createElement('div');
+      wrap.className = 'fixed inset-0 z-[90] bg-slate-900/50 flex items-start justify-center overflow-y-auto p-3 sm:p-6';
+      wrap.setAttribute('role', 'dialog');
+      wrap.setAttribute('aria-modal', 'true');
+      wrap.setAttribute('aria-label', title);
+      wrap.id = 'modal-backdrop';
+      wrap.innerHTML = '<div class="sig-card w-full ' + (size === 'wide' ? 'max-w-5xl' : 'max-w-3xl') + ' my-4 shadow-2xl">' +
+        '<div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">' +
+          '<h2 class="font-bold text-inst-900">' + esc(title) + '</h2>' +
+          '<button class="' + C.ghost + '" data-action="close-modal" aria-label="Fechar">✕</button></div>' +
+        '<div class="p-5">' + body + '</div>' +
+        (footer ? '<div class="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-5 py-3 bg-slate-50 rounded-b-xl">' + footer + '</div>' : '') +
+        '</div>';
+      $('#modal-root').appendChild(wrap);
+      const first = wrap.querySelector('input,select,textarea,button');
+      if (first) first.focus();
+      return wrap;
+    }
+    function closeModal() { $('#modal-root').innerHTML = ''; }
+
+    function collectForm(form, fields) {
+      const out = {};
+      fields.forEach(fld => {
+        const el = form.elements[fld.k];
+        if (!el) return;
+        if (fld.t === 'repeater') {
+          const rep = form.querySelector('[data-repeater="' + fld.k + '"]');
+          out[fld.k] = rep ? Array.from(rep.querySelectorAll('.rep-row')).map(row => {
+            const o = {};
+            Array.from(row.querySelectorAll('input,select,textarea')).forEach(i => { o[i.name] = i.type === 'checkbox' ? i.checked : i.value; });
+            return o;
+          }) : [];
+        } else if (fld.t === 'checkbox') {
+          out[fld.k] = !!el.checked;
+        } else {
+          out[fld.k] = el.value;
+        }
+      });
+      return out;
+    }
+
+    function openFormModal(m, existing) {
+      const fields = allFields(m);
+      const body = '<form id="record-form" data-module="' + m.id + '" data-id="' + (existing ? existing.id : '') + '">' +
+        '<p class="' + C.muted + ' mb-4">' + esc(m.desc || '') + '</p>' +
+        '<div class="grid sm:grid-cols-2 gap-4">' + fields.map(fld => fieldHTML(fld, existing ? existing[fld.k] : undefined, m.id)).join('') + '</div>' +
+        '<div class="mt-5 flex flex-wrap gap-2">' +
+          '<button type="button" class="' + C.ghost + '" data-action="docs">📎 Inserir documentos em lote</button>' +
+          '<button type="button" class="' + C.ghost + '" data-action="sign-form">✍ Assinar instrumento</button>' +
+          '<button type="button" class="' + C.ghost + '" data-action="print">🖨 Visualizar / imprimir</button>' +
+        '</div></form>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Cancelar</button>' +
+        '<button class="' + C.primary + '" data-action="submit-form">' + (existing ? 'Salvar alterações' : 'Cadastrar registro') + '</button>';
+      showModal((existing ? 'Editar' : 'Novo') + ' — ' + m.label, body, footer, true);
+    }
+
+    function openDuplicateModal(m, r) {
+      const fields = allFields(m).filter(f => ['repeater', 'signature'].indexOf(f.t) < 0);
+      const skip = /^(id|_created|numero|numeroEmenda|empenho|data|dataInicio|dataFim|dataRepasse|dataPrevista|dataRealizada|pagamento|assinatura|sei|comprovante)$/;
+      const body = '<p class="' + C.muted + ' mb-4">Selecione os campos que devem ser aproveitados no novo cadastro. Isso permite reaproveitar parte de um instrumento em outro.</p>' +
+        '<div class="grid sm:grid-cols-2 gap-2">' + fields.map(f =>
+          '<label class="flex items-center gap-2 text-sm bg-slate-50 rounded p-2"><input type="checkbox" class="dup-field" data-key="' + f.k + '"' + (skip.test(f.k) ? '' : ' checked') + ' /> ' + esc(f.l) + '</label>').join('') + '</div>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Cancelar</button>' +
+        '<button class="' + C.primary + '" data-action="confirm-duplicate" data-module="' + m.id + '" data-id="' + r.id + '">Criar novo a partir dos campos marcados</button>';
+      showModal('Duplicar / reaproveitar — ' + m.label, body, footer);
+    }
+
+    function openViewModal(m, r) {
+      const fields = allFields(m);
+      const body = '<dl class="grid sm:grid-cols-2 gap-x-6 gap-y-3">' + fields.map(fld =>
+        '<div class="border-b border-slate-100 pb-2"><dt class="text-[11px] font-bold uppercase text-slate-500">' + esc(fld.l) + '</dt>' +
+        '<dd class="text-sm mt-1">' + (fld.t === 'repeater' ? (Array.isArray(r[fld.k]) ? r[fld.k].length + ' item(ns) cadastrado(s)' : '—') : cellValue(r, fld)) + '</dd></div>').join('') + '</dl>' +
+        '<div class="mt-5 text-[11px] text-slate-500">ID: ' + esc(r.id) + ' · Criado em ' + dateBR(r._created) + '</div>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Fechar</button>' +
+        '<button class="' + C.ghost + '" data-action="print">🖨 Imprimir</button>' +
+        '<button class="' + C.primary + '" data-action="edit" data-id="' + r.id + '">Editar</button>';
+      showModal(m.label + ' — visualização', body, footer, true);
+    }
+
+    function submitRecord(form) {
+      const m = mod(form.dataset.module);
+      const id = form.dataset.id;
+      const data = collectForm(form, allFields(m));
+      const list = recs(m.id);
+      if (id) {
+        const i = list.findIndex(r => r.id === id);
+        if (i >= 0) list[i] = Object.assign({}, list[i], data, { _updated: new Date().toISOString() });
+        logMovement('Cadastro atualizado', m.label + ' — ' + (data.numero || data.nome || data.ordem || id), m.id);
+      } else {
+        data.id = uid(); data._created = new Date().toISOString();
+        list.unshift(data);
+        logMovement('Cadastro criado', m.label + ' — ' + (data.numero || data.nome || data.ordem || data.id), m.id);
+      }
+      saveDB(); closeModal(); render();
+      toast(id ? 'Registro atualizado com sucesso.' : 'Registro cadastrado com sucesso.', 'success');
+    }
+
+    function formView(m) {
+      const fields = allFields(m);
+      const saved = recs(m.id);
+      const sections = m.sections.map(sec =>
+        '<section class="sig-card mb-4" aria-labelledby="sec-' + sec.title.replace(/\W/g, '') + '">' +
+        '<h3 id="sec-' + sec.title.replace(/\W/g, '') + '" class="' + C.h2 + ' border-b border-slate-200 pb-2 mb-4">' + esc(sec.title) + '</h3>' +
+        '<div class="grid sm:grid-cols-2 gap-4">' + sec.fields.map(fld => fieldHTML(fld, m._draft && m._draft[fld.k], m.id)).join('') + '</div></section>').join('');
+      const table = saved.length ? '<section class="sig-card overflow-x-auto"><h3 class="' + C.h2 + ' p-4">Formulários salvos</h3>' +
+        '<table class="w-full"><thead><tr><th class="' + C.th + '">Identificação</th><th class="' + C.th + '">Data</th><th class="' + C.th + '">Ações</th></tr></thead><tbody>' +
+        saved.map(r => '<tr><td class="' + C.td + '">' + esc(r.beneficiario || r.numeroAutor || r.emendaVinculada || r.id) + '</td>' +
+          '<td class="' + C.td + '">' + dateBR(r._created) + '</td><td class="' + C.td + '">' +
+          '<button class="text-inst-700 underline text-xs" data-action="view" data-id="' + r.id + '">Ver</button> · ' +
+          '<button class="text-red-700 underline text-xs" data-action="delete" data-id="' + r.id + '">Excluir</button></td></tr>').join('') +
+        '</tbody></table></section>' : '';
+      return '<div class="mb-5 flex flex-wrap items-end justify-between gap-3"><div>' +
+        '<nav class="text-xs text-slate-500 mb-1"><span>SIG</span> › <span>' + esc(m.group) + '</span></nav>' +
+        '<h2 class="text-2xl font-extrabold text-inst-900">' + esc(m.label) + '</h2>' +
+        '<p class="' + C.muted + '">' + esc(m.desc) + '</p></div>' +
+        '<div class="flex gap-2"><button class="' + C.primary + '" data-action="save-special-form">💾 Salvar formulário</button>' +
+        '<button class="' + C.ghost + '" data-action="print">🖨 Imprimir</button>' +
+        '<button class="' + C.ghost + '" data-action="export">⇩ Exportar</button></div></div>' +
+        '<form id="special-form" data-module="' + m.id + '">' + sections + '</form>' + table;
+    }
+
+    function embedView(m) {
+      return '<div class="mb-4 flex flex-wrap items-end justify-between gap-3"><div>' +
+        '<nav class="text-xs text-slate-500 mb-1"><span>SIG</span> › <span>' + esc(m.group) + '</span></nav>' +
+        '<h2 class="text-2xl font-extrabold text-inst-900">' + esc(m.label) + '</h2>' +
+        '<p class="' + C.muted + ' max-w-4xl">' + esc(m.desc) + '</p></div>' +
+        '<div class="flex gap-2"><a class="' + C.primary + '" href="' + m.src + '" target="_blank" rel="noopener">↗ Abrir em nova aba</a>' +
+        '<button class="' + C.ghost + '" data-action="print">🖨 Imprimir</button></div></div>' +
+        '<section class="sig-card p-0 overflow-hidden">' +
+        '<div class="bg-blue-50 border-b border-blue-100 px-4 py-2 text-xs text-blue-900">' +
+        '<strong>Formulário oficial incorporado.</strong> Os dados, validações, versionamento e exportações deste formulário são gerenciados pela aplicação original incorporada; o SIG mantém a integração visual e o brasão institucional.</div>' +
+        '<iframe src="' + m.src + '" title="' + esc(m.label) + '" class="w-full" style="height:calc(100vh - 250px);min-height:700px;border:0" loading="lazy"></iframe>' +
+        '</section>';
+    }
+
+    /* ---------- Relatórios e BI ---------- */
+    const reportFilters = { ano: '2026', origem: '', secretaria: '', status: '', beneficiario: '', inadimplencia: false };
+    function reportRows() {
+      const ids = ['convenios-federais', 'convenios-estaduais', 'emendas-diretas', 'parcerias-emendas', 'parcerias-termos', 'execucao-convenios', 'execucao-emendas'];
+      const rows = [];
+      ids.forEach(id => recs(id).forEach(r => {
+        const st = statusOf(r);
+        const src = sourceOf(r, id);
+        if (reportFilters.origem && src !== reportFilters.origem) return;
+        if (reportFilters.secretaria && r.secretaria !== reportFilters.secretaria) return;
+        if (reportFilters.status && st !== reportFilters.status) return;
+        if (reportFilters.beneficiario && norm(r.beneficiario || r.osc || '').indexOf(norm(reportFilters.beneficiario)) < 0) return;
+        if (reportFilters.inadimplencia && !/pendente|atrasado|ressalva|suspenso/i.test(st)) return;
+        const d = r.dataInicio || r.dataPrevista || r.fecha || '';
+        if (reportFilters.ano && d && String(d).slice(0, 4) !== reportFilters.ano) return;
+        rows.push({ modulo: mod(id).label, numero: r.numero || r.instrumento || r.emenda || r.id, objeto: r.objeto || r.descricao || '—', origem: src, secretaria: r.secretaria || '—', status: st, valor: Number(r.valor) || 0, beneficiario: r.beneficiario || r.osc || '—' });
+      }));
+      return rows;
+    }
+    function reportsView() {
+      const rows = reportRows();
+      const total = rows.reduce((a, r) => a + r.valor, 0);
+      const byStatus = rows.reduce((a, r) => (a[r.status] = (a[r.status] || 0) + r.valor, a), {});
+      return '<div class="mb-5"><h2 class="text-2xl font-extrabold text-inst-900">Relatórios e Inteligência (BI)</h2>' +
+        '<p class="' + C.muted + '">Filtros combináveis. A exportação para Tribunais de Contas utiliza os mesmos registros dos módulos (AUDESP/TCESP, PDF, JSON, CSV e XLSX).</p></div>' +
+        '<section class="sig-card mb-5"><div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">' +
+        '<label><span class="' + C.label + '">Ano / Exercício</span><input class="' + C.input + '" data-report="ano" value="' + esc(reportFilters.ano) + '" /></label>' +
+        '<label><span class="' + C.label + '">Fonte de Recurso</span><select class="' + C.input + '" data-report="origem"><option value="">Todas</option>' + SOURCES.map(s => '<option' + (reportFilters.origem === s ? ' selected' : '') + '>' + s + '</option>').join('') + '</select></label>' +
+        '<label><span class="' + C.label + '">Secretaria Responsável</span><select class="' + C.input + '" data-report="secretaria"><option value="">Todas</option>' + SEC_OPTS.map(s => '<option' + (reportFilters.secretaria === s ? ' selected' : '') + '>' + esc(s) + '</option>').join('') + '</select></label>' +
+        '<label><span class="' + C.label + '">Status do Instrumento</span><select class="' + C.input + '" data-report="status"><option value="">Todos</option>' + STATUS.map(s => '<option' + (reportFilters.status === s ? ' selected' : '') + '>' + s + '</option>').join('') + '</select></label>' +
+        '<label><span class="' + C.label + '">Entidade Beneficiária</span><input class="' + C.input + '" data-report="beneficiario" value="' + esc(reportFilters.beneficiario) + '" placeholder="Nome ou parte" /></label>' +
+        '<label class="flex items-end pb-2 gap-2 text-sm"><input type="checkbox" data-report="inadimplencia"' + (reportFilters.inadimplencia ? ' checked' : '') + ' /> Somente alertas de inadimplência</label>' +
+        '</div><div class="flex flex-wrap gap-2 mt-4">' +
+        '<button class="' + C.primary + '" data-action="refresh-report">🔄 Aplicar filtros</button>' +
+        '<button class="' + C.ghost + '" data-action="export-report" data-format="pdf">PDF</button>' +
+        '<button class="' + C.ghost + '" data-action="export-report" data-format="json">JSON</button>' +
+        '<button class="' + C.ghost + '" data-action="export-report" data-format="csv">CSV</button>' +
+        '<button class="' + C.ghost + '" data-action="export-report" data-format="xlsx">XLSX</button>' +
+        '<button class="' + C.ghost + '" data-action="export-report" data-format="audesp">AUDESP / TCESP (JSON)</button>' +
+        '</div></section>' +
+        '<div class="grid sm:grid-cols-3 gap-4 mb-5">' +
+        '<div class="sig-card p-4"><p class="text-xs text-slate-500">Registros filtrados</p><p class="text-2xl font-bold text-inst-900">' + rows.length + '</p></div>' +
+        '<div class="sig-card p-4"><p class="text-xs text-slate-500">Valor total filtrado</p><p class="text-2xl font-bold text-verd-700">' + money(total) + '</p></div>' +
+        '<div class="sig-card p-4"><p class="text-xs text-slate-500">Situações distintas</p><p class="text-2xl font-bold text-inst-900">' + Object.keys(byStatus).length + '</p></div></div>' +
+        '<section class="sig-card overflow-x-auto"><table class="w-full"><thead><tr>' +
+        ['Módulo', 'Número', 'Objeto', 'Fonte', 'Secretaria', 'Status', 'Beneficiário', 'Valor'].map(h => '<th scope="col" class="' + C.th + '">' + h + '</th>').join('') +
+        '</tr></thead><tbody>' + rows.map(r => '<tr>' +
+          '<td class="' + C.td + ' text-xs">' + esc(r.modulo) + '</td><td class="' + C.td + ' font-semibold">' + esc(r.numero) + '</td>' +
+          '<td class="' + C.td + '">' + esc(r.objeto.slice(0, 60)) + '</td><td class="' + C.td + '">' + esc(r.origem) + '</td>' +
+          '<td class="' + C.td + ' text-xs">' + esc(r.secretaria) + '</td><td class="' + C.td + '">' + statusBadge(r.status) + '</td>' +
+          '<td class="' + C.td + '">' + esc(r.beneficiario) + '</td><td class="' + C.td + ' text-right">' + money(r.valor) + '</td></tr>').join('') +
+        '</tbody></table></section>';
+    }
+
+    /* ---------- Portal da Transparência ---------- */
+    function transparencyView() {
+      const view = TRANSPARENCY_VIEWS.find(v => v.id === state.transTab) || TRANSPARENCY_VIEWS[0];
+      let rows = [];
+      view.mods.forEach(id => recs(id).forEach(r => rows.push({ mod: mod(id), r })));
+      const tabs = TRANSPARENCY_VIEWS.map(v => '<button data-action="trans-tab" data-id="' + v.id + '" class="px-3 py-2 text-xs font-semibold rounded-lg whitespace-nowrap ' +
+        (v.id === view.id ? 'bg-inst-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') + '">' + esc(v.label) + '</button>').join('');
+      const body = rows.slice(0, 80).map(x => {
+        const num = x.r.numero || x.r.instrumento || x.r.emenda || x.r.ordem || x.r.id;
+        const obj = x.r.objeto || x.r.descricao || '—';
+        const val = x.r.valor != null ? x.r.valor : (x.r.valorMedido != null ? x.r.valorMedido : 0);
+        return '<tr><td class="' + C.td + ' text-xs">' + esc(x.mod.label) + '</td><td class="' + C.td + ' font-semibold">' + esc(num) + '</td>' +
+          '<td class="' + C.td + '">' + esc(String(obj).slice(0, 90)) + '</td><td class="' + C.td + '">' + esc(sourceOf(x.r, x.mod.id)) + '</td>' +
+          '<td class="' + C.td + '">' + statusBadge(statusOf(x.r)) + '</td><td class="' + C.td + ' text-right">' + money(val) + '</td></tr>';
+      }).join('');
+      return '<div class="mb-5"><h2 class="text-2xl font-extrabold text-inst-900">Portal da Transparência</h2>' +
+        '<p class="' + C.muted + '">Visão pública automática — espelho dos módulos internos. Nenhum dado é digitado nesta área.</p></div>' +
+        '<section class="sig-card mb-4 p-3 flex flex-wrap gap-2" role="tablist" aria-label="Visões do cidadão">' + tabs + '</section>' +
+        '<section class="sig-card overflow-x-auto" role="tabpanel"><div class="p-4 bg-verd-700 text-white flex flex-wrap justify-between gap-2">' +
+        '<strong>' + esc(view.label) + '</strong><span class="text-xs">' + rows.length + ' registro(s) publicado(s) · atualizado ' + new Date().toLocaleString('pt-BR') + '</span></div>' +
+        '<table class="w-full"><thead><tr>' + ['Fonte do dado', 'Número', 'Objeto / Descrição', 'Recurso', 'Situação', 'Valor'].map(h => '<th scope="col" class="' + C.th + '">' + h + '</th>').join('') +
+        '</tr></thead><tbody>' + (body || '<tr><td colspan="6" class="p-8 text-center text-slate-500">Sem dados publicados nesta visão.</td></tr>') + '</tbody></table></section>';
+    }
+
+    /* ---------- Busca global ---------- */
+    function searchView() {
+      const q = norm(state.search);
+      const out = [];
+      if (q) CATALOG.forEach(m => {
+        if (!m.fields && !m.sections) return;
+        recs(m.id).forEach(r => { if (norm(JSON.stringify(r)).indexOf(q) >= 0) out.push({ m, r }); });
+      });
+      return '<div class="mb-5"><h2 class="text-2xl font-extrabold text-inst-900">Resultados da busca</h2><p class="' + C.muted + '">Termo: “' + esc(state.search) + '” · ' + out.length + ' resultado(s)</p></div>' +
+        '<section class="sig-card overflow-x-auto"><table class="w-full"><thead><tr>' +
+        ['Módulo', 'Identificação', 'Resumo', 'Situação', ''].map(h => '<th class="' + C.th + '">' + h + '</th>').join('') + '</tr></thead><tbody>' +
+        out.slice(0, 100).map(x => '<tr><td class="' + C.td + '">' + esc(x.m.label) + '</td><td class="' + C.td + ' font-semibold">' + esc(x.r.numero || x.r.nome || x.r.id) + '</td>' +
+          '<td class="' + C.td + '">' + esc(String(x.r.objeto || x.r.descricao || '').slice(0, 80)) + '</td><td class="' + C.td + '">' + statusBadge(statusOf(x.r)) + '</td>' +
+          '<td class="' + C.td + '"><button class="text-inst-700 underline text-xs" data-action="nav" data-id="' + x.m.id + '">Abrir</button></td></tr>').join('') +
+        '</tbody></table></section>';
+    }
+
+    /* ===================== IMPORTAÇÃO / EXPORTAÇÃO ===================== */
+    function download(name, content, mime) {
+      const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    }
+    function toCSV(rows) {
+      if (!rows.length) return '';
+      const keys = Object.keys(rows[0]);
+      const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      return keys.join(';') + '\r\n' + rows.map(r => keys.map(k => q(r[k])).join(';')).join('\r\n');
+    }
+    function exportRows(rows, filename, format) {
+      try {
+        if (format === 'json' || format === 'audesp') {
+          const payload = format === 'audesp'
+            ? { orgao: 'Paraguaçu Paulista/SP', exercicio: 2026, sistema: 'SIG', geradoEm: new Date().toISOString(), registros: rows }
+            : rows;
+          download(filename + '.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+        } else if (format === 'csv') {
+          download(filename + '.csv', '\uFEFF' + toCSV(rows), 'text/csv;charset=utf-8');
+        } else if (format === 'xlsx') {
+          if (!window.XLSX) throw new Error('Biblioteca XLSX não carregada. Verifique a conexão com o CDN.');
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.length ? rows : [{ aviso: 'Nenhum dado' }]), 'SIG');
+          XLSX.writeFile(wb, filename + '.xlsx');
+        } else if (format === 'pdf') {
+          if (!window.jspdf) throw new Error('Biblioteca PDF não carregada. Verifique a conexão com o CDN.');
+          const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+          doc.setFontSize(12); doc.text('SIG - Prefeitura de Paraguaçu Paulista', 14, 16);
+          doc.setFontSize(9); doc.text('Exportacao gerada em ' + new Date().toLocaleDateString('pt-BR'), 14, 22);
+          let y = 32;
+          rows.slice(0, 200).forEach((r, i) => {
+            if (y > 275) { doc.addPage(); y = 20; }
+            const txt = (i + 1) + '. ' + String(r.numero || r.id || '') + ' - ' + String(r.objeto || r.descricao || '').slice(0, 80);
+            doc.text(doc.splitTextToSize(txt, 180), 14, y); y += 10;
+          });
+          doc.save(filename + '.pdf');
+        }
+        toast('Exportação concluída (' + format.toUpperCase() + ').', 'success');
+      } catch (e) { toast(e.message, 'error'); }
+    }
+    function parseCSV(text) {
+      const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return [];
+      const split = line => {
+        const out = []; let cur = '', quoted = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c === '"') { if (quoted && line[i + 1] === '"') { cur += '"'; i++; } else quoted = !quoted; }
+          else if ((c === ';' || c === ',') && !quoted) { out.push(cur); cur = ''; }
+          else cur += c;
+        }
+        out.push(cur); return out;
+      };
+      const head = split(lines[0]).map(norm);
+      return lines.slice(1).map(line => {
+        const vals = split(line), o = {};
+        head.forEach((h, i) => { if (h) o[h] = vals[i]; });
+        return o;
+      });
+    }
+    async function parseAny(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'json') return JSON.parse(await file.text());
+      if (ext === 'csv' || ext === 'txt') return parseCSV(await file.text());
+      if (ext === 'xlsx' || ext === 'xls') {
+        if (!window.XLSX) throw new Error('XLSX indisponível. Conecte-se à internet para carregar a biblioteca.');
+        const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { type: 'array' });
+        return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      }
+      throw new Error('Formato não suportado: ' + ext);
+    }
+    function openImportModal() {
+      const m = mod(state.current);
+      const body = '<p class="' + C.muted + ' mb-4">Importe dados de portais de transparência e sistemas federais/estaduais/municipais. O cabeçalho das colunas é mapeado automaticamente pelos nomes dos campos (aceitaacentos e maiúsculas).</p>' +
+        '<div class="grid sm:grid-cols-2 gap-4 mb-4">' +
+        '<label><span class="' + C.label + '">Módulo de destino</span><select id="import-module" class="' + C.input + '">' +
+        CATALOG.filter(x => x.fields).map(x => '<option value="' + x.id + '"' + (m && m.id === x.id ? ' selected' : '') + '>' + esc(x.label) + '</option>').join('') + '</select></label>' +
+        '<label><span class="' + C.label + '">Arquivo (CSV, JSON, XLSX)</span><input id="import-file" type="file" accept=".csv,.json,.xlsx,.xls,.txt" class="' + C.input + '" /></label></div>' +
+        '<div id="import-preview" class="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 max-h-40 overflow-auto">Nenhum arquivo selecionado.</div>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Cancelar</button>' +
+        '<button class="' + C.primary + '" data-action="do-import">Processar importação</button>';
+      showModal('Importar dados', body, footer);
+    }
+    async function doImport() {
+      const file = $('#import-file').files[0];
+      const target = $('#import-module').value;
+      if (!file) { toast('Selecione um arquivo.', 'warn'); return; }
+      try {
+        const rows = await parseAny(file);
+        const m = mod(target);
+        const fields = allFields(m);
+        const map = {};
+        fields.forEach(fl => {
+          map[norm(fl.k)] = fl.k;
+          map[norm(fl.l)] = fl.k;
+          map[norm(fl.l).replace(/\(.*?\)/g, '').trim()] = fl.k;
+        });
+        const converted = rows.map(row => {
+          const out = { id: uid(), _created: new Date().toISOString(), _imported: true };
+          Object.keys(row).forEach(k => {
+            const key = map[norm(k)];
+            if (key) out[key] = row[k];
+          });
+          if (!out.numero && !out.nome) out.numero = 'IMP-' + out.id.slice(-6);
+          return out;
+        });
+        DB.records[target] = converted.concat(DB.records[target] || []);
+        logMovement('Importação de dados', m.label + ' — ' + converted.length + ' registro(s) de ' + file.name, target);
+        saveDB(); closeModal(); state.current = target; render();
+        toast(converted.length + ' registro(s) importado(s).', 'success');
+      } catch (e) { toast('Falha na importação: ' + e.message, 'error'); }
+    }
+    function openExportModal() {
+      const m = mod(state.current);
+      const list = (m && m.fields) ? recs(m.id) : reportRows();
+      const body = '<p class="' + C.muted + ' mb-4">' + list.length + ' registro(s) serão exportados.</p>' +
+        '<fieldset><legend class="' + C.label + '">Formato</legend><div class="grid grid-cols-2 sm:grid-cols-3 gap-2">' +
+        ['pdf', 'json', 'csv', 'xlsx', 'audesp'].map((x, i) =>
+          '<label class="flex items-center gap-2 bg-slate-50 p-3 rounded-lg text-sm"><input type="radio" name="exp-format" value="' + x + '"' + (i === 1 ? ' checked' : '') + ' /> ' + x.toUpperCase() + '</label>').join('') +
+        '</div></fieldset>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Cancelar</button>' +
+        '<button class="' + C.primary + '" data-action="do-export">Exportar agora</button>';
+      showModal('Exportar dados', body, footer);
+    }
+
+    /* ===================== DOCUMENTOS, VOZ, ASSINATURA ===================== */
+    function openDocsModal() {
+      const m = mod(state.current);
+      const docs = DB.documents.filter(d => d.module === state.current);
+      const body = '<p class="' + C.muted + ' mb-3">Inserção em lote de documentos (editais, anexos, notas fiscais, pareceres). Nesta versão, apenas metadados são armazenados localmente.</p>' +
+        '<label class="block mb-3"><span class="' + C.label + '">Selecionar vários arquivos</span><input id="docs-input" type="file" multiple class="' + C.input + '" /></label>' +
+        '<div id="docs-list" class="text-sm space-y-1 max-h-52 overflow-auto">' + (docs.length ? docs.map(d =>
+          '<div class="flex justify-between bg-slate-50 rounded p-2"><span>📎 ' + esc(d.name) + '</span><span class="text-slate-500 text-xs">' + (d.size / 1024).toFixed(0) + ' KB</span></div>').join('') : '<p class="text-slate-500">Nenhum documento anexado a este módulo.</p>') + '</div>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Fechar</button>' +
+        '<button class="' + C.primary + '" data-action="add-docs">Adicionar arquivos selecionados</button>';
+      showModal('Documentos — ' + (m ? m.label : ''), body, footer);
+    }
+    function addDocs() {
+      const files = Array.from($('#docs-input').files);
+      if (!files.length) { toast('Selecione ao menos um arquivo.', 'warn'); return; }
+      files.forEach(file => DB.documents.unshift({ id: uid(), name: file.name, size: file.size, type: file.type, module: state.current, date: new Date().toISOString() }));
+      logMovement('Documentos inseridos', files.length + ' arquivo(s) em ' + (mod(state.current) || {}).label, state.current);
+      saveDB(); closeModal(); toast(files.length + ' documento(s) registrado(s).', 'success');
+    }
+    letSpeechSupport();
+    function letSpeechSupport() { window.__speech = window.SpeechRecognition || window.webkitSpeechRecognition || null; }
+    function startVoice(targetId) {
+      const el = document.getElementById(targetId);
+      if (!el) return;
+      if (!window.__speech) { toast('Digitação por voz não suportada neste navegador (use Chrome/Edge).', 'warn'); return; }
+      const rec = new window.__speech();
+      rec.lang = 'pt-BR'; rec.interimResults = true; rec.continuous = false;
+      toast('Ouvindo… fale agora.', 'info');
+      rec.onresult = e => {
+        let txt = '';
+        for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+        el.value = (el.value ? el.value + ' ' : '') + txt;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      rec.onerror = () => toast('Não foi possível capturar a voz. Verifique a permissão do microfone.', 'error');
+      rec.start();
+    }
+    function openSignatureModal(targetId) {
+      const body = '<p class="' + C.muted + ' mb-3">Escolha o mecanismo de assinatura. Protótipo: o hash e o carimbo de data/hora são simulados localmente.</p>' +
+        '<div class="grid sm:grid-cols-3 gap-2 mb-4">' +
+        ['Sisyema', 'GOV.BR', 'Certificado digital'].map((x, i) =>
+          '<label class="flex items-center gap-2 bg-slate-50 p-3 rounded-lg text-sm"><input type="radio" name="sign-mode" value="' + x + '"' + (i === 0 ? ' checked' : '') + ' /> ' + x + '</label>').join('') +
+        '</div>' +
+        '<p class="' + C.label + '">Desenhe sua assinatura (opcional)</p>' +
+        '<canvas id="sign-canvas" width="600" height="150" class="w-full border border-slate-300 rounded-lg bg-white touch-none"></canvas>' +
+        '<button type="button" class="' + C.ghost + ' mt-2" data-action="clear-sign">Limpar desenho</button>';
+      const footer = '<button class="' + C.ghost + '" data-action="close-modal">Cancelar</button>' +
+        '<button class="' + C.green + '" data-action="confirm-sign" data-target="' + targetId + '">Confirmar assinatura</button>';
+      showModal('Assinatura digital', body, footer);
+      const canvas = $('#sign-canvas'); const ctx = canvas.getContext('2d');
+      ctx.lineWidth = 2.5; ctx.strokeStyle = '#1e3a8a'; ctx.lineCap = 'round';
+      let drawing = false;
+      const pos = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * canvas.width / r.width, y: (e.clientY - r.top) * canvas.height / r.height }; };
+      canvas.addEventListener('pointerdown', e => { drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); canvas.setPointerCapture(e.pointerId); });
+      canvas.addEventListener('pointermove', e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+      canvas.addEventListener('pointerup', () => { drawing = false; });
+    }
+    function confirmSign(targetId) {
+      const el = document.getElementById(targetId);
+      if (!el) { closeModal(); return; }
+      const mode = (document.querySelector('input[name="sign-mode"]:checked') || {}).value || 'Sisyema';
+      const canvas = $('#sign-canvas');
+      const drawn = canvas ? canvas.toDataURL('image/png') : '';
+      const payload = { mode, date: new Date().toISOString(), usuario: 'Gestor/Fiscal', hash: 'SIM-' + btoa(mode + Date.now()).slice(0, 18), drawn: drawn.length > 5000 ? drawn : '' };
+      el.value = JSON.stringify(payload);
+      const prev = document.getElementById(targetId + '-preview');
+      if (prev) prev.textContent = '✔ Assinado via ' + mode + ' em ' + dateBR(payload.date);
+      logMovement('Assinatura digital', 'Instrumento assinado via ' + mode, state.current);
+      saveDB(); closeModal(); toast('Assinatura registrada.', 'success');
+    }
+
+    /* ===================== ACESSIBILIDADE / LGPD / IA ===================== */
+    function openA11yModal() {
+      const body = '<p class="' + C.muted + ' mb-4">Recursos em conformidade com as diretrizes e-MAG/ABNT NBR 17225: foco visível, contraste, navegação por teclado, semântica ARIA e ajuste de fonte.</p>' +
+        '<div class="space-y-2">' +
+        '<button class="' + C.btn + ' w-full justify-between" data-action="toggle-contrast">Alto contraste <span>' + (DB.settings.contrast ? 'ATIVADO' : 'DESATIVADO') + '</span></button>' +
+        '<button class="' + C.btn + ' w-full justify-between" data-action="toggle-font">Ampliar fonte <span>' + (DB.settings.largeFont ? 'ATIVADO' : 'DESATIVADO') + '</span></button>' +
+        '<button class="' + C.btn + ' w-full justify-between" data-action="lgpd-policy">Política de privacidade <span>LER</span></button>' +
+        '<div class="text-xs text-slate-600">Atalhos: <kbd>Tab</kbd> navega · <kbd>Enter</kbd> ativa · <kbd>Esc</kbd> fecha janelas.</div></div>';
+      showModal('Acessibilidade', body, '<button class="' + C.primary + '" data-action="close-modal">Fechar</button>');
+    }
+    function openLgpdPolicy() {
+      const body = '<div class="text-sm space-y-3">' +
+        '<p><strong>Finalidade:</strong> gestão de planejamento, contratações, convênios, transferências, execução e prestação de contas do município.</p>' +
+        '<p><strong>Dados coletados:</strong> dados funcionais e instrumentos públicos inseridos no protótipo. Dados pessoais são mascarados quando ilustrativos.</p>' +
+        '<p><strong>Armazenamento:</strong> exclusivamente no navegador (localStorage), sem envio a servidores nesta versão.</p>' +
+        '<p><strong>Base legal:</strong> execução de políticas públicas (art. 7º, III, LGPD) e cumprimento de obrigação legal (art. 7º, II).</p>' +
+        '<p><strong>Direitos do titular:</strong> confirmação, acesso, correção e exclusão podem ser exercidos pela limpeza dos dados locais ou pelos canais oficiais da Prefeitura.</p>' +
+        '<p><strong>Retenção:</strong> conforme tabelas de temporalidade arquivística; a versão 2.0 Implementará política automatizada.</p></div>';
+      showModal('Política de Privacidade e LGPD', body, '<button class="' + C.primary + '" data-action="close-modal">Entendi</button>');
+    }
+    function iaAppend(text, title) {
+      const d = document.createElement('div');
+      d.className = 'sig-card p-3';
+      d.innerHTML = '<strong class="text-inst-900">' + esc(title || 'Assistente SIG') + '</strong><div class="mt-1 whitespace-pre-wrap">' + esc(text) + '</div>';
+      $('#ia-log').appendChild(d);
+      $('#ia-log').scrollTop = $('#ia-log').scrollHeight;
+    }
+    function iaRun() {
+      const p = $('#ia-input').value || '';
+      let out = '';
+      if (/risco|auditor|conformidade/i.test(p)) {
+        out = 'Análise de risco (heurística local):\n1. Verifique a vigência e a prestação de contas dos instrumentos com prazo inferior a 45 dias.\n2. Confira saldo de ARP e adesões antes de novas ordens.\n3. Para OSCs, valide Credenciamento → ETI → Plano de Trabalho → Termo → Monitoramento.\n4. Emendas exigem rastreabilidade indicação → empenho → pagamento → relatório de gestão.\n\nA IA não substitui parecer jurídico/contábil.';
+      } else if (/etp|dfd|minuta|justificativa/i.test(p)) {
+        out = 'Minuta sugerida (adaptar à realidade local):\n\nJUSTIFICATIVA: A contratação justifica-se pela necessidade de [descrever demanda], alinhada ao PCA 2026 e ao interesse público, conforme DFD nº [número].\n\nSOLUÇÕES CONSIDERADAS: (i) contratação direta; (ii) licitação por pregão; (iii) adesão a ARP. Recomenda-se (ii) quando o valor e a padronização permitirem.\n\nRISCOS: atraso de entrega, inconsistência de especificações e indisponibilidade orçamentária. Mitigações: matriz de riscos, fiscalização e reserva de dotação.';
+      } else if (/prazo|alerta|vencimento/i.test(p)) {
+        out = DB.alerts.map(a => '• ' + a.titulo + ' — ' + dateBR(a.vencimento) + ' (' + a.severidade + ')').join('\n');
+      } else {
+        const t = financialSummary();
+        out = 'Resumo do portfólio SIG:\n• Solicitado: ' + money(t.solicitado) + '\n• Em execução: ' + money(t.execucao) + '\n• Repassado: ' + money(t.repassado) + '\n• Saldo a executar: ' + money(t.saldo) + '\n\nSugestão: priorizar a regularização dos alertas vermelhos antes do próximo painel executivo.';
+      }
+      iaAppend(out); $('#ia-input').value = '';
+    }
+    function iaAudit() {
+      const m = mod(state.current);
+      if (!m || (!m.fields && !m.sections)) { iaAppend('Selecione um módulo de cadastro para auditar.'); return; }
+      const fields = allFields(m).filter(x => x.req);
+      const problems = [];
+      recs(m.id).forEach(r => {
+        fields.forEach(fl => { if (r[fl.k] === '' || r[fl.k] == null) problems.push('• ' + (r.numero || r.id) + ': campo obrigatório "' + fl.l + '" vazio.'); });
+      });
+      const nums = recs(m.id).map(r => r.numero).filter(Boolean);
+      nums.forEach((n, i) => { if (nums.indexOf(n) !== i) problems.push('• Número duplicado: ' + n); });
+      iaAppend(problems.length ? 'Auditoria de "' + m.label + '":\n' + problems.slice(0, 20).join('\n') : 'Auditoria de "' + m.label + '": nenhuma inconsistência encontrada nos campos obrigatórios.', 'Auditoria de qualidade');
+      state.iaOpen = true; document.body.classList.add('assist-open');
+    }
+
+    /* ===================== EVENTOS GLOBAIS ===================== */
+    document.addEventListener('click', async e => {
+      const b = e.target.closest('[data-action]');
+      if (!b) return;
+      const a = b.dataset.action;
+      const id = b.dataset.id;
+      const m = mod(state.current);
+      switch (a) {
+        case 'nav': state.current = id; state.search = ''; state.filter = ''; render(); break;
+        case 'new': openFormModal(mod(id || state.current), null); break;
+        case 'edit': {
+          const target = mod(state.current);
+          const r = recs(target.id).find(x => x.id === id);
+          if (r) openFormModal(target, r);
+          break;
+        }
+        case 'view': {
+          const target = mod(state.current);
+          const r = recs(target.id).find(x => x.id === id);
+          if (r) openViewModal(target, r);
+          break;
+        }
+        case 'duplicate': {
+          const target = mod(state.current);
+          const r = recs(target.id).find(x => x.id === id);
+          if (r) openDuplicateModal(target, r);
+          break;
+        }
+        case 'confirm-duplicate': {
+          const target = mod(b.dataset.module);
+          const origin = recs(target.id).find(x => x.id === b.dataset.id);
+          if (!origin) break;
+          const out = { id: uid(), _created: new Date().toISOString() };
+          $$('.dup-field:checked').forEach(cb => { out[cb.dataset.key] = origin[cb.dataset.key]; });
+          out.numero = (origin.numero || origin.id) + '-CÓPIA';
+          if (out.objeto) out.objeto = 'CÓPIA — ' + out.objeto;
+          DB.records[target.id].unshift(out);
+          logMovement('Cadastro duplicado', target.label + ' — reaproveitamento de ' + (origin.numero || origin.id), target.id);
+          saveDB(); closeModal(); render(); toast('Cadastro duplicado. Ajuste os dados antes de salvar.', 'success');
+          openFormModal(target, out);
+          break;
+        }
+        case 'delete': {
+          const target = mod(state.current);
+          const r = recs(target.id).find(x => x.id === id);
+          if (!r) break;
+          if (!confirm('Excluir o registro ' + (r.numero || r.id) + '? Esta ação é registrada na trilha de auditoria.')) break;
+          DB.records[target.id] = recs(target.id).filter(x => x.id !== id);
+          logMovement('Registro excluído', target.label + ' — ' + (r.numero || r.id), target.id);
+          saveDB(); render(); toast('Registro excluído.', 'warn');
+          break;
+        }
+        case 'submit-form': {
+          const form = $('#record-form');
+          if (form) submitRecord(form);
+          break;
+        }
+        case 'close-modal': closeModal(); break;
+        case 'import': openImportModal(); break;
+        case 'do-import': doImport(); break;
+        case 'export': openExportModal(); break;
+        case 'do-export': {
+          const fmt = (document.querySelector('input[name="exp-format"]:checked') || {}).value || 'json';
+          const target = mod(state.current);
+          const rows = (target && target.fields) ? recs(target.id) : reportRows();
+          exportRows(rows, 'sig_paraguacu_' + state.current, fmt);
+          closeModal();
+          break;
+        }
+        case 'export-report': exportRows(reportRows(), 'sig_relatorio_paraguacu', b.dataset.format); break;
+        case 'refresh-report': render(); break;
+        case 'docs': openDocsModal(); break;
+        case 'add-docs': addDocs(); break;
+        case 'print': window.print(); break;
+        case 'sign': openSignatureModal(b.dataset.target); break;
+        case 'sign-form': {
+          const sigField = allFields(m).find(x => x.t === 'signature');
+          if (sigField) openSignatureModal('fld-' + m.id + '-' + sigField.k);
+          else { toast('Este módulo não possui campo de assinatura. Use o botão de assinatura em um formulário.', 'info'); openSignatureModal('fld-' + m.id + '-assinaturaTemp'); }
+          break;
+        }
+        case 'confirm-sign': confirmSign(b.dataset.target); break;
+        case 'clear-sign': { const c = $('#sign-canvas'); if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height); break; }
+        case 'voice': startVoice(b.dataset.target); break;
+        case 'add-repeat': {
+          const repName = b.dataset.rep;
+          const rep = document.querySelector('[data-repeater="' + repName + '"]');
+          const mRep = mod(b.dataset.module || state.current);
+          const fl = allFields(mRep).find(x => x.k === repName);
+          if (!rep || !fl) break;
+          const div = document.createElement('div');
+          div.className = 'rep-row';
+          div.innerHTML = '<div class="grid sm:grid-cols-2 gap-3">' + (fl.sub || []).map(sf => fieldHTML(sf, '', b.dataset.module + '-r' + Date.now())).join('') + '</div>' +
+            '<button type="button" class="' + C.danger + ' mt-2" data-action="remove-repeat" data-rep="' + repName + '" data-index="new">Remover item</button>';
+          rep.insertBefore(div, rep.lastElementChild);
+          break;
+        }
+        case 'remove-repeat': b.closest('.rep-row').remove(); break;
+        case 'lgpd-accept': case 'lgpd-refuse':
+          DB.settings.lgpd = a === 'lgpd-accept' ? 'accepted' : 'refused';
+          logMovement('Consentimento LGPD', DB.settings.lgpd, 'settings'); saveDB(); applySettings();
+          toast('Preferência de privacidade registrada.', 'success'); break;
+        case 'lgpd-policy': openLgpdPolicy(); break;
+        case 'a11y': openA11yModal(); break;
+        case 'toggle-contrast': DB.settings.contrast = !DB.settings.contrast; saveDB(); applySettings(); closeModal(); break;
+        case 'toggle-font': DB.settings.largeFont = !DB.settings.largeFont; saveDB(); applySettings(); closeModal(); break;
+        case 'toggle-sidebar': $('#sidebar').classList.toggle('hidden'); break;
+        case 'toggle-ia':
+          state.iaOpen = !state.iaOpen; document.body.classList.toggle('assist-open', state.iaOpen);
+          b.setAttribute('aria-expanded', String(state.iaOpen)); break;
+        case 'alerts': state.current = 'dashboard'; render(); $('#dash-titulo-alertas').scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
+        case 'ia-run': iaRun(); break;
+        case 'ia-audit': iaAudit(); break;
+        case 'trans-tab': state.transTab = id; render(); break;
+        case 'save-special-form': {
+          const form = $('#special-form');
+          if (!form) break;
+          const data = collectForm(form, allFields(m));
+          data.id = uid(); data._created = new Date().toISOString();
+          DB.records[m.id].unshift(data);
+          logMovement('Formulário salvo', m.label, m.id); saveDB(); render();
+          toast('Formulário salvo com sucesso.', 'success'); break;
+        }
+      }
+    });
+
+    document.addEventListener('submit', e => {
+      if (e.target.id === 'record-form') { e.preventDefault(); submitRecord(e.target); }
+      if (e.target.id === 'special-form') { e.preventDefault(); }
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    document.addEventListener('input', e => {
+      const t = e.target;
+      if (t.dataset.filter === 'search') {
+        state.search = t.value;
+        clearTimeout(window.__filterTimer);
+        window.__filterTimer = setTimeout(() => {
+          render();
+          const el = document.querySelector('[data-filter="search"]');
+          if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+        }, 220);
+      }
+      if (t.dataset.report) { reportFilters[t.dataset.report] = t.type === 'checkbox' ? t.checked : t.value; }
+    });
+    document.addEventListener('change', e => {
+      const t = e.target;
+      if (t.dataset.filter === 'source') { state.filter = t.value; render(); }
+      if (t.dataset.report) { reportFilters[t.dataset.report] = t.type === 'checkbox' ? t.checked : t.value; render(); }
+      if (t.id === 'import-file') {
+        const f = t.files[0];
+        if (f) $('#import-preview').textContent = 'Arquivo selecionado: ' + f.name + ' (' + (f.size / 1024).toFixed(0) + ' KB). Clique em “Processar importação”.';
+      }
+      if (t.id === 'docs-input') {
+        const list = Array.from(t.files);
+        $('#docs-list').innerHTML = list.length ? list.map(x => '<div class="bg-slate-50 rounded p-2">📎 ' + esc(x.name) + ' · ' + (x.size / 1024).toFixed(0) + ' KB</div>').join('') : 'Nenhum arquivo selecionado.';
+      }
+    });
+    $('#global-search').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { state.search = e.target.value; state.current = 'search'; render(); }
+    });
+
+    /* ===================== INICIALIZAÇÃO ===================== */
+    loadDB();
+    render();
+  })();
+  </script>
+</body>
+</html>

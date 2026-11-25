@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Avaliação Técnica de Planos de Trabalho — Paraguaçu Paulista</title>
+<!--
+  AVALIAÇÃO TÉCNICA DE PLANOS DE TRABALHO — Prefeitura Municipal da Estância Turística de Paraguaçu Paulista
+  Aplicação standalone (HTML5 + Tailwind CSS via CDN + Alpine.js + pdf.js). Funciona sem servidor e sem compilação;
+  todos os dados ficam no navegador (localStorage). Estrutura do arquivo:
+    1) CSS (tela e impressão A4)   2) Marcação (sidebar, seções 1 a 3.10, histórico, pré-visualização)
+    3) Núcleo de regras (importação, auditoria, versionamento, documentos)   4) Componente Alpine (interface)
+-->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>if (window.tailwind) { tailwind.config = { corePlugins: { preflight: false } }; }</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<style>
+/* ============================ TOKENS E BASE ============================ */
+:root{
+  --azul:#0f3d5e; --azul-2:#164e78; --azul-claro:#e6eef5; --dourado:#9a6a12; --dourado-claro:#f7ecd3;
+  --bg:#f3f5f7; --card:#fff; --linha:#d3dae1; --texto:#1b2430; --suave:#55606d;
+  --ok:#14532d; --ok-bg:#dcf1e3; --alerta:#6b4200; --alerta-bg:#fdeccd; --erro:#8f1d1a; --erro-bg:#fbe0de; --info:#124a73; --info-bg:#dcebf7;
+  --raio:10px; --sombra:0 1px 2px rgba(16,35,55,.08),0 4px 14px rgba(16,35,55,.06);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--texto);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color-scheme:light}
+h1,h2,h3,h4,p,ul,ol,fieldset{margin:0;padding:0}
+fieldset{border:0;min-width:0}
+button,input,select,textarea{font:inherit;color:inherit}
+[x-cloak]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:3px solid #1d6fb8;outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:8px;background:#fff;padding:8px 12px;border-radius:6px;z-index:100}
+.skip:focus{left:8px}
+
+/* ============================ TOPO ============================ */
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:10px 18px;background:var(--azul);color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.topbar .brasao-slot{flex:none;width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px dashed rgba(255,255,255,.5);overflow:hidden;font-size:10px;text-align:center;line-height:1.1;padding:2px}
+.topbar .brasao-slot img{max-width:100%;max-height:100%;object-fit:contain}
+.topbar h1{font-size:17px;line-height:1.2;font-weight:700;letter-spacing:.1px}
+.topbar .sub{font-size:12.5px;opacity:.88}
+.topbar .grow{flex:1;min-width:0}
+.topbar .acoes{display:flex;gap:8px;align-items:center}
+.burger{display:none}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linha);background:#fff;color:var(--texto);padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;line-height:1.2;text-decoration:none}
+.btn:hover{background:#eef2f6}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--azul);border-color:var(--azul);color:#fff}
+.btn-primary:hover{background:var(--azul-2)}
+.btn-ouro{background:var(--dourado);border-color:var(--dourado);color:#fff}
+.btn-ouro:hover{background:#85590d}
+.btn-sm{padding:5px 10px;font-size:13px}
+.btn-ghost{background:transparent;border-color:rgba(255,255,255,.55);color:#fff}
+.btn-ghost:hover{background:rgba(255,255,255,.14)}
+.btn-perigo{color:var(--erro);border-color:#e3b3b0}
+
+.config-panel{position:absolute;right:18px;top:calc(100% + 6px);width:min(440px,calc(100vw - 24px));background:#fff;color:var(--texto);border:1px solid var(--linha);border-radius:var(--raio);box-shadow:var(--sombra);padding:16px;z-index:40}
+.config-panel h2{font-size:15px;margin-bottom:10px}
+
+/* ============================ LAYOUT ============================ */
+.layout{display:flex;align-items:flex-start;min-height:calc(100vh - 76px)}
+.sidebar{flex:none;width:318px;position:sticky;top:76px;max-height:calc(100vh - 76px);overflow:auto;background:#fff;border-right:1px solid var(--linha);padding:14px 10px 90px}
+.nav-grupo{font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:var(--suave);font-weight:700;margin:14px 8px 6px}
+.nav-item{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;text-align:left;background:transparent;border:0;border-left:4px solid transparent;border-radius:6px;padding:8px 8px 8px 10px;cursor:pointer;font-size:14px;line-height:1.25}
+.nav-item:hover{background:#eef2f6}
+.nav-item.ativo{background:var(--azul-claro);border-left-color:var(--azul);font-weight:700}
+.nav-rot{flex:1;min-width:0}
+.badge{flex:none;display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-pendente{background:#e7eaee;color:#37414d}
+.b-validado{background:var(--ok-bg);color:var(--ok)}
+.b-ressalva{background:var(--alerta-bg);color:var(--alerta)}
+.b-ok{background:var(--ok-bg);color:var(--ok)} .b-alerta{background:var(--alerta-bg);color:var(--alerta)} .b-erro{background:var(--erro-bg);color:var(--erro)} .b-info{background:var(--info-bg);color:var(--info)}
+.prog{margin:4px 8px 6px}
+.prog .barra{height:8px;border-radius:99px;background:#e1e6ec;overflow:hidden}
+.prog .barra i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.prog small{color:var(--suave);font-size:12px}
+main{flex:1;min-width:0;padding:22px 26px 120px;max-width:1100px}
+.pagina-titulo{font-size:22px;font-weight:700;color:var(--azul);margin-bottom:4px}
+.pagina-sub{color:var(--suave);margin-bottom:14px;font-size:14px}
+
+.card{background:var(--card);border:1px solid var(--linha);border-radius:var(--raio);padding:18px;margin-bottom:16px;box-shadow:var(--sombra)}
+.card h2{font-size:16px;margin-bottom:10px;color:var(--azul)}
+.card h3{font-size:14px;margin:14px 0 6px}
+.modelo{background:#f7f9fb;border-left:4px solid var(--azul);border-radius:6px;padding:10px 12px;color:#313c49;font-size:14px;margin-bottom:12px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.span2{grid-column:span 2}.spanall{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>label,.lbl{font-weight:600;font-size:13.5px}
+.dica{font-size:12.5px;color:var(--suave)}
+.dica .link{background:none;border:0;padding:0;margin-left:6px;color:var(--azul,#0f3d5e);text-decoration:underline;cursor:pointer;font:inherit}
+.input{width:100%;border:1px solid #aab4bf;border-radius:8px;padding:8px 10px;background:#fff;min-height:40px}
+textarea.input{min-height:84px;resize:vertical}
+.input:focus{border-color:var(--azul)}
+.input:disabled,fieldset:disabled .input{background:#eef1f4;color:#6b7683;cursor:not-allowed}
+.opcoes{display:flex;flex-wrap:wrap;gap:8px 14px}
+.opcoes.col{flex-direction:column;gap:6px}
+.opt{display:flex;align-items:flex-start;gap:8px;font-size:14px;cursor:pointer}
+.opt input{margin-top:3px;width:17px;height:17px;flex:none;accent-color:var(--azul)}
+.parecer{background:var(--dourado-claro);border:1px solid #e3cf9b;border-radius:8px;padding:10px 12px;margin-top:12px}
+.parecer .lbl{color:#5a3d06}
+.seg{display:inline-flex;border:1px solid #aab4bf;border-radius:8px;overflow:hidden;background:#fff}
+.seg label{padding:7px 13px;cursor:pointer;font-weight:600;font-size:13.5px;border-right:1px solid #aab4bf}
+.seg label:last-child{border-right:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--azul);color:#fff}
+.seg label.travado{opacity:.6;cursor:not-allowed}
+.invalido{border-color:#c62828!important}
+.proc-sub{margin:6px 0 10px 26px}
+.input[readonly]{background:#eef3f8;color:#33404e}
+.input.invalido{box-shadow:0 0 0 1px #c62828;background:#fff8f8}
+div.invalido{outline:2px solid #c62828;outline-offset:4px;border-radius:8px}
+.seg label:has(input:focus-visible){outline:3px solid #1d6fb8;outline-offset:-3px}
+.statusbar{position:sticky;top:76px;z-index:10;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--linha);border-radius:var(--raio);padding:10px 14px;margin-bottom:16px;box-shadow:var(--sombra)}
+.statusbar h2{font-size:17px;color:var(--azul)}
+.lock{background:var(--alerta-bg);border:1px solid #ecc67c;color:var(--alerta);padding:12px 14px;border-radius:var(--raio);margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.tabela{width:100%;border-collapse:collapse;font-size:14px}
+.tabela th,.tabela td{border:1px solid var(--linha);padding:6px 8px;text-align:left}
+.tabela th{background:#eef2f6}
+.tabela td.r,.tabela th.r{text-align:right}
+.tabela tr.tot td{font-weight:700;background:#f4f6f8}
+.tabela .input{min-height:34px;padding:5px 8px;text-align:right}
+.rolagem{overflow-x:auto}
+.item-lista{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;align-items:start}
+.item-ajuste{border:1px solid var(--linha);border-radius:8px;padding:10px;margin-bottom:8px;background:#fbfcfd}
+
+/* Dropzone, auditoria */
+.drop{border:2px dashed #7f8c9a;border-radius:var(--raio);padding:26px 18px;text-align:center;background:#fafbfc;cursor:pointer}
+.drop.sobre{background:var(--azul-claro);border-color:var(--azul)}
+.drop strong{color:var(--azul)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+.kv dt{color:var(--suave)} .kv dd{margin:0;font-weight:600;word-break:break-word}
+.aviso{display:flex;gap:10px;align-items:flex-start;border-radius:8px;padding:10px 12px;margin:10px 0;font-size:14px;border:1px solid}
+.aviso.ok{background:var(--ok-bg);border-color:#9bd1ae;color:var(--ok)} .aviso.alerta{background:var(--alerta-bg);border-color:#ecc67c;color:var(--alerta)}
+.aviso.erro{background:var(--erro-bg);border-color:#e7a9a5;color:var(--erro)} .aviso.info{background:var(--info-bg);border-color:#a8cbe6;color:var(--info)}
+.aviso b{display:block}
+.resumo{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.resumo span{padding:6px 12px;border-radius:8px;font-weight:700;font-size:14px}
+.aud-item{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;padding:9px 0;border-bottom:1px solid #e8ecf0;font-size:14px}
+.aud-item:last-child{border-bottom:0}
+.aud-grupo{font-size:12px;color:var(--suave);text-transform:uppercase;letter-spacing:.6px}
+.aud-ref{font-size:12px;color:var(--suave);font-style:italic}
+
+/* Histórico */
+.versao{border:1px solid var(--linha);border-radius:var(--raio);background:#fff;margin-bottom:10px;padding:12px 14px}
+.versao header{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between}
+.versao .vn{font-weight:800;font-size:16px;color:var(--azul)}
+.versao ul{margin:8px 0 0 18px;font-size:13px;color:#33404e}
+.hash{font:11px ui-monospace,Menlo,Consolas,monospace;color:var(--suave);word-break:break-all}
+
+/* Barra de ações */
+.actionbar{position:fixed;left:0;right:0;bottom:0;z-index:35;background:#fff;border-top:1px solid var(--linha);padding:8px 16px;display:flex;gap:8px 12px;align-items:center;justify-content:space-between;flex-wrap:wrap;box-shadow:0 -4px 14px rgba(16,35,55,.1)}
+.actionbar .grupo{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.actionbar small{color:var(--suave)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:76px;z-index:60;background:#1b2430;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:var(--sombra);max-width:min(560px,92vw);font-size:14px}
+.toast.erro{background:var(--erro)}
+.modal-fundo{position:fixed;inset:0;background:rgba(10,20,30,.55);z-index:70;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:12px;max-width:560px;width:100%;padding:20px;max-height:86vh;overflow:auto}
+.modal h2{font-size:17px;color:var(--erro);margin-bottom:8px}
+.modal ul{margin:8px 0 14px 20px}
+
+/* Pré-visualização */
+.abas{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.aba{border:1px solid var(--linha);background:#fff;padding:8px 14px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600}
+.aba[aria-selected=true]{background:var(--azul);color:#fff;border-color:var(--azul)}
+.barra-edicao{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.sheet.editando{outline:3px solid #1d6fb8;outline-offset:3px;cursor:text}
+.aba:disabled{opacity:.55;cursor:not-allowed}
+.sheet-wrap{overflow-x:auto;padding:4px 0 20px}
+.sheet{background:#fff;width:210mm;min-height:297mm;margin:0 auto;padding:18mm 16mm;box-shadow:0 2px 18px rgba(0,0,0,.22)}
+
+/* ============================ DOCUMENTOS (tela e papel) ============================ */
+.doc{font:11pt/1.45 Arial,Helvetica,sans-serif;color:#000}
+.doc-head{text-align:center;margin-bottom:8mm}
+.doc .brasao{height:26mm;width:auto;max-width:60mm;display:block;margin:0 auto 3mm;object-fit:contain}
+.doc .brasao-ph{display:inline-block;border:1px dashed #888;padding:6mm 10mm;font-size:9pt;color:#555;margin-bottom:3mm}
+.doc .pref{font-weight:700;text-transform:uppercase;font-size:11pt}
+.doc h1{font-size:12.5pt;text-align:center;margin:6mm 0 5mm;font-weight:700}
+.doc h2{font-size:11.5pt;margin:6mm 0 2mm;font-weight:700;break-after:avoid;page-break-after:avoid}
+.doc h3{font-size:11pt;margin:5mm 0 2mm;font-weight:700;break-after:avoid;page-break-after:avoid}
+.doc .n{font-weight:400;font-size:9.5pt}
+.doc p{margin:0 0 2.5mm;text-align:justify;orphans:3;widows:3}
+.doc p.sub{font-weight:700;margin:3mm 0 1.5mm;break-after:avoid;page-break-after:avoid}
+.doc ul{margin:0 0 3mm 8mm}
+.doc li{margin-bottom:1.5mm;text-align:justify}
+.doc .op{margin:0 0 1.2mm 4mm;break-inside:avoid;page-break-inside:avoid}
+.doc .op.sub{margin-left:12mm}
+.doc .li{margin:0 0 1.5mm 8mm;text-align:justify;orphans:2;widows:2}
+.doc .cx{font-family:"Courier New",monospace;white-space:pre}
+.doc .ph{background:#fff1a8;color:#3a3000}
+.doc .fv{font-weight:600}
+.doc .tbl{border-collapse:collapse;width:100%;margin:0 0 4mm;font-size:10pt;break-inside:avoid;page-break-inside:avoid}
+.doc .tbl th,.doc .tbl td{border:1px solid #000;padding:1.4mm 2mm;text-align:left}
+.doc .tbl th{background:#e6e6e6}
+.doc .tbl td.r{text-align:right}
+.doc .tbl tr.tot td{font-weight:700;background:#f0f0f0}
+.doc .nota{font-size:9.5pt}
+.doc .data{margin-top:8mm;text-align:left}
+.doc .assin{display:flex;gap:14mm;justify-content:center;margin-top:16mm;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.doc .ass{flex:1;border-top:1px solid #000;padding-top:2mm;font-size:10.5pt}
+.doc .keep{break-inside:avoid;page-break-inside:avoid}
+.doc .ofnum{margin:4mm 0 8mm}
+#print-area{display:none}
+
+/* ============================ RESPONSIVO ============================ */
+@media (max-width:1023px){
+  .burger{display:inline-flex}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-102%);transition:transform .2s;width:min(340px,88vw);max-height:none;padding-top:20px;box-shadow:var(--sombra)}
+  .sidebar.open{transform:none}
+  .sidebar-fundo{position:fixed;inset:0;background:rgba(10,20,30,.5);z-index:45}
+  main{padding:16px 14px 150px}
+  .g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .topbar .sub{display:none}
+}
+@media (max-width:640px){
+  .g2,.g3,.g4{grid-template-columns:1fr} .span2{grid-column:auto}
+  .topbar h1{font-size:14px} .statusbar{top:70px}
+  .sheet{padding:10mm 8mm}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ============================ IMPRESSÃO (A4) ============================ */
+@page{size:A4;margin:16mm 15mm 18mm}
+@media print{
+  html,body{background:#fff!important}
+  #app-shell,.toast,.modal-fundo,.no-print{display:none!important}
+  #print-area{display:block!important}
+  .doc{font-size:11pt}
+  .doc .ph{background:none!important;color:#000}
+  .doc .tbl th,.doc .tbl tr.tot td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .doc a{color:#000;text-decoration:none}
+}
+</style>
+</head>
+
+<body>
+<div id="root" x-data="app()">
+<a class="skip" href="#principal">Ir para o conteúdo principal</a>
+
+<div id="app-shell">
+  <!-- ======================= TOPO ======================= -->
+  <header class="topbar no-print">
+    <button type="button" class="btn btn-ghost burger" @click="menuAberto = !menuAberto" :aria-expanded="menuAberto" aria-controls="menu-lateral" aria-label="Abrir menu de seções">☰ Menu</button>
+    <label class="brasao-slot" title="Carregar o Brasão Oficial do Município (PNG/JPG)">
+      <template x-if="config.brasao"><img :src="config.brasao" alt="Brasão do Município"></template>
+      <template x-if="!config.brasao"><span>Carregar brasão</span></template>
+      <input type="file" class="sr-only" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="carregarBrasao($event)" aria-label="Carregar brasão oficial do Município">
+    </label>
+    <div class="grow">
+      <h1>Avaliação Técnica de Planos de Trabalho</h1>
+      <div class="sub">Prefeitura Municipal da Estância Turística de Paraguaçu Paulista · Parcerias e Convênios com Organizações da Sociedade Civil/Entidades</div>
+    </div>
+    <div class="acoes">
+      <button type="button" class="btn btn-ghost" @click="configAberto = !configAberto" :aria-expanded="configAberto" aria-controls="painel-config">⚙ Configurações</button>
+    </div>
+    <div id="painel-config" class="config-panel" x-show="configAberto" x-cloak @keydown.escape="configAberto = false">
+      <h2>Configurações e identificação do técnico</h2>
+      <div class="grid g2">
+        <div class="field span2"><label for="cfg-nome">Nome do técnico avaliador</label><input id="cfg-nome" class="input" x-model="config.tecnicoNome" autocomplete="name"></div>
+        <div class="field"><label for="cfg-mat">Matrícula</label><input id="cfg-mat" class="input" x-model="config.tecnicoMatricula" autocomplete="off"></div>
+        <div class="field"><label for="cfg-dias">Alertar se o plano tiver mais de (dias)</label><input id="cfg-dias" class="input" type="number" min="1" max="3650" x-model.number="config.diasAlerta"></div>
+        <div class="field span2"><span class="lbl">Brasão Oficial do Município</span>
+          <div class="flex" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <img x-show="config.brasao" :src="config.brasao" alt="" style="height:56px;max-width:120px;object-fit:contain;border:1px solid var(--linha);border-radius:6px;padding:3px">
+            <label class="btn btn-sm">Escolher imagem<input type="file" class="sr-only" accept="image/png,image/jpeg,image/webp,image/svg+xml" @change="carregarBrasao($event)"></label>
+            <button type="button" class="btn btn-sm btn-perigo" x-show="config.brasao" @click="config.brasao = ''">Remover</button>
+          </div>
+          <span class="dica">A imagem é convertida em Base64 e inserida no cabeçalho de todos os documentos exportados. Fica salva apenas neste navegador.</span>
+        </div>
+      </div>
+      <div style="text-align:right;margin-top:12px"><button type="button" class="btn btn-primary btn-sm" @click="configAberto = false">Fechar</button></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- ======================= SIDEBAR ======================= -->
+    <div class="sidebar-fundo" x-show="menuAberto" x-cloak @click="menuAberto = false"></div>
+    <nav id="menu-lateral" class="sidebar no-print" :class="{open: menuAberto}" aria-label="Seções da avaliação">
+      <div class="prog">
+        <div class="barra" role="progressbar" aria-label="Seções concluídas" :aria-valuenow="progresso.feitas" aria-valuemin="0" :aria-valuemax="progresso.total"><i :style="'width:' + progresso.pct + '%'"></i></div>
+        <small x-text="progresso.feitas + ' de ' + progresso.total + ' seções analisadas'"></small>
+      </div>
+      <template x-for="g in grupos" :key="g.nome">
+        <div>
+          <p class="nav-grupo" x-text="g.nome"></p>
+          <template x-for="s in g.itens" :key="s.id">
+            <button type="button" class="nav-item" :class="{ativo: view === s.id}" :aria-current="view === s.id ? 'page' : null" @click="ir(s.id)">
+              <span class="nav-rot" x-text="s.rot"></span>
+              <span class="badge" :class="'b-' + statusDe(s.id)" x-text="rotuloStatus(statusDe(s.id))"></span>
+            </button>
+          </template>
+        </div>
+      </template>
+      <p class="nav-grupo">Ferramentas</p>
+      <button type="button" class="nav-item" :class="{ativo: view === 'historico'}" :aria-current="view === 'historico' ? 'page' : null" @click="ir('historico')">
+        <span class="nav-rot">Histórico de Versões</span><span class="badge b-info" x-text="versoes.length"></span></button>
+      <button type="button" class="nav-item" :class="{ativo: view === 'preview'}" :aria-current="view === 'preview' ? 'page' : null" @click="ir('preview')">
+        <span class="nav-rot">Pré-visualização de Impressão</span><span class="badge b-info">A4</span></button>
+    </nav>
+
+    <main id="principal" tabindex="-1" x-effect="marcarInvalidos()">
+
+      <!-- ========== IMPORTAÇÃO E AUDITORIA ========== -->
+      <section x-show="view === 'importacao'" aria-labelledby="t-imp">
+        <h2 id="t-imp" class="pagina-titulo">Importação e Auditoria Preliminar</h2>
+        <p class="pagina-sub">Importe o Plano de Trabalho da OSC/Entidade (.json gerado pelo formulário, ou .pdf), confira a data de geração e execute o cruzamento automático de dados antes da análise manual.</p>
+
+        <div class="card">
+          <h2>1. Importar o Plano de Trabalho</h2>
+          <div class="drop" :class="{sobre: arrastando}" role="button" tabindex="0" aria-label="Selecionar ou arrastar o arquivo do plano de trabalho"
+               @click="$refs.arquivoPlano.click()" @keydown.enter.prevent="$refs.arquivoPlano.click()" @keydown.space.prevent="$refs.arquivoPlano.click()"
+               @dragover.prevent="arrastando = true" @dragleave.prevent="arrastando = false" @drop.prevent="onDrop($event)">
+            <p><strong>Clique para escolher</strong> ou arraste o arquivo aqui</p>
+            <p class="dica">Aceita <b>.json</b> (importação completa e auditoria integral) e <b>.pdf</b> (leitura por mapeamento de texto — parcial)</p>
+            <input x-ref="arquivoPlano" type="file" class="sr-only" accept=".json,application/json,.pdf,application/pdf" @change="onPick($event)" tabindex="-1">
+          </div>
+          <div class="aviso erro" x-show="erroImport" x-cloak role="alert"><div><b>Não foi possível importar</b><span x-text="erroImport"></span></div></div>
+          <p class="dica" x-show="carregando" x-cloak>Lendo arquivo…</p>
+        </div>
+
+        <div class="card" x-show="plano" x-cloak>
+          <h2>2. Arquivo recepcionado e validação de temporalidade</h2>
+          <template x-if="plano">
+            <div>
+              <dl class="kv">
+                <dt>Arquivo</dt><dd x-text="plano.arquivo || '—'"></dd>
+                <dt>Formato</dt><dd x-text="plano.origem === 'json' ? 'JSON estruturado (importação completa)' : 'PDF (importação parcial por texto)'"></dd>
+                <dt>OSC/Entidade</dt><dd x-text="plano.campos.razaoSocial || '—'"></dd>
+                <dt>CNPJ</dt><dd x-text="plano.campos.cnpj || '—'"></dd>
+                <dt>Custo total do plano</dt><dd x-text="fmtBRL(plano.calc.totGeral)"></dd>
+                <dt>Data/hora de geração</dt><dd x-text="plano.geradoEm ? fmtDataHora(plano.geradoEm) : 'Não identificada'"></dd>
+              </dl>
+              <div class="aviso" :class="temporal.nivel" :role="temporal.nivel === 'ok' ? 'status' : 'alert'">
+                <div><b x-text="temporal.titulo"></b><span x-text="temporal.detalhe"></span></div>
+              </div>
+              <div class="aviso info" x-show="plano.parcial"><div><b>Importação parcial</b>Os campos extraídos do PDF são conferidos por você na análise manual. Prefira o arquivo .json para a auditoria integral.</div></div>
+            </div>
+          </template>
+        </div>
+
+        <div class="card" x-show="plano" x-cloak>
+          <h2>3. Auditoria preliminar automatizada</h2>
+          <p class="dica" style="margin-bottom:10px">Confere a consistência matemática e normativa do plano: CNPJ, vigência, metas, soma de custos, cronograma de desembolso, receitas e contrapartida. Todos os totais são recalculados a partir dos valores mensais.</p>
+          <button type="button" class="btn btn-primary" @click="executarAuditoria()">▶ Executar 1ª Verificação e Cruzamento de Dados</button>
+
+          <template x-if="auditoria.executadaEm">
+            <div style="margin-top:14px">
+              <p class="dica">Executada em <span x-text="fmtDataHora(auditoria.executadaEm)"></span></p>
+              <div class="resumo" role="status">
+                <span class="b-ok" x-text="auditoria.resumo.ok + ' conformes'"></span>
+                <span class="b-erro" x-text="auditoria.resumo.erro + ' inconsistências'"></span>
+                <span class="b-alerta" x-text="auditoria.resumo.alerta + ' alertas'"></span>
+                <span class="b-info" x-text="auditoria.resumo.info + ' observações'"></span>
+              </div>
+              <template x-for="(it, i) in auditoria.itens" :key="i">
+                <div class="aud-item">
+                  <span class="badge" :class="'b-' + it.nivel" x-text="{ok:'Conforme', erro:'Inconsistência', alerta:'Alerta', info:'Observação'}[it.nivel]"></span>
+                  <div><div class="aud-grupo" x-text="it.grupo"></div><b x-text="it.titulo"></b>
+                    <div x-show="it.detalhe" x-text="it.detalhe"></div><div class="aud-ref" x-show="it.ref" x-text="it.ref"></div></div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <div class="card">
+          <h2>4. Liberação para análise manual</h2>
+          <template x-if="auditoria.executadaEm">
+            <div class="aviso ok" role="status"><div><b>Análise manual liberada</b>A 1ª Verificação foi executada. Os campos das seções 1 e 3.1 a 3.10 estão disponíveis ao parecerista, que deve considerar cada apontamento acima.</div></div>
+          </template>
+          <template x-if="!auditoria.executadaEm && auditoria.liberadoPorJustificativa">
+            <div class="aviso alerta" role="status"><div><b>Liberada mediante justificativa técnica</b><span x-text="auditoria.justificativa"></span></div></div>
+          </template>
+          <template x-if="!auditoria.executadaEm && !auditoria.liberadoPorJustificativa">
+            <div>
+              <p>Os campos de análise permanecem bloqueados até a execução da 1ª Verificação. Se não for possível executá-la (arquivo ilegível ou avaliação sem importação), registre a justificativa técnica:</p>
+              <div class="field" style="margin-top:8px"><label for="just-lib">Justificativa técnica (mínimo de 30 caracteres)</label>
+                <textarea id="just-lib" class="input" x-model="justificativaTmp" rows="3"></textarea></div>
+              <button type="button" class="btn" style="margin-top:8px" :disabled="justificativaTmp.trim().length < 30" @click="liberarPorJustificativa()">Liberar mediante justificativa</button>
+            </div>
+          </template>
+          <div style="margin-top:12px" x-show="liberado"><button type="button" class="btn btn-primary" @click="ir('s1')">Iniciar análise · 1. Identificação →</button></div>
+        </div>
+
+      </section>
+
+      <!-- ========== SEÇÕES DA AVALIAÇÃO ========== -->
+      <div x-show="isSecao(view)" x-cloak>
+        <div class="statusbar">
+          <h2 x-text="rotuloAtual"></h2>
+          <div x-show="view !== 's2'">
+            <fieldset :disabled="!liberado" aria-label="Status da seção" style="display:inline">
+              <div class="seg" role="radiogroup" aria-label="Status da seção">
+                <template x-for="o in [['pendente','Pendente'],['validado','Validado'],['ressalva','Com ressalva']]" :key="o[0]">
+                  <label :class="{travado: faltantesAtual.length > 0}" :title="faltantesAtual.length ? 'Existem campos não preenchidos/assinalados' : null"><input type="radio" name="status-secao" :value="o[0]" :checked="status[view] === o[0]" :aria-disabled="faltantesAtual.length > 0 ? 'true' : null" @click="tentarStatus(o[0], $event)"><span x-text="o[1]"></span><span x-show="faltantesAtual.length > 0" aria-hidden="true"> 🔒</span></label>
+                </template>
+              </div>
+            </fieldset>
+          </div>
+          <span class="badge b-validado" x-show="view === 's2'">Texto padrão — não alterável</span>
+        </div>
+        <div class="aviso erro" x-show="liberado && faltantesAtual.length" x-cloak role="status">
+          <div><b>Existem campos não preenchidos/assinalados (<span x-text="faltantesAtual.length"></span>)</b>As chaves Pendente / Validado / Com ressalva ficam travadas até que todos sejam preenchidos ou assinalados: <span x-text="faltantesAtual.join(' · ')"></span>. <span class="dica" style="color:inherit">Ao tentar acionar uma chave, os campos pendentes ficam com a borda vermelha.</span></div>
+        </div>
+        <div class="lock" x-show="!liberado" role="status">
+          <span><b>Campos bloqueados.</b> Execute a 1ª Verificação (ou registre a justificativa técnica) para liberar a análise.</span>
+          <button type="button" class="btn btn-sm" @click="ir('importacao')">Ir para Importação e Auditoria</button>
+        </div>
+
+        <fieldset :disabled="!liberado">
+
+          <!-- 1. IDENTIFICAÇÃO -->
+          <section x-show="view === 's1'" aria-label="1. Identificação">
+            <div class="card">
+              <div class="grid g2">
+                <div class="field span2"><label for="s1-orgao">Órgão</label><input id="s1-orgao" data-k="s1.orgao" class="input" x-model="a.s1.orgao" placeholder="Nome da Secretaria de origem"></div>
+                <div class="field"><label for="s1-osc">OSC/Entidade</label><input id="s1-osc" data-k="s1.osc" class="input" x-model="a.s1.osc" placeholder="Nome da OSC/Entidade"></div>
+                <div class="field"><label for="s1-cnpj">CNPJ</label><input id="s1-cnpj" data-k="s1.cnpj" class="input" inputmode="numeric" maxlength="18" :value="a.s1.cnpj" @input="a.s1.cnpj = maskCnpj($event.target.value)" placeholder="00.000.000/0000-00" aria-describedby="s1-cnpj-d">
+                  <span id="s1-cnpj-d" class="dica" :style="a.s1.cnpj.length === 18 ? (cnpjValido(a.s1.cnpj) ? 'color:var(--ok)' : 'color:var(--erro)') : ''" x-text="a.s1.cnpj.length === 18 ? (cnpjValido(a.s1.cnpj) ? '✓ CNPJ válido' : '✗ CNPJ inválido (dígitos verificadores não conferem)') : 'Máscara automática; validação pelos dígitos verificadores.'"></span></div>
+                <div class="field spanall"><span class="lbl" id="s1-mod">Modalidade (assinale a opção aplicável)</span>
+                  <div class="opcoes" role="radiogroup" aria-labelledby="s1-mod" data-k="s1.modalidade">
+                    <template x-for="o in OPC.modalidade" :key="o"><label class="opt"><input type="radio" name="s1-modalidade" :value="o" x-model="a.s1.modalidade"><span x-text="o"></span></label></template>
+                  </div></div>
+                <template x-if="ehAlteradora">
+                  <div class="field spanall"><label for="s1-ajuste">Ajuste de Origem</label>
+                    <input id="s1-ajuste" data-k="s1.ajusteOrigem" class="input" x-model="a.s1.ajusteOrigem" placeholder="Ex.: Termo de Fomento nº 012/2025" autocomplete="off" aria-describedby="s1-ajuste-d">
+                    <span id="s1-ajuste-d" class="dica">Importado do Plano de Trabalho (editável). Define a base legal das hipóteses de dispensa/inexigibilidade: se citar “Convênio”, vale o Decreto nº 7.055/2023; caso contrário, a Lei nº 13.019/2014.</span></div>
+                </template>
+                <div class="field spanall"><label for="s1-objeto">Objeto</label><textarea id="s1-objeto" data-k="s1.objeto" class="input" rows="4" x-model="a.s1.objeto" placeholder="Descrição do objeto conforme o plano de trabalho"></textarea></div>
+                <div class="field"><label for="s1-valor">Valor R$</label><input id="s1-valor" data-k="s1.valor" class="input" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" :value="a.s1.valor > 0 ? fmtBRL(+a.s1.valor) : ''" @input="mascararValor($event)" aria-describedby="s1-valor-d"><span id="s1-valor-d" class="dica">Digite apenas números: o campo formata em moeda (ex.: R$ 10.000,00).</span></div>
+                <div class="field"><label for="s1-vig">Período de Vigência (meses)</label><input id="s1-vig" data-k="s1.vigencia" class="input" type="number" min="1" max="120" x-model="a.s1.vigencia"></div>
+                <div class="field spanall"><span class="lbl" id="s1-fon">Fonte de Recursos (assinale a(s) opção(ões) aplicável(is))</span>
+                  <div class="opcoes" role="group" aria-labelledby="s1-fon" data-k="s1.fontes">
+                    <template x-for="o in OPC.fontes" :key="o"><label class="opt"><input type="checkbox" :value="o" x-model="a.s1.fontes"><span x-text="o"></span></label></template>
+                  </div></div>
+                <div class="field spanall"><span class="lbl" id="s1-proc">Tipo de Procedimento (assinale a opção aplicável)</span>
+                  <span class="dica" x-text="baseProcedimento"></span>
+                  <div class="opcoes col" role="radiogroup" aria-labelledby="s1-proc" data-k="s1.procedimento">
+                    <template x-for="o in opcoesProcedimento" :key="o.v">
+                      <div>
+                        <label class="opt"><input type="radio" name="s1-proc" :value="o.v" x-model="a.s1.procedimento"><span x-text="o.t"></span></label>
+                        <div class="proc-sub" x-show="a.s1.procedimento === o.v" x-cloak>
+                          <template x-if="o.v === 'chamamento'">
+                            <div class="grid g2">
+                              <div class="field"><label for="s1-edn">Edital nº (Nº/Ano-SIGLA DA SECRETARIA)</label><input id="s1-edn" data-k="s1.editalNumero" class="input" x-model="a.s1.editalNumero" placeholder="Ex.: 003/2026-SMAS" autocomplete="off"></div>
+                              <div class="field"><label for="s1-edd">Data do Edital</label><input id="s1-edd" data-k="s1.editalData" type="date" class="input" x-model="a.s1.editalData"></div>
+                            </div>
+                          </template>
+                          <template x-if="o.v === 'sem'">
+                            <div class="field"><label for="s1-emenda">Emenda parlamentar nº (Nº/Ano, Valor e Autor)</label><input id="s1-emenda" data-k="s1.emendaInfo" class="input" x-model="a.s1.emendaInfo" placeholder="Ex.: 045/2026, R$ 50.000,00, Vereador Fulano de Tal" autocomplete="off"></div>
+                          </template>
+                          <template x-if="o.v === 'dispensa' && incisos('dispensa').length">
+                            <div class="opcoes col" role="radiogroup" aria-label="Inciso da dispensa" data-k="s1.dispensaInciso">
+                              <template x-for="it in incisos('dispensa')" :key="it.v">
+                                <div><label class="opt"><input type="radio" name="s1-disp" :value="it.v" x-model="a.s1.dispensaInciso"><span x-text="it.t + (it.cred ? ' [Nº/Ano-SIGLA DA SECRETARIA].' : '')"></span></label>
+                                  <template x-if="it.cred && a.s1.dispensaInciso === it.v"><div class="field proc-sub"><label for="s1-cred">Edital de Credenciamento nº (Nº/Ano-SIGLA DA SECRETARIA)</label><input id="s1-cred" data-k="s1.credenciamento" class="input" x-model="a.s1.credenciamento" placeholder="Ex.: 001/2026-SMAS" autocomplete="off"></div></template></div>
+                              </template>
+                            </div>
+                          </template>
+                          <template x-if="o.v === 'inexigibilidade' && incisos('inexigibilidade').length">
+                            <div class="opcoes col" role="radiogroup" aria-label="Inciso da inexigibilidade" data-k="s1.inexigInciso">
+                              <template x-for="it in incisos('inexigibilidade')" :key="it.v">
+                                <label class="opt"><input type="radio" name="s1-inex" :value="it.v" x-model="a.s1.inexigInciso"><span x-text="it.t"></span></label>
+                              </template>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+                  </div></div>
+                <div class="field spanall"><span class="lbl" id="s1-efe">Produção de Efeitos (assinale a opção aplicável)</span>
+                  <div class="opcoes col" role="radiogroup" aria-labelledby="s1-efe" data-k="s1.efeitos">
+                    <template x-for="o in OPC.efeitos" :key="o.v"><label class="opt"><input type="radio" name="s1-efe" :value="o.v" x-model="a.s1.efeitos"><span x-text="o.t"></span></label></template>
+                  </div></div>
+                <template x-if="a.s1.efeitos === 'retroativo'">
+                  <div class="spanall grid g2">
+                    <div class="field"><label for="s1-rd">Efeitos retroativos a</label><input id="s1-rd" data-k="s1.retroData" type="date" class="input" x-model="a.s1.retroData"></div>
+                    <div class="field span2"><label for="s1-rm">Motivo (justifique)</label><textarea id="s1-rm" data-k="s1.retroMotivo" class="input" rows="2" x-model="a.s1.retroMotivo"></textarea></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. INSTRUÇÃO -->
+          <section x-show="view === 's2'" aria-label="2. Instrução">
+            <div class="card"><p class="modelo" style="margin:0">Análise técnica — realizada pelo órgão gestor ou comissão designada — sobre os objetivos institucionais e a capacidade técnica e operacional da OSC / Entidade proponente para executar o Plano de Trabalho apresentado.</p>
+              <p class="dica" style="margin-top:8px">Texto padrão em inteiro teor, reproduzido nos documentos exportados. Não é alterado.</p></div>
+          </section>
+
+          <!-- 3.1 -->
+          <section x-show="view === 's31'" aria-label="3.1">
+            <div class="card">
+              <p class="modelo">A regularidade jurídica, fiscal, trabalhista, a idoneidade e a capacidade técnica global da OSC/Entidade foram certificadas considerando a documentação constante do Cadastro da OSC/Entidade no SEI.</p>
+              <div class="field" style="max-width:420px"><label for="s31-sei">Nº do Processo SEI de Cadastro</label><input id="s31-sei" data-k="s31.processoSei" class="input" x-model="a.s31.processoSei" placeholder="Ex.: 0000/2026"></div>
+              <div class="parecer"><div class="field" style="max-width:360px"><label class="lbl" for="s31-p">Parecer Técnico — a OSC/Entidade … compatibilidade estatutária e capacidade técnico-operacional</label>
+                <select id="s31-p" data-k="s31.parecer" class="input" x-model="a.s31.parecer"><option value="">Selecione…</option><template x-for="o in OPC.p31" :key="o"><option :value="o" x-text="o"></option></template></select></div></div>
+            </div>
+          </section>
+
+          <!-- 3.2 -->
+          <section x-show="view === 's32'" aria-label="3.2">
+            <div class="card">
+              <p class="modelo">A proposta apresenta relevância pública devido a: …</p>
+              <div class="grid">
+                <div class="field"><label for="s32-r">Importância da proposta (relevância pública)</label><textarea id="s32-r" data-k="s32.relevancia" class="input" x-model="a.s32.relevancia" placeholder="Justificar a importância da proposta"></textarea></div>
+                <div class="field"><label for="s32-p">Público-alvo beneficiário</label><textarea id="s32-p" data-k="s32.publicoAlvo" class="input" x-model="a.s32.publicoAlvo" placeholder="Indicar o público-alvo beneficiário"></textarea></div>
+                <div class="field"><label for="s32-pr">Problema a ser resolvido ou política pública atendida</label><textarea id="s32-pr" data-k="s32.problema" class="input" x-model="a.s32.problema"></textarea></div>
+                <div class="field" style="max-width:360px"><label for="s32-a">O objeto e a metodologia estão … às regras estabelecidas no:</label>
+                  <select id="s32-a" data-k="s32.adequacao" class="input" x-model="a.s32.adequacao"><option value="">Selecione…</option><template x-for="o in OPC.adequacao" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                <div class="grid g2" data-k="s32.base">
+                  <div class="field"><label class="opt"><input type="checkbox" x-model="a.s32.baseEdital"><span>Edital de Chamamento Público nº (Nº/ANO)</span></label>
+                    <input class="input" aria-label="Número e ano do edital" x-model="a.s32.editalRef" :disabled="!a.s32.baseEdital" :readonly="editalVinculado" placeholder="Nº/ANO">
+                    <span class="dica" x-show="editalVinculado" x-cloak>Preenchido automaticamente com o Edital nº informado na Seção 1. Identificação.</span></div>
+                  <div class="field"><label class="opt"><input type="checkbox" x-model="a.s32.basePrograma"><span>Diretrizes do(s) Programa(s)</span></label>
+                    <input class="input" aria-label="Nome(s) do(s) Programa(s)" x-model="a.s32.programaNome" :disabled="!a.s32.basePrograma" placeholder="Nome(s) do(s) Programa(s)"></div>
+                </div>
+              </div>
+              <div class="parecer"><div class="field" style="max-width:360px"><label class="lbl" for="s32-pc">Parecer Técnico — a proposta … mérito suficiente para a celebração</label>
+                <select id="s32-pc" data-k="s32.parecer" class="input" x-model="a.s32.parecer"><option value="">Selecione…</option><template x-for="o in OPC.p32" :key="o"><option :value="o" x-text="o"></option></template></select></div></div>
+            </div>
+          </section>
+
+          <!-- 3.3 -->
+          <section x-show="view === 's33'" aria-label="3.3">
+            <div class="card">
+              <p class="modelo">Verifica-se benefício mútuo e atendimento à supremacia do interesse público, conforme detalhado:</p>
+              <div class="grid">
+                <div class="field"><label for="s33-a">Para a Administração Pública — o benefício consiste em</label><textarea id="s33-a" data-k="s33.benAdm" class="input" x-model="a.s33.benAdm" placeholder="Ex.: efetivar política pública na área X, atender diretamente o público-alvo Y, otimizar recursos públicos"></textarea></div>
+                <div class="field"><label for="s33-o">Para a OSC / Entidade — o benefício consiste em</label><textarea id="s33-o" data-k="s33.benOsc" class="input" x-model="a.s33.benOsc" placeholder="Ex.: cumprir sua missão estatutária, ampliar atuação, fortalecer atendimento ao público-alvo"></textarea></div>
+                <div class="field"><label for="s33-s">Supremacia do Interesse Público — o interesse público é priorizado visto que</label><textarea id="s33-s" data-k="s33.supremacia" class="input" x-model="a.s33.supremacia"></textarea></div>
+              </div>
+              <div class="parecer"><div class="field" style="max-width:360px"><label class="lbl" for="s33-p">Parecer Técnico — … identidade e reciprocidade de interesse</label>
+                <select id="s33-p" data-k="s33.parecer" class="input" x-model="a.s33.parecer"><option value="">Selecione…</option><template x-for="o in OPC.p33" :key="o"><option :value="o" x-text="o"></option></template></select></div></div>
+            </div>
+          </section>
+
+          <!-- 3.4 -->
+          <section x-show="view === 's34'" aria-label="3.4">
+            <div class="card">
+              <div class="grid g3">
+                <div class="field"><label for="s34-m">Metodologia do Plano de Trabalho</label><select id="s34-m" data-k="s34.metodologia" class="input" x-model="a.s34.metodologia"><option value="">Selecione…</option><template x-for="o in OPC.metodologia" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                <div class="field"><label for="s34-e">Equipamentos</label><select id="s34-e" data-k="s34.equip" class="input" x-model="a.s34.equip"><option value="">Selecione…</option><template x-for="o in OPC.equip" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                <div class="field"><label for="s34-s">Instrumentos e equipamentos são</label><select id="s34-s" data-k="s34.suficiencia" class="input" x-model="a.s34.suficiencia"><option value="">Selecione…</option><template x-for="o in OPC.suficiencia" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                <div class="field spanall"><label for="s34-a">Adequações recomendadas (se houver)</label><textarea id="s34-a" class="input" x-model="a.s34.adequacoes" placeholder="Detalhar ajustes necessários na metodologia ou nos recursos"></textarea></div>
+              </div>
+              <div class="parecer"><div class="field" style="max-width:360px"><label class="lbl" for="s34-p">Parecer Técnico — a execução do objeto é considerada</label>
+                <select id="s34-p" data-k="s34.parecer" class="input" x-model="a.s34.parecer"><option value="">Selecione…</option><template x-for="o in OPC.p34" :key="o"><option :value="o" x-text="o"></option></template></select></div></div>
+            </div>
+          </section>
+
+          <!-- 3.5 -->
+          <section x-show="view === 's35'" aria-label="3.5">
+            <div class="card">
+              <h2>Coerência, suficiência e compatibilidade</h2>
+              <div class="grid g3">
+                <div class="field"><label for="s35-c">Cronograma de Desembolso × Execução Física (Metas)</label><select id="s35-c" data-k="s35.coerencia" class="input" x-model="a.s35.coerencia"><option value="">Selecione…</option><template x-for="o in OPC.coerencia" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                <div class="field"><label for="s35-s">Valores propostos … suficientes</label><select id="s35-s" data-k="s35.custos" class="input" x-model="a.s35.custos"><option value="">Selecione…</option><template x-for="o in OPC.custos" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                <div class="field"><label for="s35-m">Preços de mercado e nexo de causalidade</label><select id="s35-m" data-k="s35.compat" class="input" x-model="a.s35.compat"><option value="">Selecione…</option><template x-for="o in OPC.compat" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+              </div>
+              <div class="field" style="margin-top:12px"><label for="s35-ct">Contrapartida (texto do documento — editável)</label>
+                <textarea id="s35-ct" data-k="s35.contrapartida" class="input" rows="3" x-model="a.s35.contrapartida"></textarea>
+                <span class="dica">Texto-padrão: não exigida. Havendo exigência de contrapartida (financeira ou em bens e serviços), edite o texto acima. <button type="button" class="link" @click="a.s35.contrapartida = TXT_CONTRAPARTIDA">Restaurar texto padrão</button></span></div>
+            </div>
+
+            <div class="card">
+              <h2>Resumo Geral do Custo Total</h2>
+              <div class="rolagem"><table class="tabela">
+                <caption class="sr-only">Resumo geral do custo total</caption>
+                <thead><tr><th scope="col">Componente</th><th scope="col" class="r">Total R$ / Vigência</th><th scope="col" class="r">% do Total</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row" style="font-weight:400">Custo de Implantação R$ (se houver)</th><td><input class="input" type="number" min="0" step="0.01" x-model.number="a.s35.custo.impl" data-k="s35.custo" aria-label="Custo de implantação"></td><td class="r" x-text="fmtPct(tc.pImpl)"></td></tr>
+                  <tr><th scope="row" style="font-weight:400">Custo Recursos Humanos</th><td><input class="input" type="number" min="0" step="0.01" x-model.number="a.s35.custo.rh" data-k="s35.custo" aria-label="Custo de recursos humanos"></td><td class="r" x-text="fmtPct(tc.pRh)"></td></tr>
+                  <tr><th scope="row" style="font-weight:400">Custo Operacional</th><td><input class="input" type="number" min="0" step="0.01" x-model.number="a.s35.custo.oper" data-k="s35.custo" aria-label="Custo operacional"></td><td class="r" x-text="fmtPct(tc.pOper)"></td></tr>
+                  <tr class="tot"><th scope="row">Total Geral</th><td class="r" x-text="fmtBRL(tc.tot)"></td><td class="r" x-text="tc.tot ? '100,0%' : '—'"></td></tr>
+                </tbody></table></div>
+              <button type="button" class="btn btn-sm" style="margin-top:8px" x-show="plano && !plano.parcial" @click="recarregarTabelas()">↻ Recarregar valores do plano importado</button>
+            </div>
+
+            <div class="card">
+              <h2>Cronograma Trienal de Desembolso</h2>
+              <div class="rolagem"><table class="tabela">
+                <caption class="sr-only">Cronograma trienal de desembolso</caption>
+                <thead><tr><th scope="col">Componente</th><th scope="col" class="r">Repasse R$</th><th scope="col" class="r">Contrapartida R$</th><th scope="col" class="r">Total R$</th></tr></thead>
+                <tbody>
+                  <template x-for="(r, i) in a.s35.cron" :key="i">
+                    <tr><th scope="row" style="font-weight:400" x-text="['ANO 1 (início de vigência da nova despesa)','ANO 2 (se houver)','ANO 3 (se houver)'][i]"></th>
+                      <td><input class="input" type="number" min="0" step="0.01" x-model.number="r.repasse" data-k="s35.cron" :aria-label="'Repasse do ano ' + (i + 1)"></td>
+                      <td><input class="input" type="number" min="0" step="0.01" x-model.number="r.contra" data-k="s35.cron" :aria-label="'Contrapartida do ano ' + (i + 1)"></td>
+                      <td class="r" x-text="fmtBRL(tc.cron[i].total)"></td></tr>
+                  </template>
+                  <tr class="tot"><th scope="row">Total Geral</th><td class="r" x-text="fmtBRL(tc.totRep)"></td><td class="r" x-text="fmtBRL(tc.totCon)"></td><td class="r" x-text="fmtBRL(tc.totCron)"></td></tr>
+                </tbody></table></div>
+              <div class="aviso" :class="cronBate.nivel" role="status" style="margin-bottom:0"><div><b x-text="cronBate.titulo"></b><span x-text="cronBate.detalhe"></span></div></div>
+            </div>
+
+            <div class="card">
+              <h2>Ajustes necessários — glosas e readequações (se houver)</h2>
+              <template x-for="(x, i) in a.s35.ajustes" :key="i">
+                <div class="item-ajuste">
+                  <div class="grid g3">
+                    <div class="field"><label :for="'aj-t-' + i">Ajuste</label><select :id="'aj-t-' + i" :data-k="'s35.ajuste.' + i + '.tipo'" class="input" x-model="x.tipo"><option value="">Selecione…</option><option>glosa</option><option>readequação</option></select></div>
+                    <div class="field span2"><label :for="'aj-i-' + i">Item</label><input :id="'aj-i-' + i" :data-k="'s35.ajuste.' + i + '.item'" class="input" x-model="x.item" placeholder="Nome do Item"></div>
+                    <div class="field spanall"><label :for="'aj-m-' + i">Motivo (justificativa)</label><textarea :id="'aj-m-' + i" :data-k="'s35.ajuste.' + i + '.motivo'" class="input" rows="2" x-model="x.motivo"></textarea></div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-perigo" style="margin-top:8px" @click="a.s35.ajustes.splice(i, 1)">Remover ajuste</button>
+                </div>
+              </template>
+              <button type="button" class="btn btn-sm" @click="a.s35.ajustes.push({ tipo:'', item:'', motivo:'' })">+ Adicionar glosa/readequação</button>
+              <div class="parecer"><div class="field" style="max-width:360px"><label class="lbl" for="s35-p">Parecer Técnico — o cronograma e o orçamento … compatíveis e suficientes</label>
+                <select id="s35-p" data-k="s35.parecer" class="input" x-model="a.s35.parecer"><option value="">Selecione…</option><template x-for="o in OPC.p35" :key="o"><option :value="o" x-text="o"></option></template></select></div></div>
+            </div>
+          </section>
+
+          <!-- 3.6 -->
+          <section x-show="view === 's36'" aria-label="3.6">
+            <div class="card">
+              <p class="modelo">O acompanhamento físico e financeiro será realizado pelo Gestor e pela Comissão designada, por meio de: <b>Análise Documental</b> (conferência dos relatórios físicos e financeiros com o Plano de Trabalho e comprovantes de despesa); <b>Visitas in loco</b> (verificação presencial, agendada ou não, nos locais de execução); <b>Verificação de Metas</b>; e <b>Avaliação Financeira</b> (regularidade na aplicação dos recursos e nexo causal entre a despesa e a execução do objeto).</p>
+              <div class="field"><label for="s36-m">Verificação de Metas — aferição das metas físicas por meio de</label>
+                <textarea id="s36-m" data-k="s36.metas" class="input" x-model="a.s36.metas" placeholder="Ex.: listas de presença, registros fotográficos, prontuários, produtos entregues"></textarea></div>
+              <p class="dica" style="margin-top:8px">Os demais meios são texto padrão, reproduzido integralmente no Demonstrativo.</p>
+            </div>
+          </section>
+
+          <!-- 3.7 -->
+          <section x-show="view === 's37'" aria-label="3.7">
+            <div class="card">
+              <p class="modelo">A OSC / Entidade apresentou a Declaração Única, assumindo compromisso com a execução do Plano de Trabalho e atestando o cumprimento dos requisitos legais e ausência de impedimentos, conforme enquadramento abaixo:</p>
+              <div class="field"><span class="lbl" id="s37-e">Enquadramento</span>
+                <div class="opcoes col" role="radiogroup" aria-labelledby="s37-e" data-k="s37.enquadramento">
+                  <label class="opt"><input type="radio" name="s37-enq" value="mrosc" x-model="a.s37.enquadramento"><span>Parcerias (MROSC): Lei Federal nº 13.019/2014 e Decreto Municipal nº 7.456/2026</span></label>
+                  <label class="opt"><input type="radio" name="s37-enq" value="convenio" x-model="a.s37.enquadramento"><span>Convênios: Lei Federal nº 14.133/2021 e art. 670 do Decreto Municipal nº 7.055/2023</span></label>
+                </div>
+                <span class="dica" x-show="sugestaoEnquadramento">Sugestão pela modalidade informada: <b x-text="sugestaoEnquadramento === 'mrosc' ? 'Parcerias (MROSC)' : 'Convênios'"></b>.</span></div>
+              <div class="parecer"><div class="field" style="max-width:360px"><label class="lbl" for="s37-p">Parecer Técnico / Declaração — a OSC/Entidade … o cumprimento dos requisitos exigidos</label>
+                <select id="s37-p" data-k="s37.parecer" class="input" x-model="a.s37.parecer"><option value="">Selecione…</option><template x-for="o in OPC.p37" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+                </div>
+              <div class="field" style="margin-top:12px"><label for="s37-cx">Complemento do Parecer (editável — acrescente ressalvas quanto à prestação de contas, se necessário)</label>
+                <textarea id="s37-cx" data-k="s37.complemento" class="input" rows="3" x-model="a.s37.complemento"></textarea>
+                <span class="dica">Exportado após “…o cumprimento dos requisitos exigidos, ”. <button type="button" class="link" @click="a.s37.complemento = TXT_PREST_CONTAS">Restaurar texto padrão</button></span></div>
+            </div>
+          </section>
+
+          <!-- 3.8 -->
+          <section x-show="view === 's38'" aria-label="3.8">
+            <div class="card">
+              <p class="modelo">Designação formalizada por ato administrativo da autoridade competente.</p>
+              <h3>Gestor</h3>
+              <div class="grid g3">
+                <div class="field"><label for="g-t">Ato</label><select id="g-t" class="input" x-model="a.s38.gestor.tipo"><template x-for="o in OPC.atoTipo" :key="o"><option x-text="o"></option></template></select></div>
+                <div class="field"><label for="g-n">Nº</label><input id="g-n" data-k="s38.gestor.numero" class="input" x-model="a.s38.gestor.numero"></div>
+                <div class="field"><label for="g-d">Data</label><input id="g-d" data-k="s38.gestor.data" type="date" class="input" x-model="a.s38.gestor.data"></div>
+              </div>
+              <h3>Fiscal (se houver)</h3>
+              <div class="grid g3">
+                <div class="field"><label for="f-t">Ato</label><select id="f-t" class="input" x-model="a.s38.fiscal.tipo"><template x-for="o in OPC.atoTipo" :key="o"><option x-text="o"></option></template></select></div>
+                <div class="field"><label for="f-n">Nº</label><input id="f-n" data-k="s38.fiscal.numero" class="input" x-model="a.s38.fiscal.numero"></div>
+                <div class="field"><label for="f-d">Data</label><input id="f-d" data-k="s38.fiscal.data" type="date" class="input" x-model="a.s38.fiscal.data"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3.9 -->
+          <section x-show="view === 's39'" aria-label="3.9">
+            <div class="card">
+              <p class="modelo">Comissão responsável pelo acompanhamento do ajuste, designada por meio de ato.</p>
+              <div class="field"><span class="lbl" id="s39-c">Comissão</span>
+                <div class="opcoes" role="radiogroup" aria-labelledby="s39-c" data-k="s39.comissao">
+                  <label class="opt"><input type="radio" name="s39-com" value="CMA" x-model="a.s39.comissao"><span>Comissão de Monitoramento e Avaliação (CMA)</span></label>
+                  <label class="opt"><input type="radio" name="s39-com" value="Comissão Especial" x-model="a.s39.comissao"><span>Comissão Especial</span></label>
+                </div></div>
+              <h3>Ato de designação</h3>
+              <div class="grid g3">
+                <div class="field"><label for="c-t">Ato</label><select id="c-t" class="input" x-model="a.s39.ato.tipo"><template x-for="o in OPC.atoTipo" :key="o"><option x-text="o"></option></template></select></div>
+                <div class="field"><label for="c-n">Nº</label><input id="c-n" data-k="s39.ato.numero" class="input" x-model="a.s39.ato.numero"></div>
+                <div class="field"><label for="c-d">Data</label><input id="c-d" data-k="s39.ato.data" type="date" class="input" x-model="a.s39.ato.data"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3.10 -->
+          <section x-show="view === 's310'" aria-label="3.10">
+            <div class="card">
+              <p class="modelo">Considerando os aspectos analisados neste Demonstrativo, esta Secretaria Municipal se manifesta:</p>
+              <div class="field"><span class="lbl" id="s310-m">Manifestação técnica final</span>
+                <div class="opcoes col" role="radiogroup" aria-labelledby="s310-m" data-k="s310.manifestacao">
+                  <template x-for="o in OPC.manifestacao" :key="o.v"><label class="opt"><input type="radio" name="s310-man" :value="o.v" x-model="a.s310.manifestacao"><span><b x-text="o.t"></b></span></label></template>
+                </div></div>
+              <div x-show="a.s310.manifestacao === 'ressalvas'" x-cloak style="margin-top:12px" data-k="s310.diligencias">
+                <h3>Diligências/adequações a cumprir previamente pela OSC/Entidade</h3>
+                <template x-for="(d, i) in a.s310.diligencias" :key="i">
+                  <div class="item-lista"><textarea class="input" rows="2" x-model="d.t" :aria-label="'Diligência ' + (i + 1)" placeholder="Ex.: Readequar o item X do orçamento"></textarea>
+                    <button type="button" class="btn btn-sm btn-perigo" @click="a.s310.diligencias.splice(i, 1)" :aria-label="'Remover diligência ' + (i + 1)">✕</button></div>
+                </template>
+                <button type="button" class="btn btn-sm" @click="a.s310.diligencias.push({ t:'' })">+ Adicionar diligência</button>
+              </div>
+              <div x-show="a.s310.manifestacao === 'reprovacao'" x-cloak style="margin-top:12px" data-k="s310.motivos">
+                <h3>Motivos insanáveis</h3>
+                <template x-for="(d, i) in a.s310.motivos" :key="i">
+                  <div class="item-lista"><textarea class="input" rows="2" x-model="d.t" :aria-label="'Motivo ' + (i + 1)" placeholder="Ex.: Incompatibilidade do objeto com as finalidades estatutárias"></textarea>
+                    <button type="button" class="btn btn-sm btn-perigo" @click="a.s310.motivos.splice(i, 1)" :aria-label="'Remover motivo ' + (i + 1)">✕</button></div>
+                </template>
+                <button type="button" class="btn btn-sm" @click="a.s310.motivos.push({ t:'' })">+ Adicionar motivo</button>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Assinaturas</h2>
+              <p class="dica" style="margin-bottom:8px">Paraguaçu Paulista, na data da assinatura digital.</p>
+              <div class="grid g2">
+                <div class="field"><label for="a-rn">Responsável pela Análise ou Presidente da Comissão — nome</label><input id="a-rn" data-k="s310.respNome" class="input" x-model="a.s310.respNome" autocomplete="off"></div>
+                <div class="field"><label for="a-rc">Cargo/Função do Signatário</label><input id="a-rc" data-k="s310.respCargo" class="input" x-model="a.s310.respCargo" autocomplete="off"></div>
+                <div class="field"><label for="a-sn">Secretário(a) Municipal — nome (De acordo / Ciente)</label><input id="a-sn" data-k="s310.secretarioNome" class="input" x-model="a.s310.secretarioNome" autocomplete="off"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- DADOS DO OFÍCIO E DO DIOF -->
+          <section x-show="view === 'compl'" aria-label="Dados do Ofício e do Requerimento DIOF">
+            <div class="card">
+              <h2>Ofício de Solicitação ao Prefeito</h2>
+              <div class="grid g4">
+                <div class="field"><label for="o-n">Nº do ofício</label><input id="o-n" class="input" x-model="a.compl.oficioNumero" placeholder="Opcional"></div>
+                <div class="field"><label for="o-a">Ano</label><input id="o-a" data-k="compl.oficioAno" class="input" maxlength="4" inputmode="numeric" x-model="a.compl.oficioAno"></div>
+                <div class="field"><label for="o-s">Sigla SEI da Secretaria</label><input id="o-s" data-k="compl.siglaSei" class="input" x-model="a.compl.siglaSei" placeholder="Ex.: SMAS"></div>
+                <div class="field"><label for="o-p">Prefeito(a)</label><input id="o-p" data-k="compl.prefeitoNome" class="input" x-model="a.compl.prefeitoNome"></div>
+                <div class="field spanall"><label for="o-o">Objeto resumido</label><textarea id="o-o" data-k="compl.objetoResumo" class="input" rows="3" x-model="a.compl.objetoResumo" placeholder="Se vazio, o ofício usa o objeto completo da seção 1"></textarea></div>
+              </div>
+              <p class="dica" style="margin-top:6px">Cabeçalho gerado: <b x-text="cabecalhoOficio"></b>. O signatário é o(a) Secretário(a) informado(a) em 3.10.</p>
+            </div>
+            <div class="card">
+              <h2>Requerimento de Análise do Impacto Orçamentário e Financeiro (DIOF – LRF)</h2>
+              <p class="dica" style="margin-bottom:8px">“De:” usa o Órgão da seção 1; as tabelas do item 3 usam os valores da seção 3.5.</p>
+              <div class="field"><span class="lbl" id="d-ob">1. Solicita-se a análise de impacto para (assinale a(s) opção(ões))</span>
+                <div class="opcoes col" role="group" aria-labelledby="d-ob" data-k="compl.objetivos">
+                  <template x-for="o in OPC.objetivosDiof" :key="o"><label class="opt"><input type="checkbox" :value="o" x-model="a.compl.objetivos"><span x-text="o"></span></label></template>
+                </div>
+                <div class="field" style="margin-top:6px"><label for="d-oo">Outra (especifique)</label><input id="d-oo" class="input" x-model="a.compl.objetivoOutra"></div></div>
+              <div class="field" style="margin-top:10px"><label for="d-j">Justificativa</label><textarea id="d-j" data-k="compl.justificativa" class="input" x-model="a.compl.justificativa" placeholder="Explicar resumidamente a necessidade do órgão e os benefícios da medida"></textarea></div>
+              <h3>2. Classificação da natureza da despesa</h3>
+              <div class="opcoes col" role="radiogroup" aria-label="Natureza da despesa" data-k="compl.natureza">
+                <label class="opt"><input type="radio" name="d-nat" value="A" x-model="a.compl.natureza"><span><b>Opção A:</b> Custeio / Investimento (Bens, Obras e Serviços Gerais)</span></label>
+                <label class="opt"><input type="radio" name="d-nat" value="B" x-model="a.compl.natureza"><span><b>Opção B:</b> Despesa com Pessoal e Encargos Sociais (Arts. 19 a 21 LRF / Art. 169 CF)</span></label>
+              </div>
+              <div x-show="a.compl.natureza === 'A'" x-cloak style="margin:8px 0 0 26px" class="opcoes col" role="radiogroup" aria-label="Subopção A" data-k="compl.subA">
+                <template x-for="o in OPC.subA" :key="o"><label class="opt"><input type="radio" name="d-subA" :value="o" x-model="a.compl.subA"><span x-text="o"></span></label></template>
+              </div>
+              <div x-show="a.compl.natureza === 'B'" x-cloak style="margin:8px 0 0 26px" class="opcoes col" role="group" aria-label="Subopções B" data-k="compl.subB">
+                <template x-for="o in OPC.subB" :key="o"><label class="opt"><input type="checkbox" :value="o" x-model="a.compl.subB"><span x-text="o"></span></label></template>
+                <div class="field"><label for="d-no">Outra (especifique)</label><input id="d-no" class="input" x-model="a.compl.naturezaOutra"></div>
+              </div>
+              <div class="field" style="max-width:320px;margin-top:12px"><label for="d-f">2.1 Código reduzido da Funcional Programática — Nº da Ficha</label><input id="d-f" data-k="compl.ficha" class="input" x-model="a.compl.ficha"></div>
+            </div>
+          </section>
+        </fieldset>
+      </div>
+
+      <!-- ========== HISTÓRICO DE VERSÕES ========== -->
+      <section x-show="view === 'historico'" x-cloak aria-labelledby="t-his">
+        <h2 id="t-his" class="pagina-titulo">Histórico de Versões e Trilha de Auditoria</h2>
+        <p class="pagina-sub">Cada salvamento gera um snapshot imutável (v1.0, v1.1…), com carimbo de data/hora, técnico avaliador, status e log das alterações. Os snapshots são encadeados por hash (SHA-256): qualquer adulteração é sinalizada.</p>
+        <div class="card">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-primary" @click="exportarBackup()" :disabled="!versoes.length">⬇ Exportar backup completo (.json)</button>
+            <label class="btn">⬆ Importar backup<input type="file" class="sr-only" accept=".json,application/json" @change="importarBackup($event)"></label>
+            <button type="button" class="btn btn-perigo" @click="novaAvaliacaoZerada()">Nova avaliação (limpar área de trabalho)</button>
+          </div>
+          <p class="dica" style="margin-top:8px">A área de trabalho atual é salva automaticamente neste navegador como rascunho; versões só são criadas ao clicar em “Salvar rascunho” ou “Finalizar”.</p>
+        </div>
+        <p x-show="!versoes.length" class="dica">Nenhuma versão salva ainda.</p>
+        <template x-for="v in versoesOrdenadas" :key="v.id">
+          <article class="versao">
+            <header>
+              <span><span class="vn" x-text="v.versao"></span> · <span class="badge" :class="v.status === 'finalizado' ? 'b-validado' : 'b-pendente'" x-text="v.status === 'finalizado' ? 'Finalizado' : 'Rascunho'"></span>
+                <span class="badge" :class="integridade[v.id] === false ? 'b-erro' : (integridade[v.id] ? 'b-ok' : 'b-info')" x-text="integridade[v.id] === false ? 'Integridade violada' : (integridade[v.id] ? 'Íntegra' : 'Verificando…')"></span></span>
+              <span class="dica" x-text="fmtDataHora(v.carimbo)"></span>
+            </header>
+            <p style="margin-top:4px"><b x-text="v.entidade || '(sem entidade)'"></b> · Técnico: <span x-text="v.tecnico.nome + ' (mat. ' + v.tecnico.matricula + ')'"></span> · Manifestação: <b x-text="v.manifestacao || 'não definida'"></b></p>
+            <details style="margin-top:6px"><summary style="cursor:pointer;font-weight:600">Log de alterações (<span x-text="v.log.length"></span>)</summary>
+              <ul><template x-for="(l, i) in v.log" :key="i"><li x-text="l"></li></template></ul>
+              <p class="hash" x-text="'hash: ' + v.hash"></p></details>
+            <div style="margin-top:8px"><button type="button" class="btn btn-sm" @click="restaurar(v)">Restaurar na área de trabalho</button></div>
+          </article>
+        </template>
+      </section>
+
+      <!-- ========== PRÉ-VISUALIZAÇÃO DE IMPRESSÃO ========== -->
+      <section x-show="view === 'preview'" x-cloak aria-labelledby="t-prev">
+        <h2 id="t-prev" class="pagina-titulo">Pré-visualização de Impressão (A4)</h2>
+        <p class="pagina-sub">Documentos semi-preenchidos com os dados já digitados. Trechos ainda não preenchidos aparecem entre colchetes (destacados em amarelo na tela). Ao imprimir, escolha “Salvar como PDF”; o nome sugerido já segue o padrão <b x-text="nomeDocumento(previewDoc, a.s1.osc)"></b>.pdf.</p>
+        <div class="abas" role="tablist" aria-label="Documento">
+          <template x-for="d in [['demonstrativo','Demonstrativo de Avaliação'],['oficio','Ofício ao Prefeito'],['diof','Requerimento DIOF (LRF)']]" :key="d[0]">
+            <button type="button" role="tab" class="aba" :aria-selected="previewDoc === d[0]" :disabled="editando" @click="previewDoc = d[0]"><span x-text="d[1]"></span><span x-show="edicoes[d[0]]" title="Editado manualmente"> ✎</span></button>
+          </template>
+          <span style="flex:1"></span>
+          <button type="button" class="btn btn-ouro" @click="imprimir(previewDoc)">🖨 Imprimir / Salvar PDF</button>
+        </div>
+        <div class="barra-edicao" role="group" aria-label="Edição do documento">
+          <button type="button" class="btn btn-sm" x-show="!editando" @click="iniciarEdicao()">✎ Editar documento</button>
+          <button type="button" class="btn btn-sm btn-primary" x-show="editando" x-cloak @click="concluirEdicao()">✔ Concluir edição</button>
+          <button type="button" class="btn btn-sm" x-show="editando" x-cloak @click="cancelarEdicao()">Cancelar</button>
+          <button type="button" class="btn btn-sm btn-perigo" x-show="edicoes[previewDoc] && !editando" x-cloak @click="descartarEdicao()">Descartar edições e regenerar</button>
+          <span class="dica" x-show="editando" x-cloak>Clique no texto da folha e edite livremente. Colar insere apenas texto simples.</span>
+        </div>
+        <div class="aviso alerta" x-show="edicoes[previewDoc] && !editando" x-cloak role="status"><div><b>Documento editado manualmente</b>Alterações feitas depois nas seções do formulário não aparecem aqui. Use “Descartar edições e regenerar” para voltar ao texto gerado automaticamente.</div></div>
+        <div class="sheet-wrap"><div class="sheet" :class="{editando: editando}" x-ref="folha" x-effect="renderFolha()" :contenteditable="editando ? 'true' : null" :role="editando ? 'textbox' : null" :aria-multiline="editando ? 'true' : null" :aria-label="editando ? 'Texto do documento em edição' : null" @paste.prevent="colarTexto($event)"></div></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ======================= BARRA DE AÇÕES ======================= -->
+  <footer class="actionbar no-print">
+    <div class="grupo">
+      <button type="button" class="btn" @click="salvar('rascunho')">💾 Salvar rascunho</button>
+      <button type="button" class="btn btn-primary" @click="salvar('finalizado')">✔ Finalizar e salvar versão</button>
+      <small x-text="ultimaVersao ? 'Última versão: ' + ultimaVersao.versao + ' · ' + fmtDataHora(ultimaVersao.carimbo) : 'Nenhuma versão salva'"></small>
+    </div>
+    <div class="grupo" role="group" aria-label="Exportar documentos em PDF">
+      <small>Exportar PDF:</small>
+      <button type="button" class="btn btn-sm btn-ouro" @click="imprimir('demonstrativo')">Demonstrativo</button>
+      <button type="button" class="btn btn-sm btn-ouro" @click="imprimir('oficio')">Ofício</button>
+      <button type="button" class="btn btn-sm btn-ouro" @click="imprimir('diof')">Requerimento DIOF</button>
+    </div>
+  </footer>
+</div>
+
+<!-- Área de impressão: só é preenchida durante a impressão -->
+<div id="print-area" aria-hidden="true"><div x-html="printing ? docFinal(printDoc) : ''"></div></div>
+
+<div class="toast no-print" :class="avisoTipo" x-show="aviso" x-cloak role="status" aria-live="polite" x-text="aviso"></div>
+
+<div class="modal-fundo no-print" x-show="pend.length" x-cloak @keydown.escape.window="pend = []">
+  <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="m-t">
+    <h2 id="m-t">Não é possível finalizar ainda</h2>
+    <p>Resolva as pendências abaixo ou salve como rascunho:</p>
+    <ul><template x-for="(p, i) in pend" :key="i"><li x-text="p"></li></template></ul>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" @click="pend = []; salvar('rascunho')">Salvar como rascunho</button><button type="button" class="btn btn-primary" @click="pend = []">Voltar à análise</button></div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ==========================================================================================================
+   NÚCLEO (funções puras, sem acesso ao DOM): utilitários, importação do plano, auditoria, versionamento
+   e geração do HTML dos três documentos oficiais. Mantido separado do componente Alpine para ser testável.
+   ========================================================================================================== */
+
+/* ---------- Utilitários ---------- */
+const MESES_EXT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const nl2br = s => esc(s).replace(/\r?\n/g, '<br>');
+const BRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+const fmtBRL = n => BRL.format(Number.isFinite(n) ? n : 0);
+const fmtPct = n => (Number.isFinite(n) ? n : 0).toLocaleString('pt-BR', { minimumFractionDigits:1, maximumFractionDigits:1 }) + '%';
+const round2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const isFilled = v => v != null && String(v).trim() !== '';
+
+/* Valor monetário vindo do formulário: máscara "1.234,56", número puro ("1234.56") ou número JSON. */
+function moneyNum(v){
+  if(typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  const s = String(v == null ? '' : v).trim();
+  if(!s) return 0;
+  if(s.indexOf(',') !== -1){ const n = parseFloat(s.replace(/[^\d,-]/g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; }
+  const n = parseFloat(s.replace(/[^\d.-]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function soDigitos(s){ return String(s == null ? '' : s).replace(/\D/g, ''); }
+function maskCnpj(s){
+  const d = soDigitos(s).slice(0, 14);
+  return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d)/, '$1-$2');
+}
+function cnpjValido(v){
+  const c = soDigitos(v);
+  if(c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
+  const dv = n => { let s = 0, p = n - 7; for(let i = 0; i < n; i++){ s += Number(c[i]) * p--; if(p < 2) p = 9; } const r = s % 11; return r < 2 ? 0 : 11 - r; };
+  return dv(12) === Number(c[12]) && dv(13) === Number(c[13]);
+}
+
+function dataExtenso(iso){
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return '';
+  return Number(m[3]) + ' de ' + MESES_EXT[Number(m[2]) - 1] + ' de ' + m[1];
+}
+function fmtDataHora(iso){
+  const d = new Date(iso);
+  if(isNaN(d)) return '—';
+  return d.toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' });
+}
+
+/* Nome padronizado de arquivo: <Tipo>_<entidade abreviada> (mesma regra do formulário do Plano de Trabalho). */
+function semAcento(s){ return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function slugify(s){ return semAcento(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); }
+const NOME_STOP = ['de','da','do','das','dos','e','a','o','as','os','em','no','na','nos','nas','para','pela','pelo','por','com'];
+const NOME_ABREV = { associacao:'assoc', sociedade:'soc', fundacao:'fund', instituto:'inst', organizacao:'org', organizacoes:'orgs',
+  comunitaria:'comun', comunitario:'comun', beneficente:'benef', filantropica:'filant', educacional:'educ', assistencial:'assist',
+  cultural:'cult', esportiva:'esp', esportivo:'esp', recreativa:'recr', municipal:'mun', brasileira:'bras', brasileiro:'bras' };
+function nomeEntidadeArquivo(razao){
+  const base = slugify(razao);
+  if(!base) return 'entidade';
+  const todas = base.split('-').filter(Boolean);
+  const sig = todas.filter(w => NOME_STOP.indexOf(w) === -1);
+  const pal = sig.length ? sig : todas;
+  let nome = pal.map(w => NOME_ABREV[w] || w).join('_');
+  if(nome.length > 28){
+    const sigla = pal.map(w => w.charAt(0)).join('').toUpperCase();
+    nome = sigla.length >= 2 ? sigla.slice(0, 28) : nome.slice(0, 28).replace(/_+$/, '');
+  }
+  return nome || 'entidade';
+}
+const DOC_ARQUIVO = { demonstrativo:'Demonstrativo-Avaliacao', oficio:'Oficio-Solicitacao', diof:'Requerimento-DIOF' };
+function nomeDocumento(docId, razao){ return (DOC_ARQUIVO[docId] || 'Documento') + '_' + nomeEntidadeArquivo(razao); }
+
+/* Seção 3.2 acompanha o Edital nº informado na Seção 1 (quando o procedimento é Chamamento). Retorna true se alterou. */
+function sincronizarEdital(S){
+  const n = String(S.s1.editalNumero || '').trim();
+  if(S.s1.procedimento === 'chamamento' && n && S.s32.editalRef !== n){ S.s32.editalRef = n; S.s32.baseEdital = true; return true; }
+  return false;
+}
+
+/* Textos-padrão editáveis (v1.3) */
+const TXT_CONTRAPARTIDA = 'Não será exigida contrapartida financeira ou em bens e serviços. Caberá à OSC/Entidade complementar com recursos próprios, se necessário.';
+const TXT_PREST_CONTAS = 'encontrando-se em situação de REGULARIDADE e ADIMPLÊNCIA quanto à prestação de contas de ajustes anteriores.';
+
+/* ---------- Constantes de domínio ---------- */
+const OPC = {
+  modalidade: ['Termo de Fomento', 'Termo de Colaboração', 'Convênio', 'Termo Aditivo', 'Apostilamento'],
+  fontes: ['Municipal', 'Estadual', 'Federal', 'Emenda Parlamentar Municipal', 'Emenda Parlamentar Estadual', 'Emenda Parlamentar Federal'],
+  procedimento: [
+    { v:'chamamento',   t:'Edital de Chamamento Público' },
+    { v:'sem',          t:'Sem Chamamento Público (emendas parlamentares)' },
+    { v:'dispensa',     t:'Dispensa de Chamamento Público' },
+    { v:'inexigibilidade', t:'Inexigibilidade de Chamamento Público' } ],
+  efeitos: [ { v:'assinatura', t:'A contar da assinatura do ajuste/parceria' }, { v:'retroativo', t:'Com efeitos retroativos' } ],
+  p31: ['DEMONSTRA', 'NÃO DEMONSTRA'],
+  adequacao: ['ADEQUADOS', 'INADEQUADOS'],
+  p32: ['POSSUI', 'NÃO POSSUI'],
+  p33: ['HÁ', 'NÃO HÁ'],
+  metodologia: ['ADEQUADA', 'INADEQUADA'],
+  equip: ['listados', 'não listados', 'a serem adquiridos'],
+  suficiencia: ['suficientes', 'insuficientes'],
+  p34: ['VIÁVEL', 'INVIÁVEL', 'VIÁVEL MEDIANTE ADEQUAÇÕES'],
+  coerencia: ['coerente', 'incoerente'],
+  custos: ['são', 'não são'],
+  compat: ['compatíveis', 'incompatíveis'],
+  p35: ['SÃO', 'NÃO SÃO'],
+  p37: ['DEMONSTRA', 'NÃO DEMONSTRA'],
+  atoTipo: ['Decreto', 'Portaria'],
+  manifestacao: [
+    { v:'aprovacao', t:'APROVAÇÃO' },
+    { v:'ressalvas', t:'APROVAÇÃO COM RESSALVAS' },
+    { v:'reprovacao', t:'REPROVAÇÃO' } ],
+  objetivosDiof: [
+    'aquisição de equipamentos ou contratação de serviços',
+    'celebração de ajuste / parceria ou de aditamento/apostilamento com OSC / Entidade',
+    'criação, provimento ou reestruturação de cargos/funções',
+    'concessão de vantagem, aumento, reajuste ou adequação de remuneração',
+    'contratação temporária de excepcional interesse público' ],
+  subA: [ 'Pontual / Extraordinária (sem efeito continuado).', 'Despesa Obrigatória de Caráter Continuado - DOCC (Art. 17 da LRF).' ],
+  subB: [ 'Criação, provimento ou reestruturação de cargos/funções;', 'Concessão de vantagem, aumento, reajuste ou adequação de remuneração;', 'Contratação temporária de excepcional interesse público;' ]
+};
+
+/* ==========================================================================================================
+   TIPO DE PROCEDIMENTO — textos por base legal. A base depende da Modalidade: Termo de Fomento/Colaboração -> parceria
+   (Lei 13.019/2014); Convênio -> Decreto Municipal 7.055/2023. Termo Aditivo e Apostilamento seguem o ajuste de origem
+   (mesma regra do formulário do Plano de Trabalho: "convênio" no campo Ajuste de Origem => convênio; senão => parceria).
+   ========================================================================================================== */
+const PROC = {
+  mrosc: {
+    dispensa: { cab:'Dispensa de Chamamento Público - Lei Federal nº 13.019/2014, art. 30, inciso (Assinale com X a opção aplicável):', curto:'Dispensa de Chamamento Público - Lei Federal nº 13.019/2014, art. 30, inciso ',
+      itens:[
+        { v:'I', t:'I - no caso de urgência decorrente de paralisação ou iminência de paralisação de atividades de relevante interesse público, pelo prazo de até cento e oitenta dias.' },
+        { v:'II', t:'II - nos casos de guerra, calamidade pública, grave perturbação da ordem pública ou ameaça à paz social.' },
+        { v:'III', t:'III - quando se tratar da realização de programa de proteção a pessoas ameaçadas ou em situação que possa comprometer a sua segurança.' },
+        { v:'VI', t:'VI - no caso de atividades voltadas ou vinculadas a serviços de educação, saúde e assistência social, desde que executadas por organizações da sociedade civil previamente credenciadas pelo órgão gestor da respectiva política.' } ] },
+    inexig: { cab:'Inexigibilidade de Chamamento Público, Lei Federal nº 13.019/2014, art. 31, inciso (Assinale com X a opção aplicável):', curto:'Inexigibilidade de Chamamento Público, Lei Federal nº 13.019/2014, art. 31, inciso ',
+      itens:[
+        { v:'I', t:'I - o objeto da parceria constituir incumbência prevista em acordo, ato ou compromisso internacional, no qual sejam indicadas as instituições que utilizarão os recursos.' },
+        { v:'II', t:'II - a parceria decorrer de transferência para organização da sociedade civil que esteja autorizada em lei na qual seja identificada expressamente a entidade beneficiária, inclusive quando se tratar da subvenção prevista no inciso I do § 3º do art. 12 da Lei nº 4.320, de 17 de março de 1964, observado o disposto no art. 26 da Lei Complementar nº 101, de 4 de maio de 2000.' } ] }
+  },
+  convenio: {
+    dispensa: { cab:'Dispensa de Chamamento Público – Decreto nº 7.055/2023, art. 673, inciso (Assinale com X a opção aplicável):', curto:'Dispensa de Chamamento Público – Decreto nº 7.055/2023, art. 673, inciso ',
+      itens:[
+        { v:'I', t:'I - Nos casos de emergência ou calamidade pública, quando caracterizada situação que demande a realização ou manutenção de convênio pelo prazo máximo de cento e oitenta dias consecutivos e ininterruptos, permitida a prorrogação da vigência do instrumento por igual período.' },
+        { v:'II', t:'II - nos casos de guerra, calamidade pública, grave perturbação da ordem pública ou ameaça à paz social que obstaculize a realização do chamamento.' },
+        { v:'III', t:'III - quando se tratar da realização de programa de proteção a pessoas ameaçadas ou em situação que possa comprometer a sua segurança, devidamente atestado pela autoridade competente.' },
+        { v:'IV', t:'IV - no caso de atividades voltadas ou vinculadas a serviços de educação, saúde e assistência social, desde que executadas por entidades privadas previamente credenciadas pelo órgão gestor da respectiva política; conforme Edital de Credenciamento nº ', cred:true },
+        { v:'V', t:'V - no caso de repasse para cada convenente de valor até o limite previsto nos incisos I e II do art. 75 da Lei Federal nº 14.133, de 2021.' } ] },
+    inexig: { cab:'Inexigibilidade de Chamamento Público – Decreto nº 7.055/2023, art. 674, na hipótese de inviabilidade de competição entre as entidades privadas, em razão da natureza singular do objeto do convênio ou quando as metas somente puderem ser alcançadas por uma entidade específica, especialmente quando, conforme o inciso (Assinale com X a opção aplicável):', curto:'Inexigibilidade de Chamamento Público – Decreto nº 7.055/2023, art. 674, inciso ',
+      itens:[
+        { v:'I', t:'I - o objeto do convênio constituir incumbência prevista em acordo, ato ou compromisso internacional, no qual sejam indicadas as instituições que utilizarão os recursos;' },
+        { v:'II', t:'II - o convênio decorrer de transferência para entidade pública ou privada que esteja autorizada em lei na qual seja identificada expressamente a entidade beneficiária, observado o disposto no art. 26 da Lei Complementar Federal nº 101, de 2000.' },
+        { v:'III', t:'III - a entidade for beneficiada diretamente por transferência de recursos financeiros decorrentes de emendas individuais ou de bancada de parlamentares às leis orçamentárias anuais, nos termos previstos na Constituição Federal.' } ] }
+  }
+};
+const PROC_GENERICO = { dispensa:{ cab:'Dispensa de Chamamento Público, conforme justificado nos autos.', curto:'Dispensa de Chamamento Público', itens:[] },
+                        inexig:{ cab:'Inexigibilidade de Chamamento Público, conforme justificado nos autos.', curto:'Inexigibilidade de Chamamento Público', itens:[] } };
+const alteradora = m => m === 'Termo Aditivo' || m === 'Apostilamento';
+function grupoProcedimento(s1){
+  const m = s1.modalidade;
+  if(m === 'Termo de Fomento' || m === 'Termo de Colaboração') return 'mrosc';
+  if(m === 'Convênio') return 'convenio';
+  if(alteradora(m) && isFilled(s1.ajusteOrigem)) return /conv[eê]nio/i.test(s1.ajusteOrigem) ? 'convenio' : 'mrosc';
+  return null;
+}
+const permiteSemChamamento = s1 => grupoProcedimento(s1) !== 'convenio';
+const procDe = (s1, tipo) => { const g = grupoProcedimento(s1); return g ? PROC[g][tipo] : PROC_GENERICO[tipo]; };
+/* Limpa incisos que não existem na base legal atual (ex.: troca de Termo de Fomento para Convênio). */
+function ajustarIncisos(s1){
+  let mudou = false;
+  if(s1.procedimento === 'sem' && !permiteSemChamamento(s1)){ s1.procedimento = ''; s1.emendaInfo = ''; mudou = true; }
+  [['dispensa', 'dispensaInciso'], ['inexig', 'inexigInciso']].forEach(p => {
+    const ok = procDe(s1, p[0]).itens.some(i => i.v === s1[p[1]]);
+    if(isFilled(s1[p[1]]) && !ok){ s1[p[1]] = ''; mudou = true; }
+  });
+  if(isFilled(s1.credenciamento) && !(grupoProcedimento(s1) === 'convenio' && s1.procedimento === 'dispensa' && s1.dispensaInciso === 'IV')){ /* mantém o texto digitado */ }
+  return mudou;
+}
+
+/* Seções da navegação (ordem idêntica ao Demonstrativo oficial). */
+const SECOES = [
+  { id:'importacao', rot:'Importação e Auditoria', grupo:'Plano de Trabalho' },
+  { id:'s1',  rot:'1. Identificação', grupo:'Demonstrativo' },
+  { id:'s2',  rot:'2. Instrução', grupo:'Demonstrativo' },
+  { id:'s31', rot:'3.1. Objetivos, Finalidades e Capacidade Técnica', grupo:'3. Aspectos Avaliados' },
+  { id:'s32', rot:'3.2. Mérito da Proposta', grupo:'3. Aspectos Avaliados' },
+  { id:'s33', rot:'3.3. Identidade e Reciprocidade de Interesse', grupo:'3. Aspectos Avaliados' },
+  { id:'s34', rot:'3.4. Viabilidade da Execução', grupo:'3. Aspectos Avaliados' },
+  { id:'s35', rot:'3.5. Cronograma de Desembolso, Orçamento e Contrapartida', grupo:'3. Aspectos Avaliados' },
+  { id:'s36', rot:'3.6. Meios de Fiscalização e Avaliação', grupo:'3. Aspectos Avaliados' },
+  { id:'s37', rot:'3.7. Requisitos, Regularidade e Prestação de Contas', grupo:'3. Aspectos Avaliados' },
+  { id:'s38', rot:'3.8. Gestor e Fiscal', grupo:'3. Aspectos Avaliados' },
+  { id:'s39', rot:'3.9. Comissão de Monitoramento e Avaliação (CMA)', grupo:'3. Aspectos Avaliados' },
+  { id:'s310', rot:'3.10. Manifestação Técnica Final', grupo:'3. Aspectos Avaliados' },
+  { id:'compl', rot:'Dados do Ofício e do Requerimento DIOF', grupo:'Documentos' }
+];
+const SECOES_AVALIADAS = ['s1','s31','s32','s33','s34','s35','s36','s37','s38','s39','s310'];
+
+function novaAvaliacao(){
+  const ato = () => ({ tipo:'Decreto', numero:'', data:'' });
+  return {
+    s1:  { orgao:'', osc:'', cnpj:'', modalidade:'', objeto:'', valor:0, vigencia:'', fontes:[], procedimento:'', editalNumero:'', editalData:'',
+           efeitos:'', retroData:'', retroMotivo:'', ajusteOrigem:'', emendaInfo:'', dispensaInciso:'', inexigInciso:'', credenciamento:'' },
+    s31: { processoSei:'', parecer:'' },
+    s32: { relevancia:'', publicoAlvo:'', problema:'', adequacao:'', baseEdital:false, editalRef:'', basePrograma:false, programaNome:'', parecer:'' },
+    s33: { benAdm:'', benOsc:'', supremacia:'', parecer:'' },
+    s34: { metodologia:'', equip:'', suficiencia:'', adequacoes:'', parecer:'' },
+    s35: { coerencia:'', custos:'', compat:'', contrapartida:TXT_CONTRAPARTIDA, custo:{ impl:0, rh:0, oper:0 },
+           cron:[ { repasse:0, contra:0 }, { repasse:0, contra:0 }, { repasse:0, contra:0 } ], ajustes:[], parecer:'' },
+    s36: { metas:'' },
+    s37: { enquadramento:'', parecer:'', complemento:TXT_PREST_CONTAS },
+    s38: { gestor:ato(), fiscal:ato() },
+    s39: { comissao:'CMA', ato:ato() },
+    s310:{ manifestacao:'', diligencias:[ { t:'' } ], motivos:[ { t:'' } ],
+           respNome:'', respCargo:'', secretarioNome:'' },
+    compl:{ oficioNumero:'', oficioAno:String(new Date().getFullYear()), siglaSei:'', prefeitoNome:'', objetoResumo:'',
+            objetivos:[ OPC.objetivosDiof[1] ], objetivoOutra:'', justificativa:'', natureza:'', subA:'', subB:[], naturezaOutra:'', ficha:'' }
+  };
+}
+function novoStatus(){ const o = {}; SECOES_AVALIADAS.concat(['compl']).forEach(id => o[id] = 'pendente'); return o; }
+
+/* ==========================================================================================================
+   IMPORTAÇÃO DO PLANO DE TRABALHO
+   ========================================================================================================== */
+const RECEITAS_FONTE = { municipal:'Municipal', estadual:'Estadual', federal:'Federal',
+  emendaMunicipal:'Emenda Parlamentar Municipal', emendaEstadual:'Emenda Parlamentar Estadual', emendaFederal:'Emenda Parlamentar Federal' };
+
+/* Converte o JSON exportado pelo formulário ("campos" por id) em uma estrutura calculada. Recalcula tudo a partir
+   dos valores mensais — nunca confia nos totais gravados, pois é isso que a auditoria precisa conferir. */
+function extrairPlano(json, nomeArquivo){
+  const campos = (json && json.campos) || {};
+  const grupos = {};
+  Object.keys(campos).forEach(id => {
+    const m = id.match(/^(meta|impl|rh|oper|resp|sig)-(\d+)-(.+)$/);
+    if(!m) return;
+    (grupos[m[1]] = grupos[m[1]] || {});
+    (grupos[m[1]][m[2]] = grupos[m[1]][m[2]] || {})[m[3]] = campos[id];
+  });
+  const lista = p => Object.keys(grupos[p] || {}).sort((a, b) => a - b).map(u => Object.assign({ uid:u }, grupos[p][u]));
+  const meses = (item, conv) => Array.from({ length:12 }, (_, i) => conv(item['mes-' + (i + 1)]));
+  const soma = arr => round2(arr.reduce((s, x) => s + x, 0));
+  const somaMes = (itens) => Array.from({ length:12 }, (_, i) => round2(itens.reduce((s, it) => s + it.meses[i], 0)));
+
+  const metas = lista('meta').map(m => { const mm = meses(m, moneyNum); return { nome:m.nome || '', unidade:m.unidade || '', meses:mm, total:soma(mm) }; });
+  const mk = p => lista(p).map(it => { const mm = meses(it, moneyNum); return { categoria:it.categoria || it.descricao || it.grupo || '', descricao:it.descricao || '', meses:mm, total:soma(mm),
+    extra:{ bruto:moneyNum(it.bruto), quantidade:moneyNum(it.quantidade), valorunit:moneyNum(it.valorunit) } }; });
+  const impl = mk('impl'), rh = mk('rh'), oper = mk('oper');
+  const mImpl = somaMes(impl), mRh = somaMes(rh), mOper = somaMes(oper);
+  const mTotal = mImpl.map((v, i) => round2(v + mRh[i] + mOper[i]));
+  const mRep = Array.from({ length:12 }, (_, i) => moneyNum(campos['cron-repasse-mes-' + (i + 1)]));
+  const mCon = Array.from({ length:12 }, (_, i) => moneyNum(campos['cron-contra-mes-' + (i + 1)]));
+
+  const receitas = {};
+  Object.keys(RECEITAS_FONTE).forEach(k => {
+    receitas[k] = { repasse:moneyNum(campos['receita-' + k + '-repasse']), contra:moneyNum(campos['receita-' + k + '-contrapartida']) };
+  });
+  const recPropria = { repasse:moneyNum(campos['receita-propria-repasse']), contra:moneyNum(campos['receita-propria-contrapartida']) };
+  const extras = Object.keys(campos).filter(k => /^recx-\d+-repasse$/.test(k)).map(k => ({ repasse:moneyNum(campos[k]), contra:moneyNum(campos[k.replace('-repasse', '-contrapartida')]) }));
+  const recRep = round2(Object.keys(receitas).reduce((s, k) => s + receitas[k].repasse, recPropria.repasse) + extras.reduce((s, x) => s + x.repasse, 0));
+  const recCon = round2(Object.keys(receitas).reduce((s, k) => s + receitas[k].contra, recPropria.contra) + extras.reduce((s, x) => s + x.contra, 0));
+  const fontes = Object.keys(RECEITAS_FONTE).filter(k => receitas[k].repasse > 0 || receitas[k].contra > 0).map(k => RECEITAS_FONTE[k]);
+
+  const calc = {
+    metas, impl, rh, oper, mImpl, mRh, mOper, mTotal, mRep, mCon,
+    totImpl:soma(mImpl), totRh:soma(mRh), totOper:soma(mOper),
+    totGeral:soma(mTotal), totRepasse:soma(mRep), totContra:soma(mCon),
+    totGeralInformado: campos['ct-totalrow-total'] != null ? moneyNum(campos['ct-totalrow-total']) : null,
+    receitasRepasse:recRep, receitasContra:recCon, fontes,
+    responsaveis: lista('resp').length, signatarios: lista('sig').length
+  };
+  calc.totCronograma = round2(calc.totRepasse + calc.totContra);
+  return { origem:'json', arquivo:nomeArquivo || '', formulario:json && json.formulario || '', nomeDocumento:json && json.nomeDocumento || '',
+           geradoEm:(json && json.geradoEm) || null, campos:semLogo(campos), calc, parcial:false };
+}
+function semLogo(campos){ const c = Object.assign({}, campos); delete c.logoBase64; return c; }
+
+/* Importação de PDF: heurística sobre o texto extraído (pdf.js). O resultado é sempre "parcial". */
+function extrairPlanoDePdfTexto(linhas, meta, nomeArquivo){
+  const txt = linhas.join('\n');
+  const campos = {};
+  const mCnpj = txt.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/);
+  if(mCnpj) campos.cnpj = maskCnpj(mCnpj[0]);
+  const iRazao = linhas.findIndex(l => /raz[ãa]o social/i.test(l));
+  if(iRazao >= 0){
+    const rest = linhas[iRazao].replace(/^.*raz[ãa]o social\s*[:\-–]?\s*/i, '').trim();
+    campos.razaoSocial = rest || (linhas[iRazao + 1] || '').trim();
+  }
+  const iObj = linhas.findIndex(l => /^\s*(?:\d+\.?\s*)?objeto\b/i.test(l));
+  if(iObj >= 0){
+    const partes = [linhas[iObj].replace(/^\s*(?:\d+\.?\s*)?objeto\s*[:\-–]?\s*/i, '').trim()];
+    for(let i = iObj + 1; i < linhas.length && partes.join(' ').length < 700; i++){
+      if(/^\s*(?:\d+[.)]\s|per[ií]odo|p[úu]blico|local de|objetivos|descri[çc][ãa]o da realidade|mês de in[ií]cio)/i.test(linhas[i])) break;
+      partes.push(linhas[i].trim());
+    }
+    campos.objeto = partes.join(' ').replace(/\s+/g, ' ').trim();
+  }
+  const mPer = txt.match(/(?:per[ií]odo de execu[çc][ãa]o|vig[êe]ncia)[^\d\n]{0,40}(\d{1,2})\s*mes/i);
+  if(mPer) campos.periodoExecucao = mPer[1];
+  OPC.modalidade.some(m => { if(txt.toLowerCase().indexOf(m.toLowerCase()) !== -1){ campos.modalidade = m; return true; } return false; });
+  let total = null; const reT = /TOTAL GERAL[^\d\n]*([\d.]+,\d{2})/gi; let mt;
+  while((mt = reT.exec(txt))) total = moneyNum(mt[1]);
+  let geradoEm = meta && meta.criadoEm || null;
+  if(!geradoEm){ const g = txt.match(/Gerado em[:\s]+(\d{2})\/(\d{2})\/(\d{4})(?:[ ,às]+(\d{2}):(\d{2}))?/i); if(g) geradoEm = new Date(+g[3], +g[2] - 1, +g[1], +(g[4] || 0), +(g[5] || 0)).toISOString(); }
+  const calc = { metas:[], impl:[], rh:[], oper:[], mImpl:[], mRh:[], mOper:[], mTotal:[], mRep:[], mCon:[],
+    totImpl:0, totRh:0, totOper:0, totGeral: total || 0, totRepasse:0, totContra:0, totGeralInformado: total, totCronograma:0,
+    receitasRepasse:0, receitasContra:0, fontes:[], responsaveis:0, signatarios:0 };
+  return { origem:'pdf', arquivo:nomeArquivo || '', formulario:'', nomeDocumento:'', geradoEm, campos, calc, parcial:true };
+}
+
+/* Pré-preenche o Demonstrativo (1. Identificação e tabelas do item 3.5) com o que foi possível extrair. */
+function preencherAvaliacaoDoPlano(a, plano){
+  const c = plano.campos || {}, k = plano.calc;
+  if(c.razaoSocial) a.s1.osc = c.razaoSocial;
+  if(isFilled(c.ajusteOrigem)) a.s1.ajusteOrigem = String(c.ajusteOrigem).trim();
+  if(c.cnpj) a.s1.cnpj = maskCnpj(c.cnpj);
+  if(OPC.modalidade.indexOf(c.modalidade) !== -1) a.s1.modalidade = c.modalidade;
+  if(c.objeto){ a.s1.objeto = c.objeto; a.compl.objetoResumo = resumirObjeto(c.objeto); }
+  if(k.totGeral > 0) a.s1.valor = k.totGeral;
+  if(c.periodoExecucao) a.s1.vigencia = String(c.periodoExecucao);
+  if(k.fontes.length) a.s1.fontes = k.fontes.slice();
+  if(!plano.parcial){
+    a.s35.custo = { impl:k.totImpl, rh:k.totRh, oper:k.totOper };
+    a.s35.cron[0] = { repasse:k.totRepasse, contra:k.totContra };
+  }
+  return a;
+}
+function resumirObjeto(t){
+  const s = String(t || '').replace(/\s+/g, ' ').trim();
+  if(s.length <= 320) return s;
+  const corte = s.slice(0, 320), p = corte.lastIndexOf('. ');
+  return (p > 120 ? corte.slice(0, p + 1) : corte.replace(/\s+\S*$/, '') + '…');
+}
+
+/* ==========================================================================================================
+   TEMPORALIDADE E AUDITORIA PRELIMINAR
+   ========================================================================================================== */
+function avaliarTemporalidade(plano, agora, limiteDias){
+  if(!plano) return null;
+  const t = plano.geradoEm ? new Date(plano.geradoEm).getTime() : NaN;
+  if(isNaN(t)) return { nivel:'alerta', titulo:'Arquivo sem data/hora de geração', detalhe:'Não foi possível identificar o carimbo de geração do arquivo. Confirme com a OSC/Entidade se esta é a versão mais recente do plano.', idadeDias:null };
+  const dias = (agora - t) / 86400000;
+  if(dias < -0.003) return { nivel:'erro', titulo:'Data de geração no futuro', detalhe:'O carimbo do arquivo (' + fmtDataHora(plano.geradoEm) + ') é posterior ao relógio deste computador. Verifique a data do equipamento de origem ou solicite novo arquivo.', idadeDias:dias };
+  if(dias > limiteDias) return { nivel:'alerta', titulo:'Arquivo possivelmente desatualizado', detalhe:'Gerado em ' + fmtDataHora(plano.geradoEm) + ' (há ' + Math.floor(dias) + ' dias; limite configurado: ' + limiteDias + ' dias). Confirme se não há versão mais recente do plano.', idadeDias:dias };
+  const idade = dias < 1 ? 'hoje' : 'há ' + Math.floor(dias) + (Math.floor(dias) === 1 ? ' dia' : ' dias');
+  return { nivel:'ok', titulo:'Data de geração dentro do prazo', detalhe:'Gerado em ' + fmtDataHora(plano.geradoEm) + ' (' + idade + ').', idadeDias:dias };
+}
+
+function auditarPlano(plano){
+  const itens = [];
+  const add = (nivel, grupo, titulo, detalhe, ref) => itens.push({ nivel, grupo, titulo, detalhe:detalhe || '', ref:ref || '' });
+  const c = plano.campos || {}, k = plano.calc;
+  const REF_PLANO = 'Lei 13.019/2014, art. 22 (parcerias) · Lei 14.133/2021 e Dec. Mun. 7.055/2023 (convênios)';
+
+  /* 1. Cadastro */
+  if(!isFilled(c.razaoSocial)) add('erro', 'Identificação', 'Razão social não informada', 'Campo obrigatório ausente no plano importado.');
+  else add('ok', 'Identificação', 'Razão social informada', c.razaoSocial);
+  if(!isFilled(c.cnpj)) add('erro', 'Identificação', 'CNPJ não informado');
+  else if(!cnpjValido(c.cnpj)) add('erro', 'Identificação', 'CNPJ inválido', 'Os dígitos verificadores de ' + c.cnpj + ' não conferem.');
+  else add('ok', 'Identificação', 'CNPJ válido', maskCnpj(c.cnpj));
+  if(!isFilled(c.modalidade)) add('alerta', 'Identificação', 'Modalidade não informada no plano');
+  else if(/Aditivo|Apostilamento/.test(c.modalidade) && !isFilled(c.ajusteOrigem)) add('erro', 'Identificação', 'Ajuste de origem não informado', c.modalidade + ' exige identificar o ajuste a ser alterado.');
+  if(!isFilled(c.objeto)) add('erro', 'Objeto', 'Objeto não informado');
+  else {
+    const quant = String(c.objeto).match(/\b\d[\d.]*\s*(?:atendimentos?|vagas?|oficinas?|exames?|alunos?|pessoas?|consultas?|crian[çc]as?)/i);
+    if(quant) add('alerta', 'Objeto', 'Objeto contém quantitativos', 'Trecho "' + quant[0] + '": o objeto deve ser qualitativo; metas quantitativas pertencem à seção de Metas.', REF_PLANO);
+    else add('ok', 'Objeto', 'Objeto descrito de forma qualitativa');
+  }
+  const per = Number(c.periodoExecucao);
+  if(!per || per < 1) add('erro', 'Vigência', 'Período de execução não informado');
+  else if(per > 60) add('alerta', 'Vigência', 'Período de execução superior a 60 meses', per + ' meses — confirme o enquadramento legal.');
+  else add('ok', 'Vigência', 'Período de execução informado', per + ' meses');
+
+  if(plano.parcial){
+    add('info', 'Importação PDF', 'Importação parcial', 'O PDF foi lido por mapeamento de texto: apenas identificação e total geral foram extraídos. Metas, custos por categoria e cronograma mensal devem ser conferidos manualmente (ou importe o arquivo .json do plano).');
+    if(k.totGeral > 0) add('ok', 'Valores', 'Total geral localizado no PDF', fmtBRL(k.totGeral)); else add('alerta', 'Valores', 'Total geral não localizado no PDF');
+    return resumirAuditoria(itens);
+  }
+
+  /* 2. Metas */
+  if(!k.metas.length) add('erro', 'Metas', 'Nenhuma meta cadastrada', '', REF_PLANO);
+  else {
+    const sem = k.metas.filter(m => m.total <= 0);
+    const semNome = k.metas.filter(m => !isFilled(m.nome));
+    add(sem.length ? 'erro' : 'ok', 'Metas', sem.length ? sem.length + ' meta(s) sem quantidade mensal' : k.metas.length + ' meta(s) com quantidades lançadas',
+      sem.length ? 'Sem quantidade: ' + sem.map(m => m.nome || '(sem nome)').join('; ') : 'Soma por meta: ' + k.metas.map(m => (m.nome || 's/ nome') + ' = ' + m.total.toLocaleString('pt-BR')).join('; '));
+    if(semNome.length) add('alerta', 'Metas', semNome.length + ' meta(s) sem nome');
+  }
+
+  /* 3. Orçamento: somatória e totais */
+  const calcTotal = round2(k.totImpl + k.totRh + k.totOper);
+  if(calcTotal <= 0) add('erro', 'Orçamento', 'Custo total zerado', 'Nenhum item de implantação, recursos humanos ou operacional com valores mensais.');
+  else add('ok', 'Orçamento', 'Custo total recalculado', 'Implantação ' + fmtBRL(k.totImpl) + ' + RH ' + fmtBRL(k.totRh) + ' + Operacional ' + fmtBRL(k.totOper) + ' = ' + fmtBRL(calcTotal));
+  if(k.totGeralInformado != null && Math.abs(k.totGeralInformado - calcTotal) > 0.01)
+    add('erro', 'Orçamento', 'Total informado diverge da soma dos itens', 'Total gravado no arquivo: ' + fmtBRL(k.totGeralInformado) + ' · recalculado: ' + fmtBRL(calcTotal) + '. O arquivo pode ter sido editado após a geração.');
+  else if(k.totGeralInformado != null && calcTotal > 0) add('ok', 'Orçamento', 'Total informado confere com os itens');
+  ['impl', 'rh', 'oper'].forEach(p => {
+    const rot = { impl:'implantação', rh:'recursos humanos', oper:'operacionais' }[p];
+    const zer = k[p].filter(it => it.total <= 0);
+    if(zer.length) add('alerta', 'Orçamento', zer.length + ' item(ns) de ' + rot + ' sem valores mensais', zer.map(it => it.categoria || '(sem descrição)').join('; '));
+  });
+
+  /* 4. Cronograma de desembolso x custos */
+  const dif = round2(k.totCronograma - calcTotal);
+  if(k.totCronograma <= 0) add('erro', 'Cronograma', 'Cronograma de desembolso zerado', '', REF_PLANO);
+  else if(Math.abs(dif) > 0.01) add('erro', 'Cronograma', 'Cronograma de desembolso diverge do custo total', 'Repasse ' + fmtBRL(k.totRepasse) + ' + contrapartida ' + fmtBRL(k.totContra) + ' = ' + fmtBRL(k.totCronograma) + ' · custo total ' + fmtBRL(calcTotal) + ' (diferença ' + fmtBRL(dif) + ').', REF_PLANO);
+  else add('ok', 'Cronograma', 'Cronograma de desembolso fecha com o custo total', fmtBRL(k.totCronograma));
+  const semDesemb = [], semCusto = [];
+  for(let i = 0; i < 12; i++){
+    const des = round2(k.mRep[i] + k.mCon[i]);
+    if(k.mTotal[i] > 0 && des <= 0) semDesemb.push(i + 1);
+    if(k.mTotal[i] <= 0 && des > 0) semCusto.push(i + 1);
+  }
+  if(semDesemb.length) add('alerta', 'Cronograma', 'Meses com custo e sem desembolso', 'Mês(es) ' + semDesemb.join(', ') + ': há despesa prevista sem repasse/contrapartida correspondente.');
+  if(semCusto.length) add('alerta', 'Cronograma', 'Meses com desembolso e sem custo', 'Mês(es) ' + semCusto.join(', ') + ': há desembolso sem despesa prevista no mês.');
+  if(!semDesemb.length && !semCusto.length && calcTotal > 0 && k.totCronograma > 0) add('ok', 'Cronograma', 'Desembolso mensal compatível com a execução física/financeira');
+  if(per && per < 12){
+    const fora = []; for(let i = per; i < 12; i++) if(k.mTotal[i] > 0 || k.mRep[i] > 0 || k.mCon[i] > 0) fora.push(i + 1);
+    if(fora.length) add('erro', 'Vigência', 'Valores lançados além da vigência', 'Mês(es) ' + fora.join(', ') + ' possuem custo/desembolso, mas a vigência é de ' + per + ' meses.');
+  }
+  if(per > 12) add('info', 'Vigência', 'Plano com vigência superior a 12 meses', 'O formulário do plano lança 12 meses; os totais importados foram lançados no Ano 1 do item 3.5. Preencha manualmente os Anos 2 e 3 se necessário.');
+
+  /* 5. Contrapartida e receitas */
+  if(k.receitasRepasse + k.receitasContra > 0){
+    const dr = round2((k.receitasRepasse + k.receitasContra) - calcTotal);
+    if(Math.abs(dr) > 0.01) add('erro', 'Receitas', 'Receitas previstas divergem do custo total', 'Receitas ' + fmtBRL(k.receitasRepasse + k.receitasContra) + ' · custo total ' + fmtBRL(calcTotal) + ' (diferença ' + fmtBRL(dr) + ').');
+    else add('ok', 'Receitas', 'Receitas previstas conferem com o custo total');
+    if(Math.abs(k.receitasContra - k.totContra) > 0.01) add('alerta', 'Contrapartida', 'Contrapartida das receitas ≠ contrapartida do cronograma', 'Receitas: ' + fmtBRL(k.receitasContra) + ' · cronograma: ' + fmtBRL(k.totContra) + '.');
+  } else add('alerta', 'Receitas', 'Previsão de receitas não preenchida', 'Sem valores na seção de receitas do plano; não foi possível cruzar fontes de recursos.');
+  if(k.totContra > 0) add('info', 'Contrapartida', 'Plano declara contrapartida de ' + fmtBRL(k.totContra), 'O texto-padrão do item 3.5 informa que não será exigida contrapartida; ajuste-o se necessário.');
+
+  /* 6. Gestão */
+  if(!k.responsaveis) add('alerta', 'Responsáveis', 'Nenhum responsável legal/técnico informado no plano');
+  if(!k.signatarios) add('alerta', 'Assinaturas', 'Nenhum signatário informado no plano');
+  if(isFilled(c.execInicio) || isFilled(c.execTermino)) add('info', 'Vigência', 'Início/término informados no plano', (c.execInicio || '—') + ' → ' + (c.execTermino || '—'));
+  return resumirAuditoria(itens);
+}
+function resumirAuditoria(itens){
+  const r = { itens, ok:0, alerta:0, erro:0, info:0 };
+  itens.forEach(i => r[i.nivel]++);
+  return r;
+}
+
+/* ==========================================================================================================
+   VERSIONAMENTO: diff de campos, numeração e hash encadeado
+   ========================================================================================================== */
+const ROTULOS = { orgao:'Órgão', osc:'OSC/Entidade', cnpj:'CNPJ', modalidade:'Modalidade', objeto:'Objeto', valor:'Valor R$', vigencia:'Período de vigência', fontes:'Fonte de recursos',
+  procedimento:'Tipo de procedimento', editalNumero:'Nº do edital', editalData:'Data do edital', efeitos:'Produção de efeitos', retroData:'Data retroativa', retroMotivo:'Motivo retroativo',
+  contrapartida:'Contrapartida (texto)', complemento:'Regularidade/prestação de contas (texto)', processoSei:'Nº Processo SEI', parecer:'Parecer técnico', relevancia:'Relevância pública', publicoAlvo:'Público-alvo', problema:'Problema/política pública', adequacao:'Adequação ao edital/programa',
+  baseEdital:'Base: edital', editalRef:'Edital (ref.)', basePrograma:'Base: programa', programaNome:'Programa(s)', benAdm:'Benefício para a Administração', benOsc:'Benefício para a OSC',
+  supremacia:'Supremacia do interesse público', metodologia:'Metodologia', equip:'Equipamentos', suficiencia:'Suficiência dos instrumentos', adequacoes:'Adequações recomendadas',
+  coerencia:'Coerência do cronograma', custos:'Suficiência dos custos', compat:'Compatibilidade com o mercado', impl:'Custo de implantação', rh:'Custo de RH', oper:'Custo operacional',
+  repasse:'Repasse', contra:'Contrapartida', metas:'Verificação de metas', enquadramento:'Enquadramento legal', tipo:'Tipo do ato', numero:'Nº do ato', data:'Data do ato',
+  comissao:'Comissão', manifestacao:'Manifestação final', respNome:'Responsável pela análise', respCargo:'Cargo do responsável', secretarioNome:'Secretário(a) Municipal',
+  oficioNumero:'Nº do ofício', oficioAno:'Ano do ofício', siglaSei:'Sigla SEI', prefeitoNome:'Prefeito(a)', objetoResumo:'Objeto resumido (ofício)', objetivos:'Objetivo do requerimento (DIOF)',
+  objetivoOutra:'Outro objetivo (DIOF)', justificativa:'Justificativa', natureza:'Natureza da despesa', subA:'Subopção A', subB:'Subopção B', naturezaOutra:'Outra natureza', ficha:'Nº da ficha',
+  ajusteOrigem:'Ajuste de origem', emendaInfo:'Emenda parlamentar (nº/ano, valor e autor)', dispensaInciso:'Dispensa: inciso', inexigInciso:'Inexigibilidade: inciso', credenciamento:'Edital de Credenciamento nº',
+  t:'Texto', item:'Item', motivo:'Motivo', executadaEm:'1ª Verificação executada em', liberadoPorJustificativa:'Liberação por justificativa técnica' };
+const SECAO_ROT = { s1:'1', s31:'3.1', s32:'3.2', s33:'3.3', s34:'3.4', s35:'3.5', s36:'3.6', s37:'3.7', s38:'3.8', s39:'3.9', s310:'3.10', compl:'Docs', status:'Status', auditoria:'Auditoria' };
+function achatar(obj, pref, out){
+  out = out || {};
+  if(Array.isArray(obj)){
+    if(!obj.length) out[pref] = '';
+    else if(obj.every(x => x === null || typeof x !== 'object')) out[pref] = obj.join('; ');
+    else obj.forEach((x, i) => achatar(x, pref + '[' + (i + 1) + ']', out));
+  } else if(obj && typeof obj === 'object'){
+    Object.keys(obj).forEach(k => achatar(obj[k], pref ? pref + '.' + k : k, out));
+  } else out[pref] = obj == null ? '' : String(obj);
+  return out;
+}
+function rotuloCampo(path){
+  const partes = path.split('.');
+  const sec = SECAO_ROT[partes[0]] || partes[0];
+  if(partes[0] === 'status') return 'Status da seção ' + (SECAO_ROT[partes[1]] || partes[1]);
+  const folha = partes[partes.length - 1].replace(/\[\d+\]/, '');
+  const idx = (path.match(/\[\d+\]/g) || []).join('');
+  let r = ROTULOS[folha] || folha;
+  if(partes.length > 2 && ['gestor', 'fiscal', 'ato'].indexOf(partes[partes.length - 2]) !== -1) r = (partes[partes.length - 2] === 'ato' ? '' : partes[partes.length - 2][0].toUpperCase() + partes[partes.length - 2].slice(1) + ' · ') + r;
+  if(partes[1] === 'cron') r = 'Cronograma ' + (partes[partes.length - 2].match(/\d+/) ? 'Ano ' + partes[partes.length - 2].match(/\d+/)[0] + ' · ' : '') + r;
+  if(partes[1] === 'custo') r = 'Custo total · ' + r;
+  return sec + ' · ' + r + (idx && partes[1] !== 'cron' ? ' ' + idx : '');
+}
+function diffEstados(anterior, atual){
+  const A = achatar(anterior || {}, '', {}), B = achatar(atual || {}, '', {});
+  const chaves = Object.keys(Object.assign({}, A, B)), log = [];
+  const cur = s => { s = String(s == null ? '' : s).replace(/\s+/g, ' '); return s.length > 70 ? s.slice(0, 67) + '…' : s; };
+  chaves.forEach(k => {
+    if((A[k] || '') === (B[k] || '')) return;
+    log.push(rotuloCampo(k) + ': ' + (A[k] ? '"' + cur(A[k]) + '"' : '(vazio)') + ' → ' + (B[k] ? '"' + cur(B[k]) + '"' : '(vazio)'));
+  });
+  return log;
+}
+function proximaVersao(versoes){
+  if(!versoes.length) return 'v1.0';
+  const ult = versoes[versoes.length - 1].versao.match(/^v(\d+)\.(\d+)$/);
+  return ult ? 'v' + ult[1] + '.' + (Number(ult[2]) + 1) : 'v1.' + versoes.length;
+}
+function jsonCanonico(o){
+  if(Array.isArray(o)) return '[' + o.map(jsonCanonico).join(',') + ']';
+  if(o && typeof o === 'object') return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + jsonCanonico(o[k])).join(',') + '}';
+  return JSON.stringify(o === undefined ? null : o);
+}
+function fnv1a(s){ let h = 0x811c9dc5; for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return ('00000000' + h.toString(16)).slice(-8); }
+async function hashSnapshot(snap, hashAnterior){
+  const corpo = jsonCanonico({ versao:snap.versao, carimbo:snap.carimbo, tecnico:snap.tecnico, status:snap.status, manifestacao:snap.manifestacao, entidade:snap.entidade, log:snap.log, dados:snap.dados }) + '|' + (hashAnterior || '');
+  try {
+    if(typeof crypto !== 'undefined' && crypto.subtle){
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(corpo));
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch(e) { /* usa o fallback */ }
+  return 'f' + fnv1a(corpo) + fnv1a(corpo.split('').reverse().join(''));
+}
+async function verificarCadeia(versoes){
+  const res = {}; let anterior = '';
+  for(const v of versoes){
+    const h = await hashSnapshot(v, anterior);
+    res[v.id] = (h === v.hash && (v.hashAnterior || '') === anterior);
+    anterior = v.hash;
+  }
+  return res;
+}
+
+/* ==========================================================================================================
+   GERAÇÃO DOS DOCUMENTOS OFICIAIS (HTML) — alimentados pelo estado da avaliação
+   ========================================================================================================== */
+const ph = t => '<span class="ph">[' + esc(t) + ']</span>';
+/* Ponto final só quando o texto digitado ainda não termina em pontuação (evita ".."). */
+const pt = s => /[.!?…]\s*$/.test(String(s == null ? '' : s).trim()) ? '' : '.';
+const fv = (v, t) => isFilled(v) ? '<span class="fv">' + esc(String(v).trim()) + '</span>' : ph(t);
+const fvm = (v, t) => isFilled(v) ? '<span class="fv">' + nl2br(String(v).trim()) + '</span>' : ph(t);
+const box = on => '<span class="cx">' + (on ? '[X]' : '[&nbsp;&nbsp;]') + '</span>';
+const pick = (sel, opts) => isFilled(sel) ? '<b>' + esc(sel) + '</b>' : ph(opts.join(' / '));
+const money = (n, vazio) => (n || n === 0) && (n !== 0 || !vazio) ? fmtBRL(n) : '';
+
+function textoEdital(a){
+  return 'Edital de Chamamento Público nº ' + (isFilled(a.editalNumero) ? '<span class="fv">' + esc(a.editalNumero) + '</span>' : ph('Nº/Ano-SIGLA DA SECRETARIA')) + (a.editalData ? ', de <span class="fv">' + esc(dataExtenso(a.editalData)) + '</span>' : ', e data do Edital') + '.';
+}
+function textoSemChamamento(a){
+  return 'Sem Chamamento Público, Lei Federal nº 13.019/2014, art. 29, por se tratar de recurso oriundo da emenda parlamentar nº ' + fv(a.emendaInfo, 'Nº/Ano, Valor e Autor') + '.';
+}
+function procedimentoHTML(a){
+  const op = (on, txt, sub) => '<div class="op' + (sub ? ' sub' : '') + '">' + box(on) + ' ' + txt + '</div>';
+  const bloco = tipo => {
+    const P = procDe(a, tipo), sel = a.procedimento === (tipo === 'dispensa' ? 'dispensa' : 'inexigibilidade'), campo = tipo === 'dispensa' ? 'dispensaInciso' : 'inexigInciso';
+    return op(sel, esc(P.cab)) + P.itens.map(it => op(sel && a[campo] === it.v, esc(it.t) + (it.cred ? (isFilled(a.credenciamento) ? '<span class="fv">' + esc(a.credenciamento) + '</span>' : ph('Nº/Ano-SIGLA DA SECRETARIA')) + '.' : ''), true)).join('');
+  };
+  /* "Sem Chamamento Público" (art. 29 da Lei 13.019) não existe para Convênio (nem seus Aditivos/Apostilamentos). */
+  return op(a.procedimento === 'chamamento', textoEdital(a)) + (permiteSemChamamento(a) ? op(a.procedimento === 'sem', textoSemChamamento(a)) : '') + bloco('dispensa') + bloco('inexig');
+}
+/* Resumo de uma linha para o Ofício. */
+function procedimentoResumo(a){
+  const p = a.procedimento;
+  if(p === 'chamamento') return textoEdital(a).replace(/\.$/, '') ;
+  if(p === 'sem') return textoSemChamamento(a).replace(/\.$/, '');
+  if(p === 'dispensa' || p === 'inexigibilidade'){
+    const tipo = p === 'dispensa' ? 'dispensa' : 'inexig', P = procDe(a, tipo), inc = a[p === 'dispensa' ? 'dispensaInciso' : 'inexigInciso'];
+    return P.itens.length ? esc(P.curto) + (isFilled(inc) ? '<span class="fv">' + esc(inc) + '</span>' : ph('inciso')) : esc(P.cab.replace(/\.$/, ''));
+  }
+  return ph('Tipo de Procedimento');
+}
+function cabecalho(cfg){
+  const img = cfg && cfg.brasao ? '<img class="brasao" src="' + esc(cfg.brasao) + '" alt="Brasão do Município de Paraguaçu Paulista">' : '<div class="brasao-ph">[BRASÃO DO MUNICÍPIO]</div>';
+  return '<header class="doc-head">' + img + '<div class="pref">PREFEITURA MUNICIPAL DA ESTÂNCIA TURÍSTICA DE PARAGUAÇU PAULISTA</div></header>';
+}
+function ato(a, rot, fallbackTipo){
+  if(isFilled(a.numero) || isFilled(a.data)){
+    return esc(a.tipo || fallbackTipo) + ' nº ' + (isFilled(a.numero) ? '<span class="fv">' + esc(a.numero) + '</span>' : '___') + ', de ' + (a.data ? '<span class="fv">' + esc(dataExtenso(a.data)) + '</span>' : '__ de __ de ____');
+  }
+  return ph(fallbackTipo + ' nº ___, de __ de ___ de ____');
+}
+function totaisCusto(s35){
+  const c = s35.custo, tot = round2((+c.impl || 0) + (+c.rh || 0) + (+c.oper || 0));
+  const pc = v => tot > 0 ? (Number(v) || 0) / tot * 100 : 0;
+  const cr = s35.cron.map(r => ({ repasse:+r.repasse || 0, contra:+r.contra || 0, total:round2((+r.repasse || 0) + (+r.contra || 0)) }));
+  return { tot, pImpl:pc(c.impl), pRh:pc(c.rh), pOper:pc(c.oper), cron:cr,
+           totRep:round2(cr.reduce((s, r) => s + r.repasse, 0)), totCon:round2(cr.reduce((s, r) => s + r.contra, 0)), totCron:round2(cr.reduce((s, r) => s + r.total, 0)) };
+}
+/* diof=true: variação do Requerimento DIOF (cabeçalho "Vigência, Mensal ou Anual" e Cronograma sem a linha Total Geral). */
+function tabelasFinanceiras(s35, diof){
+  const t = totaisCusto(s35), c = s35.custo;
+  const cel = v => v ? fmtBRL(v) : '&nbsp;';
+  return '<p class="sub">Resumo Geral do Custo Total</p>' +
+    '<table class="tbl"><thead><tr><th>Componente</th><th>' + (diof ? 'Total R$ / Vigência, Mensal ou Anual' : 'Total R$ / Vigência') + '</th><th>% do Total</th></tr></thead><tbody>' +
+    '<tr><td>Custo de Implantação R$ (se houver)</td><td class="r">' + cel(c.impl) + '</td><td class="r">' + (c.impl ? fmtPct(t.pImpl) : '&nbsp;') + '</td></tr>' +
+    '<tr><td>Custo Recursos Humanos</td><td class="r">' + cel(c.rh) + '</td><td class="r">' + (c.rh ? fmtPct(t.pRh) : '&nbsp;') + '</td></tr>' +
+    '<tr><td>Custo Operacional</td><td class="r">' + cel(c.oper) + '</td><td class="r">' + (c.oper ? fmtPct(t.pOper) : '&nbsp;') + '</td></tr>' +
+    '<tr class="tot"><td>Total Geral</td><td class="r">' + cel(t.tot) + '</td><td class="r">' + (t.tot ? '100,0%' : '&nbsp;') + '</td></tr></tbody></table>' +
+    '<p class="sub">Cronograma de Desembolso</p>' +
+    '<table class="tbl"><thead><tr><th>Componente</th><th>Repasse R$</th><th>Contrapartida R$</th><th>Total R$</th></tr></thead><tbody>' +
+    ['ANO 1 (início de vigência da nova despesa)', 'ANO 2 (se houver)', 'ANO 3 (se houver)'].map((r, i) =>
+      '<tr><td>' + r + '</td><td class="r">' + cel(t.cron[i].repasse) + '</td><td class="r">' + cel(t.cron[i].contra) + '</td><td class="r">' + cel(t.cron[i].total) + '</td></tr>').join('') +
+    (diof ? '' : '<tr class="tot"><td>Total Geral</td><td class="r">' + cel(t.totRep) + '</td><td class="r">' + cel(t.totCon) + '</td><td class="r">' + cel(t.totCron) + '</td></tr>') + '</tbody></table>';
+}
+const ASSINATURA_DIGITAL = 'Paraguaçu Paulista, na data da assinatura digital.';
+
+function docDemonstrativo(S, cfg){
+  const a = S.s1, p31 = S.s31, p32 = S.s32, p33 = S.s33, p34 = S.s34, p35 = S.s35, p36 = S.s36, p37 = S.s37, p38 = S.s38, p39 = S.s39, f = S.s310;
+  const checks = (lista, sel) => lista.map(o => '<div class="op">' + box(sel === o) + ' ' + esc(o) + '</div>').join('');
+  const fontes = OPC.fontes.map(o => '<div class="op">' + box(a.fontes.indexOf(o) !== -1) + ' ' + esc(o) + '</div>').join('');
+  const proc = procedimentoHTML(a);
+  const efeitos = '<div class="op">' + box(a.efeitos === 'assinatura') + ' a contar da assinatura do ajuste/parceria.</div>' +
+    '<div class="op">' + box(a.efeitos === 'retroativo') + ' com efeitos retroativos a ' + (a.retroData ? '<span class="fv">' + esc(dataExtenso(a.retroData)) + '</span>' : ph('DIA/MÊS/ANO')) + ' pelo seguinte motivo: ' + fvm(a.retroMotivo, 'Justifique') + '</div>';
+  const ajustes = p35.ajustes.filter(x => isFilled(x.tipo) || isFilled(x.item) || isFilled(x.motivo));
+  const fraseAjuste = x => 'Identificou-se necessidade de ' + pick(x.tipo, ['glosa', 'readequação']) + ' no item ' + fv(x.item, 'Nome do Item') + ', pelo motivo: ' + fvm(x.motivo, 'Justificativa') + pt(x.motivo);
+  /* Sem ajustes preenchidos, o bloco inteiro é omitido; com ajustes, a 1ª frase segue na mesma linha, após os dois pontos. */
+  const ajustesHtml = ajustes.length
+    ? '<p><b>Ajustes necessários (se houver):</b> ' + fraseAjuste(ajustes[0]) + '</p>' + ajustes.slice(1).map(x => '<p>' + fraseAjuste(x) + '</p>').join('')
+    : '';
+  const lista = (itens, exemplos) => { const l = itens.filter(x => isFilled(x.t)); return l.length ? l.map(x => '<div class="li">' + fvm(x.t, '') + '</div>').join('') : exemplos.map(e => '<div class="li">' + ph('(Ex: ' + e + ')') + '</div>').join(''); };
+  const enq = [ ['mrosc', 'Parcerias (MROSC): Lei Federal nº 13.019/2014 e Decreto Municipal nº 7.456/2026;'], ['convenio', 'Convênios: Lei Federal nº 14.133/2021 e art. 670 do Decreto Municipal nº 7.055/2023.'] ]
+    .map(x => '<div class="op">' + box(p37.enquadramento === x[0]) + ' ' + x[1] + '</div>').join('');
+
+  return '<div class="doc demonstrativo">' + cabecalho(cfg) +
+  '<h1>DEMONSTRATIVO DE AVALIAÇÃO DA ENTIDADE E DO PLANO DE TRABALHO</h1>' +
+  '<h2>1. IDENTIFICAÇÃO</h2>' +
+  '<p><b>Órgão:</b> ' + fv(a.orgao, 'Nome da Secretaria de origem') + '<br><b>OSC/Entidade:</b> ' + fv(a.osc, 'Nome da OSC/Entidade') + '<br><b>CNPJ:</b> ' + fv(a.cnpj, 'Nº do CNPJ da OSC/Entidade') + '</p>' +
+  '<p class="keep"><b>Modalidade</b> (Assinale com X a opção aplicável):</p>' + checks(OPC.modalidade, a.modalidade) +
+  (alteradora(a.modalidade) ? '<p class="keep"><b>Ajuste de Origem:</b> ' + fv(a.ajusteOrigem, 'Ex.: Termo de Fomento nº 012/2025') + '</p>' : '') +
+  '<p><b>Objeto:</b> ' + fvm(a.objeto, 'Descrição do objeto conforme o plano de trabalho') + '<br><b>Valor R$:</b> ' + (a.valor > 0 ? '<span class="fv">' + fmtBRL(+a.valor) + '</span>' : ph('R$ ________')) + '<br><b>Período de Vigência:</b> ' + (isFilled(a.vigencia) ? '<span class="fv">' + esc(a.vigencia) + ' meses</span>' : ph('Nº de Meses')) + '.</p>' +
+  '<p class="keep"><b>Fonte de Recursos</b> (Assinale com X a(s) opção(ões) aplicável(is)):</p>' + fontes +
+  '<p class="keep"><b>Tipo de Procedimento</b> (Assinale com X a opção aplicável):</p>' + proc +
+  '<p class="keep"><b>Produção de Efeitos</b> (Assinale com X a opção aplicável):</p>' + efeitos +
+
+  '<h2>2. INSTRUÇÃO</h2><p>Análise técnica — realizada pelo órgão gestor ou comissão designada — sobre os objetivos institucionais e a capacidade técnica e operacional da OSC / Entidade proponente para executar o Plano de Trabalho apresentado.</p>' +
+  '<h2>3. ASPECTOS AVALIADOS</h2>' +
+
+  '<h3>3.1. Objetivos, Finalidades e Capacidade Técnica</h3>' +
+  '<p>A regularidade jurídica, fiscal, trabalhista, a idoneidade e a capacidade técnica global da OSC/Entidade foram certificadas considerando a documentação constante do:</p>' +
+  '<p>Cadastro da OSC/Entidade no SEI: ' + fv(p31.processoSei, 'Informar o Nº do Processo SEI de Cadastro') + '.</p>' +
+  '<p><b>Parecer Técnico:</b> Analisando a documentação e a Proposta/Plano de Trabalho apresentadas, atesta-se que a OSC / Entidade ' + pick(p31.parecer, OPC.p31) + ' compatibilidade estatutária e capacidade técnico-operacional específica para executar o objeto e atingir as metas propostas.</p>' +
+
+  '<h3>3.2. Mérito da Proposta</h3><p>A proposta apresenta relevância pública devido a:</p>' +
+  '<div class="li">' + fvm(p32.relevancia, 'Justificar a importância da proposta') + '</div><div class="li">' + fvm(p32.publicoAlvo, 'Indicar o público-alvo beneficiário') + '</div><div class="li">' + fvm(p32.problema, 'Relatar o problema a ser resolvido ou a política pública atendida') + '</div>' +
+  '<p>O objeto e a metodologia estão ' + pick(p32.adequacao, OPC.adequacao) + ' às regras estabelecidas no:</p>' +
+  '<div class="op">' + box(p32.baseEdital) + ' ' + (p32.baseEdital && isFilled(p32.editalRef) ? 'Edital de Chamamento Público nº <span class="fv">' + esc(p32.editalRef) + '</span>' : '[Edital de Chamamento Público nº (Nº/ANO)]') + '; OU</div>' +
+  '<div class="op">' + box(p32.basePrograma) + ' nas diretrizes do(s) Programa(s) ' + (p32.basePrograma && isFilled(p32.programaNome) ? '<span class="fv">' + esc(p32.programaNome) + '</span>' : '[Nome(s) do(s) Programa(s)]') + '.</div>' +
+  '<p><b>Parecer Técnico:</b> A proposta ' + pick(p32.parecer, OPC.p32) + ' mérito suficiente para a celebração do instrumento.</p>' +
+
+  '<h3>3.3. Identidade e Reciprocidade de Interesse</h3><p>Verifica-se benefício mútuo e atendimento à supremacia do interesse público, conforme detalhado:</p>' +
+  '<p><b>Para a Administração Pública:</b> O benefício consiste em ' + fvm(p33.benAdm, 'Ex: efetivar política pública na área X, atender diretamente o público-alvo Y, otimizar recursos públicos, etc.') + '</p>' +
+  '<p><b>Para a OSC / Entidade:</b> O benefício consiste em ' + fvm(p33.benOsc, 'Ex: cumprir sua missão estatutária, ampliar atuação, fortalecer atendimento ao público-alvo, etc.') + '</p>' +
+  '<p><b>Supremacia do Interesse Público:</b> O interesse público é priorizado visto que ' + fvm(p33.supremacia, 'Justificativa de como o interesse público prevalece') + '</p>' +
+  '<p><b>Parecer Técnico:</b> ' + pick(p33.parecer, OPC.p33) + ' identidade e reciprocidade de interesse que justifiquem o ajuste, com observância da supremacia do interesse público.</p>' +
+
+  '<h3>3.4. Viabilidade da Execução</h3>' +
+  '<p>A metodologia descrita no Plano de Trabalho é considerada ' + pick(p34.metodologia, OPC.metodologia) + '.<br>Os instrumentos de execução (ex: atendimentos, visitas) e os equipamentos ' + pick(p34.equip, OPC.equip) + ' são ' + pick(p34.suficiencia, OPC.suficiencia) + ' para alcançar os objetivos e metas.</p>' +
+  (isFilled(p34.adequacoes) ? '<p>Adequações recomendadas (se houver): ' + fvm(p34.adequacoes, '') + '</p>' : '') +
+  '<p><b>Parecer Técnico:</b> A execução do objeto é considerada ' + pick(p34.parecer, OPC.p34) + ' com os meios propostos.</p>' +
+
+  '<h3>3.5. Cronograma de Desembolso, Orçamento e Contrapartida</h3>' +
+  '<p>O Cronograma de Desembolso está ' + pick(p35.coerencia, OPC.coerencia) + ' com o Cronograma de Execução Físico (Metas).<br>A planilha de custos demonstra que os valores propostos ' + pick(p35.custos, OPC.custos) + ' suficientes para a execução integral do objeto, sendo ' + pick(p35.compat, OPC.compat) + ' com os preços de mercado e guardando nexo de causalidade com o plano.<br>' + (isFilled(p35.contrapartida) ? esc(p35.contrapartida).replace(/\n/g, '<br>') : TXT_CONTRAPARTIDA) + '</p>' +
+  '<div class="keep">' + tabelasFinanceiras(p35, true) + '</div>' +
+  ajustesHtml +
+  '<p><b>Parecer Técnico:</b> O cronograma e o orçamento ' + pick(p35.parecer, OPC.p35) + ' compatíveis e suficientes para a execução do ajuste.</p>' +
+
+  '<h3>3.6. Meios de Fiscalização e Avaliação</h3><p>O acompanhamento físico e financeiro será realizado pelo Gestor e pela Comissão designada, por meio de:</p>' +
+  '<p><b>Análise Documental:</b> Conferência dos relatórios físicos e financeiros com o Plano de Trabalho e comprovantes de despesa (notas fiscais, recibos, folhas de pagamento, etc.);<br>' +
+  '<b>Visitas in loco:</b> Verificação presencial (agendada ou não) nos locais de execução para atestar o cumprimento de metas e a qualidade dos serviços.<br>' +
+  '<b>Verificação de Metas:</b> Aferição das metas físicas por meio de ' + fvm(p36.metas, 'Ex: listas de presença, registros fotográficos, prontuários, produtos entregues') + pt(p36.metas) + '<br>' +
+  '<b>Avaliação Financeira:</b> Conferência da regularidade na aplicação dos recursos e do nexo causal entre a despesa realizada e a execução do objeto.</p>' +
+
+  '<h3>3.7. Requisitos, Regularidade e Prestação de Contas</h3>' +
+  '<p>A OSC / Entidade apresentou a Declaração Única, assumindo compromisso com a execução do Plano de Trabalho e atestando o cumprimento dos requisitos legais e ausência de impedimentos, conforme enquadramento abaixo:</p>' + enq +
+  '<p><b>Parecer Técnico / Declaração:</b> A OSC / Entidade ' + pick(p37.parecer, OPC.p37) + ' o cumprimento dos requisitos exigidos, ' + (isFilled(p37.complemento) ? esc(p37.complemento).replace(/\n/g, '<br>') : TXT_PREST_CONTAS) + '</p>' +
+
+  '<h3>3.8. Gestor e Fiscal (Designação)</h3><p>Designação formalizada por ato administrativo da autoridade competente:</p>' +
+  '<p>Gestor: ' + ato(p38.gestor, 'Gestor', 'Decreto') + ';<br>Fiscal (se houver): ' + ato(p38.fiscal, 'Fiscal', 'Decreto ou Portaria') + '.</p>' +
+
+  '<h3>3.9. Comissão de Monitoramento e Avaliação (CMA) <span class="n">[ou Comissão Especial]</span></h3>' +
+  '<p>Comissão responsável pelo acompanhamento do ajuste' + (p39.comissao === 'Comissão Especial' ? ' (<b>Comissão Especial</b>)' : '') + ', designada por meio de:</p><p>Ato de designação: ' + ato(p39.ato, 'Ato', 'Decreto ou Portaria') + '.</p>' +
+
+  '<div class="fecho keep"><h3>3.10. Manifestação Técnica Final (Aprovação do Plano de Trabalho)</h3>' +
+  '<p>Considerando os aspectos analisados neste Demonstrativo, esta Secretaria Municipal se manifesta:</p>' +
+  ((!f.manifestacao || f.manifestacao === 'aprovacao') ? '<div class="op">' + box(f.manifestacao === 'aprovacao') + ' Pela <b>APROVAÇÃO</b> do Plano de Trabalho, estando apto para prosseguir às demais fases de celebração.</div>' : '') +
+  ((!f.manifestacao || f.manifestacao === 'ressalvas') ? '<div class="op">' + box(f.manifestacao === 'ressalvas') + ' Pela <b>APROVAÇÃO COM RESSALVAS</b>, condicionada ao cumprimento prévio das seguintes diligências/adequações pela OSC / Entidade:</div>' +
+    lista(f.manifestacao === 'ressalvas' ? f.diligencias : [], ['Readequar o item X do orçamento', 'Detalhar a metodologia Y', 'Apresentar documento complementar Z']) : '') +
+  ((!f.manifestacao || f.manifestacao === 'reprovacao') ? '<div class="op">' + box(f.manifestacao === 'reprovacao') + ' Pela <b>REPROVAÇÃO</b>, pelos seguintes motivos insanáveis:</div>' +
+    lista(f.manifestacao === 'reprovacao' ? f.motivos : [], ['Incompatibilidade do objeto com as finalidades estatutárias', 'Inviabilidade técnica/operacional demonstrada', 'Proposta com mérito insuficiente']) : '') +
+  '<p class="data">' + ASSINATURA_DIGITAL + '</p>' +
+  '<div class="assin keep"><div class="ass"><b>' + (isFilled(f.respNome) ? esc(f.respNome) : '[NOME DO SIGNATÁRIO]') + '</b><br>' + (isFilled(f.respCargo) ? esc(f.respCargo) : 'Cargo/Função do Signatário') + '<br>Responsável pela Análise ou Presidente da Comissão</div>' +
+  '<div class="ass"><b>' + (isFilled(f.secretarioNome) ? esc(f.secretarioNome) : '[NOME DO SIGNATÁRIO]') + '</b><br>Secretário(a) Municipal<br>(De acordo / Ciente)</div></div></div></div>';
+}
+
+function docOficio(S, cfg){
+  const c = S.compl, a = S.s1, f = S.s310;
+  const num = isFilled(c.oficioNumero) ? ' Nº ' + esc(c.oficioNumero.trim()) + '/' : '/';
+  const cab = 'OFÍCIO' + num + esc(c.oficioAno || '[ANO]') + '-' + (isFilled(c.siglaSei) ? esc(c.siglaSei.toUpperCase()) : '[SIGLA SEI DA SECRETARIA]');
+  return '<div class="doc oficio">' + cabecalho(cfg) +
+  '<p class="ofnum"><b>' + cab + '</b></p>' +
+  '<p>A Sua Excelência o(a) Senhor(a)<br><b>' + (isFilled(c.prefeitoNome) ? esc(c.prefeitoNome) : '[Nome do Prefeito(a)]') + '</b><br>Prefeito(a) de Paraguaçu Paulista<br>Avenida Siqueira Campos, nº 1.430<br>19703-061 Paraguaçu Paulista SP</p>' +
+  '<p><b>Assunto:</b> Solicita autorização celebração de ajuste/parceria com Organização da Sociedade Civil/Entidade.</p>' +
+  '<p>Senhor(a) Prefeito(a),</p>' +
+  '<p>Solicitamos autorização para a celebração de ajuste/parceria com Organização da Sociedade Civil/Entidade:</p>' +
+  '<ul><li><b>OSC/Entidade:</b> ' + fv(a.osc, 'Nome da OSC/Entidade') + ';</li><li><b>Objeto:</b> ' + fvm(isFilled(c.objetoResumo) ? c.objetoResumo : a.objeto, 'descrição do objeto conforme o plano de trabalho/demonstrativo de avaliação') + (/[.;!?…]\s*$/.test(String(isFilled(c.objetoResumo) ? c.objetoResumo : a.objeto).trim()) ? '' : ';') + '</li><li><b>Tipo de Procedimento:</b> ' + procedimentoResumo(a) + '.</li></ul>' +
+  '<p>Instruímos os autos com a documentação necessária à análise técnica, contábil, financeira e jurídica.</p>' +
+  '<p>Na oportunidade, apresentamos protestos de estima e consideração.</p>' +
+  '<div class="fecho keep"><p class="data">' + ASSINATURA_DIGITAL + '</p>' +
+  '<div class="assin keep"><div class="ass"><b>' + (isFilled(f.secretarioNome) ? esc(f.secretarioNome) : '[NOME DO SIGNATÁRIO]') + '</b><br>Secretário(a) Municipal</div></div></div></div>';
+}
+
+function docDiof(S, cfg){
+  const c = S.compl, a = S.s1, f = S.s310;
+  const obj = OPC.objetivosDiof.map(o => '<div class="op">' + box(c.objetivos.indexOf(o) !== -1) + ' ' + esc(o) + ';</div>').join('') +
+    '<div class="op">' + box(isFilled(c.objetivoOutra)) + ' Outra: ' + fv(c.objetivoOutra, 'Especifique') + '</div>';
+  const subA = OPC.subA.map(o => '<div class="op sub">( ' + (c.natureza === 'A' && c.subA === o ? 'X' : '&nbsp;&nbsp;') + ' ) ' + esc(o) + '</div>').join('');
+  const subB = OPC.subB.map(o => '<div class="op sub">( ' + (c.natureza === 'B' && c.subB.indexOf(o) !== -1 ? 'X' : '&nbsp;&nbsp;') + ' ) ' + esc(o) + '</div>').join('') +
+    '<div class="op sub">( ' + (c.natureza === 'B' && isFilled(c.naturezaOutra) ? 'X' : '&nbsp;&nbsp;') + ' ) Outra: ' + fv(c.naturezaOutra, 'Especifique') + '.</div>';
+  return '<div class="doc diof">' + cabecalho(cfg) +
+  '<h1>REQUERIMENTO DE ANÁLISE DO IMPACTO ORÇAMENTÁRIO E FINANCEIRO (LRF)</h1>' +
+  '<p><b>Para:</b> Secretaria Municipal de Planejamento e Gestão Orçamentária – SMPG<br><b>De:</b> ' + fv(a.orgao, 'Secretaria Municipal de ____________ - SM__') + '</p>' +
+  '<h2>1. OBJETIVO E JUSTIFICATIVA</h2><p class="keep">Solicita-se a análise de impacto orçamentário e financeiro para (Assinale com X a opção aplicável):</p>' + obj +
+  '<p><b>Justificativa:</b> ' + fvm(c.justificativa, 'Explicar resumidamente a necessidade do órgão e os benefícios da medida') + '</p>' +
+  '<h2>2. CLASSIFICAÇÃO DA NATUREZA DA DESPESA <span class="n">(Assinale com X a opção e sub-opção aplicáveis)</span></h2>' +
+  '<div class="op">' + box(c.natureza === 'A') + ' <b>Opção A:</b> Custeio / Investimento (Bens, Obras e Serviços Gerais):</div>' + subA +
+  '<div class="op">' + box(c.natureza === 'B') + ' <b>Opção B:</b> Despesa com Pessoal e Encargos Sociais (Arts. 19 a 21 LRF / Art. 169 CF):</div>' + subB +
+  '<p><b>2.1 Código Reduzido da Funcional Programática da Despesa</b><br>Nº da Ficha: ' + fv(c.ficha, 'Informe o Nº da Ficha') + '</p>' +
+  '<h2>3. PREMISSAS TÉCNICAS PARA CÁLCULO E ESTIMATIVA TRIENAL</h2>' +
+  '<p>Extrair as informações do Estudo Técnico Inicial ou de outra memória de cálculo elaborada pela Secretaria responsável; ou do Plano de Trabalho elaborado pela OSC/Entidade, e transcrever nas tabelas abaixo:</p>' +
+  '<div class="keep">' + tabelasFinanceiras(S.s35, true) + '</div>' +
+  '<p class="nota"><b>Notas:</b><br>(1) Estimativa do impacto orçamentário-financeiro no exercício em que deva entrar em vigor e nos dois subsequentes, considerando a previsão do mês/ano de início de vigência da nova despesa.<br>(2) Suprimir as colunas "Repasse R$" e "Contrapartida R$" quando não se tratar de celebração de ajuste/parceria ou de aditamento/apostilamento com OSC/Entidade.</p>' +
+  '<h2>4. DOS PEDIDOS E SOLICITAÇÕES FORMAIS DE ANÁLISE</h2>' +
+  '<p>Com base nos arts. 16, 17, 19, 20 e 21 da Lei Complementar nº 101/2000 (LRF) e no art. 169 da Constituição Federal, REQUER-SE:</p>' +
+  '<p class="li">I - A elaboração da ESTIMATIVA DE IMPACTO ORÇAMENTÁRIO E FINANCEIRO para o exercício de início de vigência e para os 2 (dois) exercícios subsequentes, se houver;<br>' +
+  'II - A emissão da DECLARAÇÃO DO ORDENADOR DE DESPESA atestando a adequação orçamentária e financeira da despesa com a LOA vigente e sua compatibilidade com o PPA e a LDO;<br>' +
+  'III - A indicação da fonte de custeio ou MARGEM DE EXPANSÃO / MEDIDAS DE COMPENSAÇÃO (caso caracterizada Despesa Obrigatória de Caráter Continuado - Art. 17 da LRF).</p>' +
+  '<div class="fecho keep"><p><b>CASO APLICÁVEL A OPÇÃO B (DESPESA COM PESSOAL), CONFORME ITEM 2, SOLICITA-SE AINDA:</b></p>' +
+  '<p class="li">I - A demonstração do comprometimento da Receita Corrente Líquida (RCL) atual e projetada, comprovando o não atingimento dos Limites Prudencial e Máximo (Arts. 19 e 20 da LRF);<br>' +
+  'II - A indicação do dispositivo da LDO vigente que autoriza a concessão/alteração pretendida (Art. 169, § 1º, II, da CF/88);<br>' +
+  'III - A verificação da não incidência da vedação do Art. 21 da LRF (aumento de despesa com pessoal nos últimos 180 dias do mandato do titular do Poder).</p>' +
+  '<p class="data">' + ASSINATURA_DIGITAL + '</p>' +
+  '<div class="assin keep"><div class="ass"><b>' + (isFilled(f.secretarioNome) ? esc(f.secretarioNome) : '[NOME DO SIGNATÁRIO]') + '</b><br>Secretário(a) Municipal</div></div></div></div>';
+}
+function docHTML(id, S, cfg){
+  return id === 'oficio' ? docOficio(S, cfg) : id === 'diof' ? docDiof(S, cfg) : docDemonstrativo(S, cfg);
+}
+
+/* ==========================================================================================================
+   CAMPOS A PREENCHER/ASSINALAR POR SEÇÃO — as chaves de status (Pendente / Validado / Com ressalva) só podem ser
+   acionadas quando a lista volta vazia. Cada item traz a chave "k" (atributo data-k do campo na tela, usada para
+   pintar a borda de vermelho) e o rótulo "rot". Ficam fora, por serem "se houver": Adequações recomendadas (3.4),
+   Ajustes/glosas (3.5, mas se iniciados precisam estar completos) e Fiscal (3.8, nº e data juntos).
+   Campos condicionais (edital, efeitos retroativos, diligências etc.) só contam quando a opção é escolhida.
+   ========================================================================================================== */
+function camposFaltantesDet(id, S){
+  const m = [], need = (v, k, rot) => { if(!isFilled(v)) m.push({ k, rot }); };
+  const seis = x => Array.isArray(x) && x.some(i => isFilled(i.t));
+  if(id === 's1'){
+    const a = S.s1;
+    need(a.orgao, 's1.orgao', 'Órgão'); need(a.osc, 's1.osc', 'OSC/Entidade');
+    if(!isFilled(a.cnpj)) m.push({ k:'s1.cnpj', rot:'CNPJ' }); else if(!cnpjValido(a.cnpj)) m.push({ k:'s1.cnpj', rot:'CNPJ válido' });
+    need(a.modalidade, 's1.modalidade', 'Modalidade');
+    if(alteradora(a.modalidade)) need(a.ajusteOrigem, 's1.ajusteOrigem', 'Ajuste de Origem');
+    need(a.objeto, 's1.objeto', 'Objeto');
+    if(!(Number(a.valor) > 0)) m.push({ k:'s1.valor', rot:'Valor R$' });
+    need(a.vigencia, 's1.vigencia', 'Período de vigência');
+    if(!a.fontes.length) m.push({ k:'s1.fontes', rot:'Fonte de recursos' });
+    need(a.procedimento, 's1.procedimento', 'Tipo de procedimento');
+    if(a.procedimento === 'chamamento'){ need(a.editalNumero, 's1.editalNumero', 'Nº do edital'); need(a.editalData, 's1.editalData', 'Data do edital'); }
+    if(a.procedimento === 'sem') need(a.emendaInfo, 's1.emendaInfo', 'Emenda parlamentar (Nº/Ano, Valor e Autor)');
+    if(a.procedimento === 'dispensa' && procDe(a, 'dispensa').itens.length){
+      need(a.dispensaInciso, 's1.dispensaInciso', 'Dispensa: inciso aplicável');
+      if(grupoProcedimento(a) === 'convenio' && a.dispensaInciso === 'IV') need(a.credenciamento, 's1.credenciamento', 'Nº do Edital de Credenciamento');
+    }
+    if(a.procedimento === 'inexigibilidade' && procDe(a, 'inexig').itens.length) need(a.inexigInciso, 's1.inexigInciso', 'Inexigibilidade: inciso aplicável');
+    need(a.efeitos, 's1.efeitos', 'Produção de efeitos');
+    if(a.efeitos === 'retroativo'){ need(a.retroData, 's1.retroData', 'Data dos efeitos retroativos'); need(a.retroMotivo, 's1.retroMotivo', 'Motivo da retroatividade'); }
+  } else if(id === 's31'){ need(S.s31.processoSei, 's31.processoSei', 'Nº do Processo SEI de Cadastro'); need(S.s31.parecer, 's31.parecer', 'Parecer técnico'); }
+  else if(id === 's32'){
+    const p = S.s32;
+    need(p.relevancia, 's32.relevancia', 'Importância da proposta'); need(p.publicoAlvo, 's32.publicoAlvo', 'Público-alvo'); need(p.problema, 's32.problema', 'Problema/política pública');
+    need(p.adequacao, 's32.adequacao', 'Adequação às regras');
+    if(!((p.baseEdital && isFilled(p.editalRef)) || (p.basePrograma && isFilled(p.programaNome)))) m.push({ k:'s32.base', rot:'Edital (nº/ano) ou Programa(s) — marque e preencha ao menos um' });
+    need(p.parecer, 's32.parecer', 'Parecer técnico');
+  } else if(id === 's33'){
+    const p = S.s33; need(p.benAdm, 's33.benAdm', 'Benefício para a Administração'); need(p.benOsc, 's33.benOsc', 'Benefício para a OSC');
+    need(p.supremacia, 's33.supremacia', 'Supremacia do interesse público'); need(p.parecer, 's33.parecer', 'Parecer técnico');
+  } else if(id === 's34'){
+    const p = S.s34; need(p.metodologia, 's34.metodologia', 'Metodologia'); need(p.equip, 's34.equip', 'Equipamentos');
+    need(p.suficiencia, 's34.suficiencia', 'Suficiência dos instrumentos/equipamentos'); need(p.parecer, 's34.parecer', 'Parecer técnico');
+  } else if(id === 's35'){
+    const p = S.s35, t = totaisCusto(p);
+    need(p.coerencia, 's35.coerencia', 'Coerência do cronograma'); need(p.custos, 's35.custos', 'Suficiência dos valores'); need(p.compat, 's35.compat', 'Compatibilidade com preços de mercado'); need(p.contrapartida, 's35.contrapartida', 'Texto sobre contrapartida');
+    if(!(t.tot > 0)) m.push({ k:'s35.custo', rot:'Resumo Geral do Custo Total (valores)' });
+    if(!(t.totCron > 0)) m.push({ k:'s35.cron', rot:'Cronograma de Desembolso (valores)' });
+    p.ajustes.forEach((x, i) => {
+      if(!(isFilled(x.tipo) || isFilled(x.item) || isFilled(x.motivo))) return;
+      need(x.tipo, 's35.ajuste.' + i + '.tipo', 'Ajuste ' + (i + 1) + ': tipo (glosa/readequação)'); need(x.item, 's35.ajuste.' + i + '.item', 'Ajuste ' + (i + 1) + ': item'); need(x.motivo, 's35.ajuste.' + i + '.motivo', 'Ajuste ' + (i + 1) + ': motivo');
+    });
+    need(p.parecer, 's35.parecer', 'Parecer técnico');
+  } else if(id === 's36'){ need(S.s36.metas, 's36.metas', 'Verificação de Metas'); }
+  else if(id === 's37'){ need(S.s37.enquadramento, 's37.enquadramento', 'Enquadramento legal'); need(S.s37.parecer, 's37.parecer', 'Parecer técnico / Declaração'); need(S.s37.complemento, 's37.complemento', 'Texto sobre regularidade e prestação de contas'); }
+  else if(id === 's38'){
+    const g = S.s38.gestor, f = S.s38.fiscal;
+    need(g.numero, 's38.gestor.numero', 'Gestor: nº do ato'); need(g.data, 's38.gestor.data', 'Gestor: data do ato');
+    if(isFilled(f.numero) !== isFilled(f.data)){ if(!isFilled(f.numero)) m.push({ k:'s38.fiscal.numero', rot:'Fiscal: nº do ato' }); else m.push({ k:'s38.fiscal.data', rot:'Fiscal: data do ato' }); }
+  } else if(id === 's39'){ need(S.s39.comissao, 's39.comissao', 'Tipo de comissão'); need(S.s39.ato.numero, 's39.ato.numero', 'Ato de designação: nº'); need(S.s39.ato.data, 's39.ato.data', 'Ato de designação: data'); }
+  else if(id === 's310'){
+    const f = S.s310;
+    need(f.manifestacao, 's310.manifestacao', 'Manifestação técnica final');
+    if(f.manifestacao === 'ressalvas' && !seis(f.diligencias)) m.push({ k:'s310.diligencias', rot:'Ao menos uma diligência' });
+    if(f.manifestacao === 'reprovacao' && !seis(f.motivos)) m.push({ k:'s310.motivos', rot:'Ao menos um motivo insanável' });
+    need(f.respNome, 's310.respNome', 'Responsável pela Análise: nome'); need(f.respCargo, 's310.respCargo', 'Responsável pela Análise: cargo/função'); need(f.secretarioNome, 's310.secretarioNome', 'Secretário(a) Municipal: nome');
+  } else if(id === 'compl'){
+    const c = S.compl;
+    need(c.oficioAno, 'compl.oficioAno', 'Ofício: ano'); need(c.siglaSei, 'compl.siglaSei', 'Ofício: sigla SEI'); need(c.prefeitoNome, 'compl.prefeitoNome', 'Ofício: Prefeito(a)');
+    need(c.objetoResumo, 'compl.objetoResumo', 'Ofício: objeto resumido');
+    if(!c.objetivos.length && !isFilled(c.objetivoOutra)) m.push({ k:'compl.objetivos', rot:'DIOF: objetivo da análise' });
+    need(c.justificativa, 'compl.justificativa', 'DIOF: justificativa'); need(c.natureza, 'compl.natureza', 'DIOF: natureza da despesa');
+    if(c.natureza === 'A') need(c.subA, 'compl.subA', 'DIOF: subopção da Opção A');
+    if(c.natureza === 'B' && !c.subB.length && !isFilled(c.naturezaOutra)) m.push({ k:'compl.subB', rot:'DIOF: subopção da Opção B' });
+    need(c.ficha, 'compl.ficha', 'DIOF: nº da ficha');
+  }
+  return m;
+}
+function camposFaltantes(id, S){ return camposFaltantesDet(id, S).map(x => x.rot); }
+
+/* Pendências para "Finalizar" a avaliação. */
+function pendenciasFinalizacao(S, status, liberado){
+  const p = [];
+  if(!liberado) p.push('Execute a 1ª Verificação (ou registre a justificativa técnica) para liberar a análise.');
+  SECOES_AVALIADAS.forEach(id => { if(status[id] === 'pendente') p.push('Seção "' + SECOES.find(s => s.id === id).rot + '" ainda está Pendente.'); });
+  if(!S.s310.manifestacao) p.push('3.10: selecione a manifestação técnica final.');
+  if(S.s310.manifestacao === 'ressalvas' && !S.s310.diligencias.some(x => isFilled(x.t))) p.push('3.10: informe ao menos uma diligência para a aprovação com ressalvas.');
+  if(S.s310.manifestacao === 'reprovacao' && !S.s310.motivos.some(x => isFilled(x.t))) p.push('3.10: informe ao menos um motivo insanável.');
+  if(!isFilled(S.s310.respNome)) p.push('3.10: nome do Responsável pela Análise/Presidente da Comissão.');
+  if(!isFilled(S.s310.secretarioNome)) p.push('3.10: nome do(a) Secretário(a) Municipal.');
+  return p;
+}
+
+
+</script>
+<script>
+/* ==========================================================================================================
+   COMPONENTE ALPINE — estado da interface, persistência (localStorage), importação de arquivos,
+   versionamento e impressão. Regras de negócio ficam no NÚCLEO acima.
+   ========================================================================================================== */
+const LS = { config:'avpt.config.v1', rascunho:'avpt.rascunho.v1', versoes:'avpt.versoes.v1' };
+const lsGet = (k) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e) { return false; } };
+const lsDel = (k) => { try { localStorage.removeItem(k); } catch(e) { /* ignora */ } };
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const novaAuditoria = () => ({ executadaEm:null, itens:[], resumo:{ ok:0, alerta:0, erro:0, info:0 }, justificativa:'', liberadoPorJustificativa:false });
+
+function mesclar(base, salvo){
+  if(Array.isArray(base) || base === null || typeof base !== 'object') return salvo === undefined ? base : salvo;
+  const out = {};
+  Object.keys(base).forEach(k => { out[k] = (salvo && k in salvo) ? mesclar(base[k], salvo[k]) : base[k]; });
+  return out;
+}
+function lerDataURL(file){
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(file); });
+}
+function reduzirImagem(dataUrl, maxLado){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, maxLado / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/png'));
+    };
+    img.onerror = () => rej(new Error('Imagem inválida'));
+    img.src = dataUrl;
+  });
+}
+function baixarArquivo(nome, texto, tipo){
+  const url = URL.createObjectURL(new Blob([texto], { type:tipo || 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+/* Limpa o HTML editado na pré-visualização: remove scripts, formulários, atributos on*, URLs perigosas. */
+function limparHtml(h){
+  const t = document.createElement('template'); t.innerHTML = h;
+  t.content.querySelectorAll('script,iframe,object,embed,link,meta,style,form,input,button,textarea,select,base').forEach(n => n.remove());
+  t.content.querySelectorAll('*').forEach(n => Array.from(n.attributes).forEach(at => {
+    const nm = at.name.toLowerCase();
+    if(nm.indexOf('on') === 0 || nm === 'contenteditable' || ((nm === 'href' || nm === 'src' || nm === 'xlink:href') && /^\s*(javascript:|data:text\/html)/i.test(at.value))) n.removeAttribute(at.name);
+  }));
+  return t.innerHTML;
+}
+const NOMES_DOC = { demonstrativo:'Demonstrativo', oficio:'Ofício', diof:'Requerimento DIOF' };
+function dataPdf(s){   // "D:20261110143000-03'00'" -> ISO
+  const m = String(s || '').match(/D:(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).toISOString() : null;
+}
+
+function app(){
+  return {
+    /* ---------- estado ---------- */
+    view:'importacao', menuAberto:false, configAberto:false, previewDoc:'demonstrativo', printing:false, printDoc:'demonstrativo',
+    config:{ brasao:'', tecnicoNome:'', tecnicoMatricula:'', diasAlerta:30 },
+    plano:null, auditoria:novaAuditoria(), a:novaAvaliacao(), status:novoStatus(),
+    edicoes:{ demonstrativo:null, oficio:null, diof:null }, editando:false, _baseEdit:'', tentativas:{},
+    versoes:[], integridade:{}, aviso:'', avisoTipo:'', pend:[], arrastando:false, carregando:false, erroImport:'', justificativaTmp:'',
+    _t:null, _tr:null, _tituloOriginal:'',
+    /* expostos ao template */
+    OPC, TXT_CONTRAPARTIDA, TXT_PREST_CONTAS, fmtBRL, fmtPct, fmtDataHora, maskCnpj, cnpjValido, nomeDocumento,
+
+    /* ---------- ciclo de vida ---------- */
+    init(){
+      const cfg = lsGet(LS.config); if(cfg) this.config = Object.assign(this.config, cfg);
+      this.versoes = Array.isArray(lsGet(LS.versoes)) ? lsGet(LS.versoes) : [];
+      const r = lsGet(LS.rascunho);
+      if(r && r.a && r.a.s1){
+        this.a = mesclar(novaAvaliacao(), r.a); this.status = mesclar(novoStatus(), r.status || {});
+        this.auditoria = mesclar(novaAuditoria(), r.auditoria || {}); this.plano = r.plano || null;
+        this.edicoes = Object.assign({ demonstrativo:null, oficio:null, diof:null }, r.edicoes || {});
+        if(this.plano) this.view = 'importacao';
+      }
+      verificarCadeia(this.versoes).then(r2 => { this.integridade = r2; });
+      this.$watch('config', () => lsSet(LS.config, this.config));
+      ['a', 'status', 'auditoria', 'plano', 'edicoes'].forEach(k => this.$watch(k, () => this.agendarRascunho()));
+      this.$watch('a', () => { this.sincronizarVinculos(); this.revalidar(); });
+      this.sincronizarVinculos(); this.revalidar(true);
+      window.addEventListener('afterprint', () => {
+        this.printing = false;
+        if(this._tituloOriginal){ document.title = this._tituloOriginal; this._tituloOriginal = ''; }
+      });
+    },
+    agendarRascunho(){
+      clearTimeout(this._t);
+      this._t = setTimeout(() => lsSet(LS.rascunho, { a:this.a, status:this.status, auditoria:this.auditoria, plano:this.plano, edicoes:this.edicoes }), 600);
+    },
+    avisar(msg, tipo, ms){
+      this.aviso = msg; this.avisoTipo = tipo || '';
+      clearTimeout(this._tr); this._tr = setTimeout(() => { this.aviso = ''; }, ms || 4500);
+    },
+
+    /* ---------- navegação e status ---------- */
+    get grupos(){
+      const g = [];
+      SECOES.forEach(s => { let x = g.find(y => y.nome === s.grupo); if(!x){ x = { nome:s.grupo, itens:[] }; g.push(x); } x.itens.push(s); });
+      return g;
+    },
+    isSecao(v){ return v !== 'importacao' && v !== 'historico' && v !== 'preview' && SECOES.some(s => s.id === v); },
+    get rotuloAtual(){ const s = SECOES.find(x => x.id === this.view); return s ? s.rot : ''; },
+    ir(id){
+      if(this.editando) this.concluirEdicao();
+      this.view = id; this.menuAberto = false; this.configAberto = false;
+      this.$nextTick(() => { window.scrollTo({ top:0 }); const m = document.getElementById('principal'); if(m) m.focus({ preventScroll:true }); });
+    },
+    statusDe(id){
+      if(id === 'importacao'){
+        if(!this.plano && !this.liberado) return 'pendente';
+        if(!this.liberado) return 'pendente';
+        return this.auditoria.executadaEm && this.auditoria.resumo.erro > 0 ? 'ressalva' : 'validado';
+      }
+      if(id === 's2') return 'validado';
+      return this.status[id] || 'pendente';
+    },
+    rotuloStatus(s){ return { pendente:'Pendente', validado:'Validado', ressalva:'Com ressalva' }[s] || s; },
+    get progresso(){
+      const total = SECOES_AVALIADAS.length;
+      const feitas = SECOES_AVALIADAS.filter(id => this.status[id] && this.status[id] !== 'pendente').length;
+      return { feitas, total, pct:Math.round(feitas / total * 100) };
+    },
+    get liberado(){ return !!(this.auditoria.executadaEm || this.auditoria.liberadoPorJustificativa); },
+
+    /* ---------- Seção 1: modalidade, valor e procedimento ---------- */
+    PROC,
+    get ehAlteradora(){ return alteradora(this.a.s1.modalidade); },
+    get grupoProc(){ return grupoProcedimento(this.a.s1); },
+    get baseProcedimento(){
+      const g = this.grupoProc;
+      return g === 'mrosc' ? 'Base legal das hipóteses: Lei Federal nº 13.019/2014 (parcerias).' : g === 'convenio' ? 'Base legal das hipóteses: Decreto Municipal nº 7.055/2023 (convênios).'
+        : 'Selecione a modalidade (e, no Termo Aditivo/Apostilamento, informe o Ajuste de Origem) para definir as hipóteses legais de dispensa e inexigibilidade.';
+    },
+    get opcoesProcedimento(){
+      const s1 = this.a.s1;
+      return [ { v:'chamamento', t:'Edital de Chamamento Público nº [Nº/Ano-SIGLA DA SECRETARIA, e data do Edital].' } ].concat(
+               permiteSemChamamento(s1) ? [ { v:'sem', t:'Sem Chamamento Público, Lei Federal nº 13.019/2014, art. 29, por se tratar de recurso oriundo da emenda parlamentar nº [Nº/Ano, Valor e Autor].' } ] : [],
+             [ { v:'dispensa', t:procDe(s1, 'dispensa').cab }, { v:'inexigibilidade', t:procDe(s1, 'inexig').cab } ]);
+    },
+    incisos(v){ return procDe(this.a.s1, v === 'dispensa' ? 'dispensa' : 'inexig').itens; },
+    get editalVinculado(){ return this.a.s1.procedimento === 'chamamento' && isFilled(this.a.s1.editalNumero); },
+    /* Valor R$ em moeda: digita-se apenas números (centavos à direita) e o campo mostra "R$ 10.000,00". */
+    mascararValor(ev){
+      const d = String(ev.target.value || '').replace(/\D/g, '').slice(0, 13);
+      const n = d ? parseInt(d, 10) / 100 : 0;
+      this.a.s1.valor = n; ev.target.value = n > 0 ? fmtBRL(n) : '';
+    },
+    /* Vínculos automáticos: Edital nº (Seção 1) -> Seção 3.2; incisos inválidos para a base legal atual são limpos. */
+    sincronizarVinculos(){ sincronizarEdital(this.a); ajustarIncisos(this.a.s1); },
+
+    /* ---------- validação condicionada aos campos obrigatórios ---------- */
+    faltantesDet(id){ return id === 's2' || id === 'importacao' ? [] : camposFaltantesDet(id, this.a); },
+    faltantes(id){ return this.faltantesDet(id).map(x => x.rot); },
+    get faltantesAtual(){ return this.isSecao(this.view) ? this.faltantes(this.view) : []; },
+    /* Chave de status: só muda com a seção completa. Travada: mostra a mensagem e pinta de vermelho o que falta. */
+    tentarStatus(valor, ev){
+      const id = this.view;
+      if(this.faltantesDet(id).length){
+        if(ev) ev.preventDefault();
+        this.tentativas[id] = true;
+        this.avisar('Existem campos não preenchidos/assinalados', 'erro', 6000);
+        this.$nextTick(() => { const el = document.querySelector('#principal .invalido'); if(el){ el.scrollIntoView({ block:'center', behavior:'smooth' }); if(el.focus) el.focus({ preventScroll:true }); } });
+        return;
+      }
+      this.status[id] = valor;
+    },
+    /* Aplica/retira a borda vermelha (classe .invalido) nos campos marcados com data-k da seção atual. */
+    marcarInvalidos(){
+      const id = this.view, ativo = !!this.tentativas[id];
+      const chaves = new Set(ativo && this.isSecao(id) ? this.faltantesDet(id).map(x => x.k) : []);
+      this.$nextTick(() => {
+        document.querySelectorAll('#principal [data-k]').forEach(el => {
+          const inv = chaves.has(el.getAttribute('data-k'));
+          el.classList.toggle('invalido', inv);
+          if(inv) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+        });
+      });
+    },
+    /* Se a seção ficou incompleta, qualquer status diferente de Pendente é desfeito; se ficou completa, limpa o alerta. */
+    revalidar(silencioso){
+      const revertidas = [];
+      SECOES_AVALIADAS.concat(['compl']).forEach(id => {
+        const falta = this.faltantesDet(id).length;
+        if(this.status[id] !== 'pendente' && falta){ this.status[id] = 'pendente'; revertidas.push(SECOES.find(s => s.id === id).rot); }
+        if(!falta && this.tentativas[id]) this.tentativas[id] = false;
+      });
+      if(revertidas.length && !silencioso) this.avisar('Existem campos não preenchidos/assinalados — status voltou para Pendente: ' + revertidas.join('; '), 'erro', 7000);
+    },
+
+    /* ---------- configurações: brasão ---------- */
+    async carregarBrasao(ev){
+      const f = ev.target.files && ev.target.files[0]; ev.target.value = '';
+      if(!f) return;
+      if(!/^image\//.test(f.type)){ this.avisar('Selecione um arquivo de imagem (PNG, JPG, WebP ou SVG).', 'erro'); return; }
+      if(f.size > 5 * 1024 * 1024){ this.avisar('Imagem muito grande (máx. 5 MB).', 'erro'); return; }
+      try {
+        const url = await lerDataURL(f);
+        this.config.brasao = f.type === 'image/svg+xml' ? url : await reduzirImagem(url, 700);
+        this.avisar('Brasão carregado: será inserido no cabeçalho de todos os documentos.');
+      } catch(e) { this.avisar('Não foi possível ler a imagem.', 'erro'); }
+    },
+
+    /* ---------- importação ---------- */
+    onPick(ev){ const f = ev.target.files && ev.target.files[0]; ev.target.value = ''; if(f) this.onFile(f); },
+    onDrop(ev){ this.arrastando = false; const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0]; if(f) this.onFile(f); },
+    async onFile(file){
+      this.erroImport = ''; this.carregando = true;
+      try {
+        if(file.size > 30 * 1024 * 1024) throw new Error('Arquivo maior que 30 MB.');
+        const buf = await file.arrayBuffer();
+        const ehPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+        let plano;
+        if(ehPdf) plano = await this.lerPdf(buf, file.name);
+        else {
+          let json;
+          try { json = JSON.parse(new TextDecoder('utf-8').decode(buf).replace(/^﻿/, '')); }
+          catch(e) { throw new Error('O arquivo não é um JSON válido. Use o arquivo .json exportado pelo formulário do Plano de Trabalho.'); }
+          if(json && json.tipo === 'avpt-backup') throw new Error('Este é um backup desta aplicação. Importe-o em “Histórico de Versões”.');
+          if(!json || typeof json.campos !== 'object') throw new Error('JSON sem o bloco “campos”: não parece ter sido gerado pelo formulário do Plano de Trabalho.');
+          plano = extrairPlano(json, file.name);
+        }
+        /* Só pergunta depois de o arquivo ter sido lido com sucesso (um arquivo inválido não apaga nada). */
+        const digitou = this.temAnaliseDigitada();
+        if(this.plano || digitou){
+          const msg = 'Importar este plano substitui o plano atual, zera a auditoria' + (digitou ? ' e APAGA a análise manual digitada (seções 1 a 3.10, dados dos documentos, status e edições da pré-visualização)' : '') +
+            '. As versões já salvas no histórico são mantidas. Continuar?';
+          if(!window.confirm(msg)) return;
+        }
+        this.reiniciarAnalise();
+        this.plano = plano;
+        preencherAvaliacaoDoPlano(this.a, plano);
+        this.avisar('Plano importado: auditoria e análise manual zeradas. Confira a data de geração e execute a 1ª Verificação.');
+      } catch(e) { this.erroImport = e.message || String(e); }
+      finally { this.carregando = false; }
+    },
+    /* Há algo digitado além do que veio do plano atual? (decide o texto da confirmação) */
+    temAnaliseDigitada(){
+      const base = novaAvaliacao(); if(this.plano) preencherAvaliacaoDoPlano(base, this.plano);
+      return JSON.stringify(this.a) !== JSON.stringify(base) || Object.keys(this.status).some(k => this.status[k] !== 'pendente') ||
+        Object.keys(this.edicoes).some(k => this.edicoes[k]) || isFilled(this.auditoria.justificativa);
+    },
+    /* Zera auditoria + toda a análise manual (a = seções e documentos; status; edições da pré-visualização). */
+    reiniciarAnalise(){
+      this.a = novaAvaliacao(); this.status = novoStatus(); this.auditoria = novaAuditoria();
+      this.edicoes = { demonstrativo:null, oficio:null, diof:null }; this.editando = false; this.tentativas = {}; this.justificativaTmp = '';
+    },
+    async lerPdf(buf, nome){
+      if(typeof pdfjsLib === 'undefined') throw new Error('A biblioteca pdf.js não foi carregada (verifique a conexão com a internet). Use o arquivo .json do plano.');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      let pdf;
+      try { pdf = await pdfjsLib.getDocument({ data:new Uint8Array(buf) }).promise; }
+      catch(e) { throw new Error('Não foi possível abrir o PDF (arquivo protegido, corrompido ou digitalizado como imagem).'); }
+      const linhas = [];
+      for(let p = 1; p <= pdf.numPages; p++){
+        const tc = await (await pdf.getPage(p)).getTextContent();
+        const mapa = {};
+        tc.items.forEach(it => { if(!it.str || !it.str.trim()) return; const y = Math.round(it.transform[5] / 2) * 2; (mapa[y] = mapa[y] || []).push({ x:it.transform[4], s:it.str }); });
+        Object.keys(mapa).map(Number).sort((u, v) => v - u).forEach(y => linhas.push(mapa[y].sort((u, v) => u.x - v.x).map(i => i.s).join(' ').replace(/\s+/g, ' ').trim()));
+      }
+      if(!linhas.length) throw new Error('O PDF não contém texto selecionável (provavelmente é uma imagem digitalizada). Use o arquivo .json do plano.');
+      let criado = null;
+      try { const m = await pdf.getMetadata(); criado = dataPdf(m && m.info && m.info.CreationDate); } catch(e) { /* sem metadados */ }
+      return extrairPlanoDePdfTexto(linhas, { criadoEm:criado }, nome);
+    },
+    get temporal(){
+      return avaliarTemporalidade(this.plano, Date.now(), Number(this.config.diasAlerta) || 30) || { nivel:'info', titulo:'', detalhe:'' };
+    },
+    executarAuditoria(){
+      if(!this.plano) return;
+      const r = auditarPlano(this.plano), t = this.temporal;
+      const itens = r.itens.slice();
+      if(t.nivel !== 'ok') itens.unshift({ nivel:t.nivel, grupo:'Temporalidade', titulo:t.titulo, detalhe:t.detalhe, ref:'' });
+      const resumo = { ok:r.ok + (t.nivel === 'ok' ? 1 : 0), alerta:r.alerta + (t.nivel === 'alerta' ? 1 : 0), erro:r.erro + (t.nivel === 'erro' ? 1 : 0), info:r.info };
+      if(t.nivel === 'ok') itens.unshift({ nivel:'ok', grupo:'Temporalidade', titulo:t.titulo, detalhe:t.detalhe, ref:'' });
+      this.auditoria = { executadaEm:new Date().toISOString(), itens, resumo, justificativa:'', liberadoPorJustificativa:false };
+      this.avisar('1ª Verificação concluída: análise manual liberada.');
+    },
+    liberarPorJustificativa(){
+      const j = this.justificativaTmp.trim();
+      if(j.length < 30) return;
+      this.auditoria = Object.assign(novaAuditoria(), { justificativa:j, liberadoPorJustificativa:true });
+      this.justificativaTmp = '';
+      this.avisar('Análise liberada mediante justificativa técnica (registrada no histórico).');
+    },
+    liberarSemPlano(){ this.view = 'importacao'; },
+
+    /* ---------- Seção 3.5 e documentos ---------- */
+    get tc(){ return totaisCusto(this.a.s35); },
+    get cronBate(){
+      const t = this.tc, dif = round2(t.totCron - t.tot);
+      if(!t.tot && !t.totCron) return { nivel:'info', titulo:'Tabelas sem valores', detalhe:'Preencha os valores (ou importe o plano) para conferir o cronograma.' };
+      if(Math.abs(dif) <= 0.01) return { nivel:'ok', titulo:'Cronograma de desembolso fecha com o custo total', detalhe:'Total do cronograma ' + fmtBRL(t.totCron) + '.' };
+      return { nivel:'alerta', titulo:'Cronograma de desembolso difere do custo total', detalhe:'Custo total ' + fmtBRL(t.tot) + ' · cronograma ' + fmtBRL(t.totCron) + ' · diferença ' + fmtBRL(dif) + '. Se o plano tiver mais de 12 meses, complete os Anos 2 e 3.' };
+    },
+    recarregarTabelas(){
+      if(!this.plano || this.plano.parcial) return;
+      if(!window.confirm('Substituir as tabelas do item 3.5 pelos valores do plano importado?')) return;
+      const k = this.plano.calc;
+      this.a.s35.custo = { impl:k.totImpl, rh:k.totRh, oper:k.totOper };
+      this.a.s35.cron = [ { repasse:k.totRepasse, contra:k.totContra }, { repasse:0, contra:0 }, { repasse:0, contra:0 } ];
+      this.avisar('Tabelas do item 3.5 recarregadas do plano.');
+    },
+    get sugestaoEnquadramento(){
+      const m = this.a.s1.modalidade;
+      return m === 'Termo de Fomento' || m === 'Termo de Colaboração' ? 'mrosc' : m === 'Convênio' ? 'convenio' : '';
+    },
+    get cabecalhoOficio(){
+      const c = this.a.compl;
+      return 'OFÍCIO' + (isFilled(c.oficioNumero) ? ' Nº ' + c.oficioNumero.trim() + '/' : '/') + (c.oficioAno || '[ANO]') + '-' + (isFilled(c.siglaSei) ? c.siglaSei.toUpperCase() : '[SIGLA SEI]');
+    },
+    docHtml(id){ return docHTML(id, this.a, this.config); },
+    docFinal(id){ return this.edicoes[id] || docHTML(id, this.a, this.config); },
+    /* Edição da pré-visualização: o texto editado fica guardado à parte (não é recalculado pelo formulário). */
+    renderFolha(){
+      const el = this.$refs.folha; if(!el) return;
+      if(this.view !== 'preview'){ el.innerHTML = ''; return; }
+      const id = this.previewDoc, salvo = this.edicoes[id], ed = this.editando;
+      el.innerHTML = salvo || docHTML(id, this.a, this.config);
+      if(ed) this._baseEdit = el.innerHTML;
+    },
+    iniciarEdicao(){
+      this.editando = true;
+      this.$nextTick(() => { const el = this.$refs.folha; if(el) el.focus(); });
+    },
+    concluirEdicao(){
+      if(!this.editando) return;
+      const el = this.$refs.folha, id = this.previewDoc;
+      if(el && el.innerHTML !== this._baseEdit){
+        this.edicoes[id] = limparHtml(el.innerHTML);
+        this.avisar(NOMES_DOC[id] + ': edição manual salva. Alterações posteriores nas seções não serão refletidas neste documento.', '', 6000);
+      }
+      this.editando = false;
+    },
+    cancelarEdicao(){ this.editando = false; this.$nextTick(() => this.renderFolha()); },
+    descartarEdicao(){
+      if(!window.confirm('Descartar as edições manuais de "' + NOMES_DOC[this.previewDoc] + '" e gerar o documento novamente a partir dos dados do formulário?')) return;
+      this.edicoes[this.previewDoc] = null; this.avisar('Edições descartadas: documento regenerado.');
+    },
+    colarTexto(ev){
+      const txt = (ev.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, txt);
+    },
+    async imprimir(id){
+      if(this.editando) this.concluirEdicao();
+      this.printDoc = id; this.printing = true;
+      await this.$nextTick();
+      if(!this._tituloOriginal) this._tituloOriginal = document.title;
+      document.title = nomeDocumento(id, this.a.s1.osc);   // o navegador sugere este nome ao "Salvar como PDF"
+      setTimeout(() => window.print(), 80);
+    },
+
+    /* ---------- versionamento ---------- */
+    get versoesOrdenadas(){ return this.versoes.slice().reverse(); },
+    get ultimaVersao(){ return this.versoes.length ? this.versoes[this.versoes.length - 1] : null; },
+    estadoLog(d){
+      const a = d.auditoria || {};
+      return Object.assign({}, d.a, { status:d.status, auditoria:{ executadaEm:a.executadaEm || '', liberadoPorJustificativa:a.liberadoPorJustificativa ? 'sim' : '', justificativa:a.justificativa || '' } });
+    },
+    chavePlano(p){ return p ? (p.arquivo || '') + '|' + (p.geradoEm || '') + '|' + fnv1a(jsonCanonico(p.campos)) : ''; },
+    async salvar(status){
+      if(!isFilled(this.config.tecnicoNome) || !isFilled(this.config.tecnicoMatricula)){
+        this.configAberto = true; this.avisar('Informe o nome e a matrícula do técnico avaliador para salvar a versão.', 'erro'); return;
+      }
+      if(status === 'finalizado'){
+        const p = pendenciasFinalizacao(this.a, this.status, this.liberado);
+        if(p.length){ this.pend = p; return; }
+      }
+      const prev = this.ultimaVersao;
+      const atual = { a:clone(this.a), status:clone(this.status), auditoria:clone(this.auditoria), edicoes:clone(this.edicoes) };
+      const chave = this.chavePlano(this.plano);
+      let log;
+      if(!prev) log = ['Versão inicial criada' + (this.plano ? ' · plano importado: ' + (this.plano.arquivo || 's/ nome') : ' · sem plano importado')].concat(Object.keys(NOMES_DOC).filter(d => atual.edicoes[d]).map(d => 'Documento "' + NOMES_DOC[d] + '": editado manualmente na pré-visualização'));
+      else {
+        log = diffEstados(this.estadoLog(prev.dados), this.estadoLog(atual));
+        if(prev.dados.planoChave !== chave) log.unshift('Plano de Trabalho importado/alterado: ' + (this.plano ? this.plano.arquivo || 's/ nome' : '(removido)'));
+        Object.keys(NOMES_DOC).forEach(d => {
+          const antes = (prev.dados.edicoes || {})[d] || null, depois = atual.edicoes[d] || null;
+          if(antes !== depois) log.push('Documento "' + NOMES_DOC[d] + '": ' + (depois ? (antes ? 'edição manual alterada' : 'editado manualmente na pré-visualização') : 'edições manuais descartadas'));
+        });
+        if(prev.status !== status) log.unshift('Status do documento: ' + prev.status + ' → ' + status);
+        if(!log.length) log = ['Sem alterações de conteúdo desde a versão anterior'];
+      }
+      const man = OPC.manifestacao.find(m => m.v === this.a.s310.manifestacao);
+      const snap = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 7), versao:proximaVersao(this.versoes), carimbo:new Date().toISOString(),
+        tecnico:{ nome:this.config.tecnicoNome.trim(), matricula:this.config.tecnicoMatricula.trim() }, status, manifestacao:man ? man.t : '', entidade:this.a.s1.osc || '',
+        log, dados:Object.assign(atual, { planoChave:chave, plano:(prev && prev.dados.planoChave === chave) ? null : (this.plano ? clone(this.plano) : null) }) };
+      snap.hashAnterior = prev ? prev.hash : '';
+      snap.hash = await hashSnapshot(snap, snap.hashAnterior);
+      const nova = this.versoes.concat([snap]);
+      if(!lsSet(LS.versoes, nova)){ this.avisar('Armazenamento do navegador cheio: exporte o backup do histórico e limpe versões antigas antes de salvar.', 'erro', 8000); return; }
+      this.versoes = nova;
+      this.integridade = await verificarCadeia(this.versoes);
+      lsSet(LS.rascunho, { a:this.a, status:this.status, auditoria:this.auditoria, plano:this.plano, edicoes:this.edicoes });
+      this.avisar('Versão ' + snap.versao + ' salva (' + (status === 'finalizado' ? 'finalizada' : 'rascunho') + ').');
+    },
+    planoDaVersao(v){
+      const i = this.versoes.findIndex(x => x.id === v.id);
+      for(let j = i; j >= 0; j--) if(this.versoes[j].dados.plano) return this.versoes[j].dados.plano;
+      return null;
+    },
+    restaurar(v){
+      if(!window.confirm('Restaurar a versão ' + v.versao + ' na área de trabalho? O conteúdo atual não salvo será substituído (as versões do histórico não são alteradas).')) return;
+      this.a = mesclar(novaAvaliacao(), clone(v.dados.a)); this.status = mesclar(novoStatus(), clone(v.dados.status));
+      this.auditoria = mesclar(novaAuditoria(), clone(v.dados.auditoria || {})); const p = this.planoDaVersao(v); this.plano = p ? clone(p) : null;
+      this.edicoes = Object.assign({ demonstrativo:null, oficio:null, diof:null }, clone(v.dados.edicoes || {})); this.editando = false; this.tentativas = {};
+      this.avisar('Versão ' + v.versao + ' restaurada. Ao salvar, será criada uma nova versão.');
+      this.ir('importacao');
+    },
+    exportarBackup(){
+      const nome = 'Backup-Avaliacao-Tecnica_' + nomeEntidadeArquivo(this.a.s1.osc) + '_' + new Date().toISOString().slice(0, 10) + '.json';
+      baixarArquivo(nome, JSON.stringify({ tipo:'avpt-backup', formato:1, exportadoEm:new Date().toISOString(), versoes:this.versoes }, null, 1));
+      this.avisar('Backup exportado: ' + nome);
+    },
+    async importarBackup(ev){
+      const f = ev.target.files && ev.target.files[0]; ev.target.value = '';
+      if(!f) return;
+      try {
+        const obj = JSON.parse((await f.text()).replace(/^﻿/, ''));
+        if(!obj || obj.tipo !== 'avpt-backup' || !Array.isArray(obj.versoes)) throw new Error('Arquivo não é um backup desta aplicação.');
+        const ok = obj.versoes.filter(v => v && v.id && v.versao && v.carimbo && v.dados && v.dados.a && v.hash);
+        const ids = new Set(this.versoes.map(v => v.id));
+        const novas = ok.filter(v => !ids.has(v.id));
+        const mescla = this.versoes.concat(novas).sort((x, y) => String(x.carimbo).localeCompare(String(y.carimbo)));
+        if(!lsSet(LS.versoes, mescla)) throw new Error('Armazenamento do navegador cheio.');
+        this.versoes = mescla; this.integridade = await verificarCadeia(mescla);
+        this.avisar(novas.length + ' versão(ões) importada(s); ' + (ok.length - novas.length) + ' já existiam.');
+      } catch(e) { this.avisar('Falha ao importar backup: ' + (e.message || e), 'erro', 7000); }
+    },
+    novaAvaliacaoZerada(){
+      if(!window.confirm('Limpar a área de trabalho e iniciar uma nova avaliação? As versões salvas no histórico são mantidas.')) return;
+      this.a = novaAvaliacao(); this.status = novoStatus(); this.auditoria = novaAuditoria(); this.plano = null; this.erroImport = '';
+      this.edicoes = { demonstrativo:null, oficio:null, diof:null }; this.editando = false; this.tentativas = {};
+      lsDel(LS.rascunho); this.ir('importacao'); this.avisar('Nova avaliação iniciada.');
+    }
+  };
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lista de Verificação – Ajustes OSCs/Entidades</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<style>
+  [x-cloak]{display:none!important}
+  :focus-visible{outline:3px solid #1d4ed8;outline-offset:2px}
+  textarea,input,select{color:#0f172a}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ===== Leiaute multitelas ===== */
+  :root{--hdr:0px;--fs:16px}
+  html{font-size:var(--fs,16px)}
+  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+  header.top{position:static}
+  @media (min-width:1024px) and (min-height:620px){header.top{position:sticky;top:0}}
+  .shell{display:grid;gap:1.25rem;grid-template-columns:minmax(0,1fr);max-width:2200px;margin:0 auto;padding:1rem}
+  .shell>nav,.shell>main,.shell>aside{min-width:0}
+  @media (max-width:1023px){.tb-hide{display:none!important}}
+  @media (min-width:1024px){
+    .shell{grid-template-columns:240px minmax(0,1fr);padding:1.5rem}
+    .shell.nav-top{grid-template-columns:minmax(0,1fr)}
+    .shell.nav-top>nav{grid-column:1/-1}
+    .shell.has-panel>aside{grid-column:2}
+    .shell.nav-top.has-panel>aside{grid-column:1}
+    .sticky-col{position:sticky;top:calc(var(--hdr) + .75rem);align-self:start;max-height:calc(100vh - var(--hdr) - 1.5rem);overflow:auto}
+  }
+  @media (min-width:1280px){
+    .shell.has-panel{grid-template-columns:240px minmax(0,1fr) 360px}
+    .shell.nav-top.has-panel{grid-template-columns:minmax(0,1fr) 360px}
+    .shell.has-panel>aside{grid-column:3}
+    .shell.nav-top.has-panel>aside{grid-column:2}
+  }
+  @media (max-width:1279px){.shell.has-panel>aside{display:none!important}}
+  .shell.win{grid-template-columns:minmax(0,1fr)!important}
+  .shell.win>aside{display:block!important;grid-column:1!important;max-width:960px;margin:0 auto;width:100%;position:static;max-height:none}
+  .items{display:grid;gap:.75rem;grid-template-columns:minmax(0,1fr)}
+  @media (min-width:1700px){.items.cols-auto{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (min-width:1100px){.items.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .it{container-type:inline-size}
+  @container (max-width:560px){.it .stgrp{width:100%}.it .stgrp .st-b{flex:1}}
+  .dens-c .card{padding:.75rem}
+  .dens-c .inp{padding:.3rem .55rem}
+  .dens-c .st-b{padding:.2rem .5rem}
+  .dens-c .items{gap:.5rem}
+  @media (pointer:coarse){.btn-p,.btn-s,.btn-d,.st-b,.chip-b,.menu-i{min-height:44px}}
+  @media (max-width:767px){
+    .rt{min-width:0!important}
+    .rt thead{position:absolute;left:-9999px}
+    .rt tr{display:block;border:1px solid #cbd5e1;border-radius:.75rem;margin:.5rem 0;background:#fff}
+    .rt th,.rt td{display:block;width:auto!important;padding:.4rem .75rem!important}
+    .rt td[data-l]::before{content:attr(data-l);display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#475569}
+  }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased" :class="'dens-'+layout.dens" x-data="app()" x-init="init()" x-cloak @keydown.escape.window="drawer=false;menuLay=false;closePreview()">
+
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded focus:shadow">Ir para o conteúdo principal</a>
+
+<!-- ============ CABEÇALHO ============ -->
+<header class="top z-30 bg-white border-b border-slate-300 shadow-sm" x-ref="hdr">
+  <div class="max-w-[2200px] mx-auto px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center gap-3">
+    <label class="relative shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg border-2 border-dashed border-slate-400 bg-slate-50 flex items-center justify-center cursor-pointer overflow-hidden focus-within:ring-2 focus-within:ring-blue-700" title="Clique para incluir o brasão do Município">
+      <template x-if="brasao"><img :src="brasao" alt="Brasão do Município" class="w-full h-full object-contain"></template>
+      <template x-if="!brasao"><span class="text-[10px] text-center text-slate-600 leading-tight px-1">Incluir brasão</span></template>
+      <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="sr-only" aria-label="Enviar brasão do Município" @change="loadBrasao($event)">
+    </label>
+    <div class="min-w-0 flex-1 basis-56">
+      <p class="text-xs text-slate-700 truncate" x-text="meta.municipio"></p>
+      <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Lista de Verificação – Ajustes OSCs/Entidades <span x-show="winMode" class="ml-2 align-middle text-xs font-semibold bg-blue-100 text-blue-950 rounded px-2 py-0.5">Janela de apoio</span></h1>
+      <p class="text-xs text-slate-700" x-text="rotasV[ident.rota].l+' · '+rotasV[ident.rota].lei"></p>
+    </div>
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <div class="flex-1 sm:w-56" role="group" aria-label="Progresso geral">
+        <div class="flex justify-between text-xs font-medium text-slate-800"><span>Progresso geral</span><span x-text="overall().pct+'%'"></span></div>
+        <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden" role="progressbar" :aria-valuenow="overall().pct" aria-valuemin="0" aria-valuemax="100">
+          <div class="h-full bg-blue-700 transition-all" :style="'width:'+overall().pct+'%'"></div>
+        </div>
+      </div>
+      <p class="text-xs text-slate-700 hidden xl:block" aria-live="polite" x-text="savedAt ? 'Rascunho salvo '+savedAt : 'Sem alterações'"></p>
+      <button type="button" class="btn-s lg:hidden" :aria-expanded="tbOpen" @click="tbOpen=!tbOpen">☰ Ações</button>
+    </div>
+    <div class="tb flex flex-wrap gap-2 w-full" :class="tbOpen?'':'tb-hide'">
+      <button type="button" class="btn-p" @click="saveVersion()">Salvar versão</button>
+      <button type="button" class="btn-s" @click="drawer=true">Rascunhos / Versões <span class="ml-1 text-xs bg-slate-200 rounded-full px-1.5" x-text="versions.length"></span></button>
+      <label class="btn-s cursor-pointer">Importar JSON / PDF<input type="file" accept=".json,application/json,.pdf,application/pdf" multiple class="sr-only" @change="importFiles($event.target.files);$event.target.value=''"></label>
+      <div class="relative" @click.outside="menuExp=false">
+        <button type="button" class="btn-s" :aria-expanded="menuExp" aria-haspopup="menu" @click="menuExp=!menuExp">Exportar ▾</button>
+        <div x-show="menuExp" role="menu" class="absolute left-0 mt-1 w-72 bg-white border border-slate-300 rounded-lg shadow-lg z-40 p-1">
+          <button role="menuitem" type="button" class="menu-i" @click="exportJSON();menuExp=false">JSON (dados completos)</button>
+          <button role="menuitem" type="button" class="menu-i" @click="exportPDF();menuExp=false">Visualizar e salvar PDF (com dados embutidos)</button>
+          <button role="menuitem" type="button" class="menu-i" @click="exportPDF(true);menuExp=false">Visualizar e salvar PDF simples (sem anexo JSON)</button>
+        </div>
+      </div>
+      <button type="button" class="btn-s" @click="go('import')">Importação / Auditoria</button>
+      <div class="relative" @click.outside="menuLay=false">
+        <button type="button" class="btn-s" :aria-expanded="menuLay" aria-haspopup="dialog" @click="menuLay=!menuLay">Leiaute ▾</button>
+        <div x-show="menuLay" role="dialog" aria-label="Opções de leiaute" class="absolute left-0 sm:right-0 sm:left-auto mt-1 w-80 max-w-[92vw] bg-white border border-slate-300 rounded-lg shadow-lg z-40 p-3 space-y-3 text-sm">
+          <label class="flex items-center gap-2"><input type="checkbox" class="h-4 w-4" x-model="layout.panel"> Painel de apoio lateral <span class="text-xs text-slate-600">(telas ≥ 1280 px)</span></label>
+          <fieldset><legend class="font-medium mb-1">Navegação</legend>
+            <label class="mr-4"><input type="radio" name="lnav" value="side" x-model="layout.nav"> Lateral</label>
+            <label><input type="radio" name="lnav" value="top" x-model="layout.nav"> Superior</label></fieldset>
+          <fieldset><legend class="font-medium mb-1">Densidade</legend>
+            <label class="mr-4"><input type="radio" name="ldens" value="n" x-model="layout.dens"> Confortável</label>
+            <label><input type="radio" name="ldens" value="c" x-model="layout.dens"> Compacta</label></fieldset>
+          <fieldset><legend class="font-medium mb-1">Colunas de itens (telas largas)</legend>
+            <label class="mr-3"><input type="radio" name="lcols" value="auto" x-model="layout.cols"> Auto</label>
+            <label class="mr-3"><input type="radio" name="lcols" value="1" x-model="layout.cols"> 1</label>
+            <label><input type="radio" name="lcols" value="2" x-model="layout.cols"> 2</label></fieldset>
+          <div><label class="font-medium" for="l-fs">Tamanho do texto: <span x-text="layout.fs+' px'"></span></label>
+            <input id="l-fs" type="range" min="13" max="20" step="1" class="w-full" x-model.number="layout.fs"></div>
+          <div class="border-t pt-2 space-y-2">
+            <p class="font-medium">Vários monitores</p>
+            <button type="button" class="btn-s w-full justify-center" @click="popOut('panel')">↗ Abrir painel de apoio em outra janela</button>
+            <button type="button" class="btn-s w-full justify-center" @click="popOut(view)">↗ Abrir a seção atual em outra janela</button>
+            <p class="text-xs text-slate-600">As janelas ficam sincronizadas. Funciona ao abrir o arquivo .html diretamente no navegador.</p>
+          </div>
+          <button type="button" class="btn-d w-full justify-center" @click="resetLayout()">Restaurar leiaute padrão</button>
+        </div>
+      </div>
+      <button type="button" class="btn-s" @click="modal='sobre'">Correções e ajuda</button>
+    </div>
+  </div>
+</header>
+
+<div class="shell" :class="[layout.nav==='top'?'nav-top':'', showPanel()?'has-panel':'', winMode?'win':'']">
+
+  <!-- ============ NAVEGAÇÃO ============ -->
+  <nav x-show="!winMode" aria-label="Seções da lista" :class="layout.nav==='side'?'sticky-col':''">
+    <ul class="flex gap-2 overflow-x-auto pb-2" :class="layout.nav==='side'?'lg:flex-col lg:overflow-visible lg:pb-0':''">
+      <li class="shrink-0"><button type="button" class="nav-b" :class="view==='import' && 'nav-on'" :aria-current="view==='import'" @click="go('import')">
+        <span class="font-semibold">Importação e auditoria</span><span class="text-xs text-slate-700" x-text="(gate.released?'Análise manual liberada':'Análise manual bloqueada')+' · '+audit.length+' arquivo(s)'"></span></button></li>
+      <li class="shrink-0"><button type="button" class="nav-b" :class="view==='ident' && 'nav-on'" :aria-current="view==='ident'" @click="go('ident')">
+        <span class="font-semibold">Identificação</span><span class="text-xs text-slate-700" x-text="identOk()?'Completa':'Campos pendentes'"></span></button></li>
+      <template x-for="p in activePhases()" :key="p.id">
+        <li class="shrink-0"><button type="button" class="nav-b" :class="view===p.id && 'nav-on'" :aria-current="view===p.id" @click="go(p.id)">
+          <span class="font-semibold" x-text="p.n+' · '+p.s"></span>
+          <span class="text-xs text-slate-700" x-text="phaseOn(p) ? stats(p).done+'/'+stats(p).total+' · '+stats(p).nao+' ‘Não’' : 'Não se aplica à rota'"></span>
+          <span class="block h-1.5 mt-1 bg-slate-200 rounded"><span class="block h-full rounded bg-blue-700" :style="'width:'+(phaseOn(p)?stats(p).pct:0)+'%'"></span></span>
+        </button></li>
+      </template>
+      <li class="shrink-0"><button type="button" class="nav-b" :class="view==='resumo' && 'nav-on'" :aria-current="view==='resumo'" @click="go('resumo')"><span class="font-semibold">Resumo e assinaturas</span><span class="text-xs text-slate-700" x-text="overall().nao+' item(ns) ‘Não’'"></span></button></li>
+    </ul>
+  </nav>
+
+  <main id="main" tabindex="-1" class="min-w-0" x-show="winMode!=='panel'">
+
+  <!-- ============ IMPORTAÇÃO E AUDITORIA ============ -->
+  <section x-show="view==='import'" aria-labelledby="h-imp" class="space-y-6">
+    <div class="card">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <h2 id="h-imp" class="h2">Importação e auditoria</h2>
+        <button type="button" class="btn-s !py-1 text-xs" x-show="!winMode" @click="popOut('import')">↗ Outra janela</button>
+      </div>
+      <p class="text-sm text-slate-800 mb-3">Fluxo: <strong>1)</strong> importe a documentação da OSC/Entidade e do Órgão Gestor (JSON, PDF nato digital, PDF/A ou digitalizado); <strong>2)</strong> confira a data/hora de geração e os alertas de cada arquivo; <strong>3)</strong> execute a <em>1ª Verificação e Cruzamento de Dados</em>; <strong>4)</strong> libere a análise manual. Tudo é lido <strong>no seu navegador</strong> (nada é enviado a servidores).</p>
+      <div class="rounded-lg border-2 border-dashed border-slate-400 bg-slate-50 p-5 text-center" @dragover.prevent @drop.prevent="importFiles($event.dataTransfer.files)">
+        <label class="btn-p cursor-pointer inline-block">Selecionar arquivos (JSON ou PDF)<input type="file" accept=".json,application/json,.pdf,application/pdf" multiple class="sr-only" @change="importFiles($event.target.files);$event.target.value=''"></label>
+        <p class="text-sm text-slate-700 mt-2">ou arraste os arquivos até aqui · vários de uma vez</p>
+        <p class="text-sm mt-2 font-medium" x-show="busy" role="status" x-text="busyMsg"></p>
+      </div>
+      <div class="mt-3 grid sm:grid-cols-3 gap-3 text-sm">
+        <div><label class="lbl" for="imp-or">Origem dos arquivos a importar</label>
+          <select id="imp-or" class="inp" x-model="impOrigem"><option value="auto">Identificar automaticamente</option><option value="osc">OSC / Entidade</option><option value="og">Órgão Gestor</option></select></div>
+        <div><label class="lbl" for="imp-age">Prazo máximo de emissão (dias)</label>
+          <input id="imp-age" type="number" min="1" max="3650" class="inp" x-model.number="maxAge"></div>
+        <label class="inline-flex items-center gap-2 sm:self-end sm:pb-2"><input type="checkbox" class="h-4 w-4" x-model="ocrOn"> OCR em PDFs digitalizados (mais lento)</label>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button type="button" class="btn-s" @click="go('ident')">Pular importação e ir à Identificação →</button>
+      </div>
+      <p class="text-xs text-slate-700 mt-3">Triagem automática por leitura de texto (e OCR, se ativado): não verifica autenticidade nem assinatura digital e não substitui a conferência do agente. JSON de outra origem é lido de forma aproximada, por nome de campo.</p>
+    </div>
+
+    <!-- Confronto -->
+    <div class="card" x-show="imp.rows.length" aria-labelledby="h-conf">
+      <h2 id="h-conf" class="h2">Confronto com a lista</h2>
+      <p class="text-sm text-slate-700" x-text="'Fontes: '+imp.sources.join(' · ')"></p>
+      <div class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-sm">
+        <div class="rounded-lg bg-emerald-50 border border-emerald-700 py-2"><div class="text-xl font-bold text-emerald-900" x-text="impCount('ok')"></div>Sem alerta</div>
+        <div class="rounded-lg bg-amber-50 border border-amber-700 py-2"><div class="text-xl font-bold text-amber-900" x-text="impCount('warn')"></div>Com alerta</div>
+        <div class="rounded-lg bg-blue-50 border border-blue-700 py-2"><div class="text-xl font-bold text-blue-900" x-text="impCount('open')"></div>Sem decisão</div>
+        <div class="rounded-lg bg-slate-100 border border-slate-500 py-2"><div class="text-xl font-bold text-slate-800" x-text="imp.rows.length"></div>Total de linhas</div>
+      </div>
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <button type="button" class="btn-s" @click="acceptRows(false)">Aceitar todas sem alerta</button>
+        <button type="button" class="btn-s" @click="acceptRows(true)">Aceitar todas</button>
+        <label class="text-sm inline-flex items-center gap-2 ml-2"><input type="checkbox" class="h-4 w-4" x-model="impShowSame"> Mostrar linhas que já conferem</label>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="rt w-full text-sm border-collapse min-w-[760px]">
+          <caption class="sr-only">Confronto entre o conteúdo importado e a lista atual</caption>
+          <thead><tr class="bg-slate-100 text-left"><th scope="col" class="p-2 w-[20%]">Campo</th><th scope="col" class="p-2 w-[24%]">No arquivo importado</th><th scope="col" class="p-2 w-[20%]">Na lista atual</th><th scope="col" class="p-2 w-[18%]">Validação automática</th><th scope="col" class="p-2 w-[18%]">Decisão do agente</th></tr></thead>
+          <tbody>
+            <template x-for="r in rowsShown()" :key="r.id">
+              <tr class="border-t align-top" :class="r.alerts.length?'bg-amber-50/60':''">
+                <th scope="row" class="p-2 text-left font-medium"><span x-text="r.label"></span><span class="block text-xs font-normal text-slate-600" x-text="r.g+' · '+r.src"></span></th>
+                <td class="p-2 break-words" data-l="No arquivo importado"><span x-text="rowTxt(r,r.doc)"></span><span class="block text-xs text-slate-600" x-show="r.info" x-text="r.info"></span></td>
+                <td class="p-2 break-words text-slate-800" data-l="Na lista atual" x-text="rowTxt(r,r.cur)"></td>
+                <td class="p-2" data-l="Validação automática">
+                  <p class="text-xs font-semibold" :class="r.state==='same'?'text-emerald-900':(r.state==='warn'?'text-amber-900':'text-blue-900')" x-text="r.state==='same'?'✔ Confere':(r.state==='warn'?'⚠ Alerta':(r.state==='new'?'+ Novo':'≠ Difere'))"></p>
+                  <template x-for="(a,ai) in r.alerts" :key="ai"><p class="text-xs text-amber-900" x-text="a"></p></template>
+                </td>
+                <td class="p-2" data-l="Decisão do agente">
+                  <div role="group" :aria-label="'Decisão para '+r.label" class="flex flex-wrap gap-1">
+                    <button type="button" class="st-b !px-2 !py-1 !text-xs" :class="r.choice==='doc'?'bg-emerald-800 text-white border-emerald-800':'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'" :aria-pressed="r.choice==='doc'" @click="r.choice=(r.choice==='doc'?'':'doc')">✔ Aceitar</button>
+                    <button type="button" class="st-b !px-2 !py-1 !text-xs" :class="r.choice==='cur'?'bg-slate-700 text-white border-slate-700':'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'" :aria-pressed="r.choice==='cur'" @click="r.choice=(r.choice==='cur'?'':'cur')">Manter atual</button>
+                    <button type="button" x-show="r.kind!=='none'" class="st-b !px-2 !py-1 !text-xs" :class="r.choice==='edit'?'bg-blue-800 text-white border-blue-800':'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'" :aria-pressed="r.choice==='edit'" @click="r.choice=(r.choice==='edit'?'':'edit')">✎ Editar</button>
+                  </div>
+                  <div x-show="r.choice==='edit'" class="mt-1">
+                    <template x-if="r.kind==='text'"><input class="inp" :aria-label="'Novo valor para '+r.label" x-model="r.edit"></template>
+                    <template x-if="r.kind==='date'"><input type="date" class="inp" :aria-label="'Nova data para '+r.label" x-model="r.edit"></template>
+                    <template x-if="r.kind==='select'"><select class="inp" :aria-label="'Novo valor para '+r.label" x-model="r.edit"><option value="">Selecione</option><template x-for="o in r.opts" :key="o.v"><option :value="o.v" x-text="o.l"></option></template></select></template>
+                    <template x-if="r.kind==='status'"><select class="inp" :aria-label="'Nova situação para '+r.label" x-model="r.edit"><option value="p">Pendente</option><option value="s">Sim</option><option value="n">Não</option><option value="x">Não se aplica</option></select></template>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button type="button" class="btn-p" @click="applyStage()">Aplicar decisões e continuar →</button>
+        <button type="button" class="btn-d" @click="imp.rows=[];imp.sources=[]">Descartar importação</button>
+      </div>
+      <p class="text-xs text-slate-700 mt-2">Linhas sem decisão mantêm o valor atual da lista.</p>
+    </div>
+
+    <!-- Auditoria de documentos -->
+    <div class="space-y-3" x-show="audit.length" aria-labelledby="h-aud">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="h-aud" class="h2 !mb-0">Documentos importados e temporalidade</h2>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn-s" @click="retemp()">Reavaliar temporalidade</button>
+          <button type="button" class="btn-s" :disabled="locked()" :title="locked()?'Disponível após a liberação da análise manual':''" @click="applyAllOk()">Aplicar sugestões sem alerta</button>
+          <button type="button" class="btn-d" @click="audit=[]">Limpar auditoria</button>
+        </div>
+      </div>
+      <div class="rounded-lg border p-3 text-sm" :class="tSummary().bad?'border-amber-600 bg-amber-50 text-amber-950':'border-emerald-700 bg-emerald-50 text-emerald-950'" role="status">
+        <span x-text="tSummary().txt"></span>
+      </div>
+      <ul class="space-y-3">
+        <template x-for="a in audit" :key="a.id">
+          <li class="card">
+            <div class="flex flex-wrap justify-between gap-2">
+              <div class="min-w-0"><p class="font-semibold break-all" x-text="a.name"></p>
+                <p class="text-xs text-slate-700" x-text="(a.kind==='pdf'?a.pages+' pág. · ':'')+(a.size/1024).toFixed(0)+' KB · '+(a.nat||'')+(a.ocr?' · texto obtido por OCR':'')"></p></div>
+              <span class="text-xs font-semibold px-2 py-1 rounded self-start" :class="docWorst(a)==='err'?'bg-red-100 text-red-950':(docWorst(a)==='warn'?'bg-amber-100 text-amber-950':'bg-emerald-100 text-emerald-950')" x-text="docWorst(a)==='err'?'Divergência':(docWorst(a)==='warn'?'Conferir':'Sem alertas')"></span>
+            </div>
+            <div class="mt-3 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-3">
+              <div class="rounded-lg border-2 p-3" :class="tBox(a)">
+                <p class="text-xs font-bold uppercase tracking-wide">Data/hora de geração do arquivo</p>
+                <p class="text-xl font-bold" x-text="genTxt(a)"></p>
+                <p class="text-xs" x-show="a.gen&&a.gen.best" x-text="'Fonte da informação: '+(a.gen?a.gen.src:'')"></p>
+                <p class="text-xs" x-show="a.gen&&a.gen.meta" x-text="'Metadados (criação): '+fmtDT(a.gen.meta)+(a.gen.mod?' · modificado: '+fmtDT(a.gen.mod):'')"></p>
+                <p class="text-xs" x-show="a.gen&&a.gen.producer" x-text="'Gerador: '+(a.gen?a.gen.producer:'')"></p>
+                <ul class="mt-2 space-y-1 text-sm">
+                  <template x-for="(f,fi) in (a.tflags||[])" :key="fi"><li class="flex gap-2"><span aria-hidden="true" x-text="f.l==='err'?'✖':(f.l==='warn'?'⚠':'✔')"></span><span :class="f.l==='err'?'text-red-900 font-semibold':(f.l==='warn'?'text-amber-900 font-semibold':'text-emerald-900')" x-text="f.m"></span></li></template>
+                </ul>
+              </div>
+              <div>
+                <dl class="grid sm:grid-cols-2 gap-x-4 text-sm">
+                  <div><dt class="inline font-medium">Tipo identificado:</dt> <dd class="inline" x-text="a.label||'Não identificado'"></dd></div>
+                  <div><dt class="inline font-medium">Validade:</dt> <dd class="inline" x-text="a.validade||'—'"></dd></div>
+                  <div class="sm:col-span-2"><dt class="inline font-medium">CNPJ no documento:</dt> <dd class="inline" x-text="a.cnpjs.length?a.cnpjs.join(', '):'—'"></dd></div>
+                </dl>
+                <ul class="mt-2 space-y-1 text-sm">
+                  <template x-for="(f,fi) in a.flags" :key="fi"><li class="flex gap-2"><span aria-hidden="true" x-text="f.l==='err'?'✖':(f.l==='warn'?'⚠':'✔')"></span><span :class="f.l==='err'?'text-red-900':(f.l==='warn'?'text-amber-900':'text-emerald-900')" x-text="f.m"></span></li></template>
+                </ul>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap items-end gap-2">
+              <div><label class="lbl" :for="'ao-'+a.id">Origem</label>
+                <select :id="'ao-'+a.id" class="inp" x-model="a.origem"><option value="osc">OSC / Entidade</option><option value="og">Órgão Gestor</option></select></div>
+              <div><label class="lbl" :for="'ak-'+a.id">Tipo de documento</label>
+                <select :id="'ak-'+a.id" class="inp" x-model="a.docKey" @change="reclass(a)"><option value="">— Não identificado —</option><template x-for="d in docsAll" :key="d.k"><option :value="d.k" x-text="d.l"></option></template></select></div>
+              <div><label class="lbl" :for="'au-'+a.id">Vincular ao item</label>
+                <select :id="'au-'+a.id" class="inp" x-model="a.target"><option value="">— Selecione —</option><template x-for="t in targets()" :key="t.v"><option :value="t.v" x-text="t.l"></option></template></select></div>
+              <button type="button" class="btn-p" :disabled="!a.target || a.applied || locked()" :title="locked()?'Disponível após a liberação da análise manual':''" @click="applyAudit(a)" x-text="a.applied?'Aplicado':'Aplicar à lista'"></button>
+              <button type="button" class="btn-d" @click="audit=audit.filter(x=>x.id!==a.id)">Remover</button>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </div>
+
+    <!-- 1ª Verificação -->
+    <div class="card" aria-labelledby="h-ver">
+      <h2 id="h-ver" class="h2">1ª Verificação e Cruzamento de Dados</h2>
+      <p class="text-sm text-slate-800">Audita automaticamente a consistência matemática e normativa entre a documentação da <strong>OSC/Entidade</strong> (nome, CNPJ, conta bancária, vigência, emendas e Plano de Trabalho: objeto, objetivos, metas, etapas, indicadores, cronogramas, receitas, custos e despesas) e a do <strong>Órgão Gestor</strong> (valores globais, somatórias, desembolso e contrapartidas).</p>
+      <div class="mt-3 flex flex-wrap items-center gap-3">
+        <button type="button" class="btn-p !text-base !px-5 !py-3" @click="runVerif()">▶ Executar 1ª Verificação e Cruzamento de Dados</button>
+        <span class="text-sm" x-text="verif ? 'Última execução: '+fmtDT(verif.at)+' · '+verif.n+' documento(s) com texto' : 'Ainda não executada.'"></span>
+        <span class="text-xs font-semibold rounded bg-amber-100 text-amber-950 px-2 py-1" x-show="verif && verifStale()">Desatualizada: documentos ou Identificação mudaram</span>
+      </div>
+      <div x-show="verif" class="mt-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-sm">
+          <div class="rounded-lg bg-red-50 border border-red-700 py-2"><div class="text-xl font-bold text-red-900" x-text="verif?verif.counts.err:0"></div>Divergências</div>
+          <div class="rounded-lg bg-amber-50 border border-amber-700 py-2"><div class="text-xl font-bold text-amber-900" x-text="verif?verif.counts.warn:0"></div>Alertas</div>
+          <div class="rounded-lg bg-emerald-50 border border-emerald-700 py-2"><div class="text-xl font-bold text-emerald-900" x-text="verif?verif.counts.ok:0"></div>Conformes</div>
+          <div class="rounded-lg bg-slate-100 border border-slate-500 py-2"><div class="text-xl font-bold text-slate-800" x-text="verif?verif.counts.na:0"></div>Não aplicáveis</div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-1" role="group" aria-label="Filtrar resultados">
+          <button type="button" class="chip-b" :class="vFilter==='all'&&'chip-on'" :aria-pressed="vFilter==='all'" @click="vFilter='all'">Todos</button>
+          <button type="button" class="chip-b" :class="vFilter==='alert'&&'chip-on'" :aria-pressed="vFilter==='alert'" @click="vFilter='alert'">Somente divergências e alertas</button>
+        </div>
+        <div class="mt-3 grid xl:grid-cols-2 gap-4">
+          <template x-for="g in [['osc','OSC / Entidade'],['og','Órgão Gestor']]" :key="g[0]">
+            <section :aria-label="g[1]">
+              <h3 class="font-semibold text-blue-950 mb-2" x-text="g[1]"></h3>
+              <ul class="space-y-2">
+                <template x-for="c in checksOf(g[0])" :key="c.id">
+                  <li class="rounded-lg border p-3 text-sm" :class="c.lvl==='err'?'border-red-700 bg-red-50':(c.lvl==='warn'?'border-amber-600 bg-amber-50':(c.lvl==='ok'?'border-emerald-700 bg-emerald-50':'border-slate-400 bg-slate-50'))">
+                    <p class="font-semibold"><span aria-hidden="true" x-text="c.lvl==='err'?'✖ ':(c.lvl==='warn'?'⚠ ':(c.lvl==='ok'?'✔ ':'– '))"></span><span x-text="c.t"></span> <span class="text-xs font-normal" x-text="'· '+({err:'divergência',warn:'alerta',ok:'conforme',na:'não aplicável'})[c.lvl]"></span></p>
+                    <p class="mt-0.5" x-text="c.m"></p>
+                    <ul class="mt-1 list-disc pl-5 text-xs text-slate-800" x-show="c.ev&&c.ev.length"><template x-for="(e,ei) in c.ev" :key="ei"><li x-text="e"></li></template></ul>
+                    <button type="button" class="mt-1 text-xs text-blue-900 underline" x-show="c.item&&ITEM[c.item]" @click="goItem(ITEM[c.item])" x-text="'Ir ao item '+c.item"></button>
+                  </li>
+                </template>
+                <li x-show="checksOf(g[0]).length===0" class="text-sm text-slate-700">Nenhum resultado neste filtro.</li>
+              </ul>
+            </section>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Liberação -->
+    <div class="card border-2" :class="gate.released?'border-emerald-700':'border-slate-400'" aria-labelledby="h-lib">
+      <h2 id="h-lib" class="h2">Liberação para análise manual</h2>
+      <template x-if="gate.released">
+        <div>
+          <p class="text-sm rounded-lg bg-emerald-50 border border-emerald-700 p-3 text-emerald-950" role="status"
+             x-text="'Análise manual liberada em '+fmtDT(gate.at)+(gate.mode==='just'?' mediante justificativa técnica: '+gate.just:' após a 1ª Verificação'+(gate.ack?' (ciente das divergências apontadas)':''))+'.'"></p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" class="btn-p" @click="go(activePhases()[0].id)">Iniciar verificação ponto a ponto →</button>
+            <button type="button" class="btn-d" @click="relock()">Bloquear novamente e refazer a triagem</button>
+          </div>
+        </div>
+      </template>
+      <template x-if="!gate.released">
+        <div class="grid lg:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-slate-300 p-3">
+            <h3 class="font-semibold text-sm mb-1">A) Após a 1ª Verificação</h3>
+            <p class="text-xs text-slate-700 mb-2">Os campos dos itens permanecem bloqueados até a triagem ser executada.</p>
+            <label class="flex items-start gap-2 text-sm" x-show="verif && verif.counts.err>0"><input type="checkbox" class="h-4 w-4 mt-0.5" x-model="ack"> <span>Ciente das <strong x-text="verif?verif.counts.err:0"></strong> divergência(s) apontada(s); serão conferidas na análise manual.</span></label>
+            <label class="flex items-start gap-2 text-sm mt-1"><input type="checkbox" class="h-4 w-4 mt-0.5" x-model="regObs"> <span>Registrar divergências e alertas nas observações dos itens vinculados.</span></label>
+            <button type="button" class="btn-p mt-3" :disabled="!verif" @click="release('triagem')">Liberar análise manual</button>
+            <p class="text-xs text-amber-900 mt-1" x-show="!verif">Execute a 1ª Verificação para habilitar.</p>
+          </div>
+          <div class="rounded-lg border border-slate-300 p-3">
+            <h3 class="font-semibold text-sm mb-1">B) Mediante justificativa técnica</h3>
+            <label class="lbl" for="j-txt">Justificativa (mín. 20 caracteres)</label>
+            <textarea id="j-txt" rows="3" class="inp" x-model="justTxt" placeholder="Ex.: documentação ainda não disponível em meio digital; verificação realizada presencialmente."></textarea>
+            <button type="button" class="btn-s mt-3" @click="release('just')">Liberar sem triagem automática</button>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div class="flex justify-end"><button type="button" class="btn-p" @click="go('ident')">Continuar para Identificação →</button></div>
+  </section>
+
+  <!-- ============ IDENTIFICAÇÃO ============ -->
+  <section x-show="view==='ident'" aria-labelledby="h-ident" class="space-y-6">
+    <div class="card">
+      <h2 id="h-ident" class="h2">1. Identificação</h2>
+      <p class="text-sm text-slate-700 mb-4">A rota de verificação e o tipo de ajuste definem automaticamente as fases e os itens que se aplicam ao processo.</p>
+
+      <fieldset class="mb-5">
+        <legend class="lbl">Rota de verificação</legend>
+        <div class="grid md:grid-cols-2 gap-2">
+          <template x-for="(R,k) in rotasV" :key="k">
+            <label class="flex gap-3 rounded-lg border p-3 cursor-pointer" :class="ident.rota===k ? 'border-blue-800 bg-blue-50 ring-1 ring-blue-800' : 'border-slate-400 bg-white hover:bg-slate-50'">
+              <input type="radio" name="rota" class="mt-1 h-4 w-4 shrink-0" :value="k" x-model="ident.rota">
+              <span><span class="block text-sm font-semibold" x-text="R.l"></span><span class="block text-xs text-slate-700" x-text="R.lei"></span></span>
+            </label>
+          </template>
+        </div>
+      </fieldset>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div><label class="lbl" for="f-tipo">Tipo de ajuste</label>
+          <select id="f-tipo" class="inp" x-model="ident.tipo"><template x-for="k in rotasV[ident.rota].tipos" :key="k"><option :value="k" x-text="tipos[k]"></option></template></select></div>
+        <div x-show="!rotasV[ident.rota].alt"><label class="lbl" for="f-rota">Rota de seleção da OSC / Entidade</label>
+          <select id="f-rota" class="inp" x-model="ident.route"><template x-for="(l,k) in selecao()" :key="k"><option :value="k" x-text="l"></option></template></select></div>
+
+        <fieldset class="sm:col-span-2 rounded-lg border border-slate-400 bg-slate-50 p-3" x-show="rotasV[ident.rota].alt">
+          <legend class="px-1 text-sm font-semibold text-slate-900" x-text="'Ajuste de origem do '+tipos[ident.tipo]"></legend>
+          <div class="grid sm:grid-cols-2 gap-3">
+            <div><label class="lbl" for="or-mod">Modalidade</label>
+              <select id="or-mod" class="inp" x-model="ident.origem_mod"><option value="">Selecione</option><template x-for="o in (rotasV[ident.rota].origem||[])" :key="o"><option x-text="o"></option></template></select></div>
+            <div><label class="lbl" for="or-num">Nº/Ano do ajuste de origem</label><input id="or-num" class="inp" x-model="ident.origem_num" placeholder="Ex.: 012/2025" autocomplete="off"></div>
+          </div>
+        </fieldset>
+
+        <div><label class="lbl" for="f-sec">Secretaria / Órgão Gestor</label>
+          <select id="f-sec" class="inp" x-model="ident.secretaria"><option value="">Selecione</option>
+            <template x-if="ident.secretaria && !secretarias.includes(ident.secretaria)"><option :value="ident.secretaria" x-text="ident.secretaria+' (fora da lista)'"></option></template>
+            <template x-for="s in secretarias" :key="s"><option :value="s" x-text="s"></option></template></select></div>
+        <div><label class="lbl" for="f-proc">Processo SEI nº</label><input id="f-proc" class="inp" x-model="ident.processo" placeholder="Ex.: 000.000.000/2026-00" autocomplete="off"></div>
+        <div class="sm:col-span-2"><label class="lbl" for="f-osc">OSC / Entidade</label><input id="f-osc" class="inp" x-model="ident.osc" autocomplete="off"></div>
+        <div><label class="lbl" for="f-cnpj">CNPJ da OSC / Entidade</label>
+          <input id="f-cnpj" class="inp" inputmode="numeric" maxlength="18" x-model="ident.cnpj" @input="ident.cnpj=maskCnpj(ident.cnpj)" placeholder="00.000.000/0000-00" :aria-invalid="ident.cnpj && !cnpjOk(ident.cnpj)">
+          <p class="text-xs mt-1" :class="!ident.cnpj ? 'text-slate-600' : (cnpjOk(ident.cnpj)?'text-emerald-800':'text-red-800')" x-text="!ident.cnpj ? 'Usado para conferir os PDFs na auditoria.' : (cnpjOk(ident.cnpj)?'CNPJ válido.':'CNPJ inválido (dígitos verificadores).')"></p></div>
+        <div><label class="lbl" for="f-valor">Valor global (R$)</label><input id="f-valor" class="inp" inputmode="decimal" x-model="ident.valor" placeholder="0,00"></div>
+        <div class="sm:col-span-2"><label class="lbl" for="f-obj">Objeto</label><textarea id="f-obj" rows="2" class="inp" x-model="ident.objeto"></textarea></div>
+        <div><label class="lbl" for="f-vig">Vigência prevista</label><input id="f-vig" class="inp" x-model="ident.vigencia" placeholder="Ex.: 12 meses"></div>
+        <div><label class="lbl" for="f-gest">Gestor do ajuste</label><input id="f-gest" class="inp" x-model="ident.gestor"></div>
+        <div><label class="lbl" for="f-data">Data da análise</label><input id="f-data" type="date" class="inp" x-model="ident.data"></div>
+        <div><label class="lbl" for="f-fonte">Fonte do recurso</label>
+          <select id="f-fonte" class="inp" x-model="ident.fonte"><option value="">Selecione</option><template x-for="o in fontes" :key="o"><option :value="o" x-text="o"></option></template></select></div>
+        <fieldset class="sm:col-span-2 rounded-lg border border-slate-400 bg-slate-50 p-3" x-show="emendaKind()">
+          <legend class="px-1 text-sm font-semibold text-slate-900" x-text="'Dados da '+ident.fonte"></legend>
+          <div class="grid gap-3" :class="emendaKind()==='m' ? 'sm:grid-cols-3' : 'sm:grid-cols-4'">
+            <div x-show="emendaKind()!=='m'"><label class="lbl" for="em-tipo">Tipo</label>
+              <input id="em-tipo" class="inp" list="dl-emtipo" x-model="ident.emenda.tipo" placeholder="Selecione ou digite" autocomplete="off">
+              <datalist id="dl-emtipo"><option>Individual</option><option>Bancada</option><option>Comissão</option><option>Transferência especial</option><option>Transferência com finalidade definida</option></datalist></div>
+            <div><label class="lbl" for="em-num">Nº</label><input id="em-num" class="inp" x-model="ident.emenda.num" autocomplete="off"></div>
+            <div><label class="lbl" for="em-val">Valor R$</label><input id="em-val" class="inp" inputmode="decimal" x-model="ident.emenda.valor" placeholder="0,00" autocomplete="off"></div>
+            <div><label class="lbl" for="em-aut">Autor</label><input id="em-aut" class="inp" x-model="ident.emenda.autor" placeholder="Nome do parlamentar" autocomplete="off"></div>
+          </div>
+        </fieldset>
+      </div>
+      <div x-show="ident.rota==='osc' && ident.route==='emenda' && ident.tipo!=='fomento'" class="mt-4 rounded-lg bg-amber-50 border border-amber-600 p-3 text-sm text-amber-950" role="alert">Atenção: emendas parlamentares sem chamamento são formalizadas por <strong>Termo de Fomento</strong>.</div>
+      <div x-show="semRepasse()" class="mt-4 rounded-lg bg-blue-50 border border-blue-700 p-3 text-sm text-blue-950">Ajuste sem repasse: itens orçamentários e financeiros foram marcados como “Não se aplica”.</div>
+    </div>
+
+    <div class="card">
+      <h2 class="h2">Órgão e base legal</h2>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2"><label class="lbl" for="m-mun">Município / Órgão (cabeçalho do PDF)</label><input id="m-mun" class="inp" x-model="meta.municipio"></div>
+        <div><label class="lbl" for="m-uni">Unidade</label><input id="m-uni" class="inp" x-model="meta.unidade"></div>
+        <div><label class="lbl" for="m-cid">Cidade (fechamento do PDF)</label><input id="m-cid" class="inp" x-model="meta.cidade"></div>
+        <div class="sm:col-span-2">
+          <p class="lbl" x-text="'Base legal (Lei Federal nº '+(rotasV[ident.rota].fam==='osc'?'13.019/2014':'14.133/2021')+')'"></p>
+          <ul class="space-y-3">
+            <template x-for="(l,i) in leisAtivas()" :key="i">
+              <li class="grid sm:grid-cols-[1fr_1.4fr_auto_auto] gap-2 items-end">
+                <div><label class="lbl" :for="'lg-t'+i">Norma / documento</label><input :id="'lg-t'+i" class="inp" x-model="l.t"></div>
+                <div><label class="lbl" :for="'lg-u'+i">Link</label><input :id="'lg-u'+i" class="inp" x-model="l.url" placeholder="https://"></div>
+                <a class="btn-s" x-show="/^https?:/.test(l.url)" :href="l.url" target="_blank" rel="noopener" :aria-label="'Abrir link: '+l.t">Abrir</a>
+                <button type="button" class="btn-d" @click="leisAtivas().splice(i,1)" :aria-label="'Remover '+l.t">Remover</button>
+              </li>
+            </template>
+          </ul>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" class="btn-s" @click="leisAtivas().push({t:'',url:''})">+ Adicionar norma</button>
+            <button type="button" class="btn-s" @click="restaurarLeis()" :aria-label="'Restaurar os links padrão da base legal (Lei Federal nº '+(rotasV[ident.rota].fam==='osc'?'13.019/2014':'14.133/2021')+')'">↺ Restaurar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="h2">Responsáveis pela verificação</h2>
+      <ul class="space-y-3">
+        <template x-for="(s,i) in signers" :key="i">
+          <li class="grid sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
+            <div><label class="lbl" :for="'sg-n'+i">Nome</label><input :id="'sg-n'+i" class="inp" x-model="s.nome"></div>
+            <div><label class="lbl" :for="'sg-c'+i">Cargo / Unidade</label><input :id="'sg-c'+i" class="inp" x-model="s.cargo"></div>
+            <button type="button" class="btn-d" @click="signers.splice(i,1)" :aria-label="'Remover responsável '+(i+1)">Remover</button>
+          </li>
+        </template>
+      </ul>
+      <button type="button" class="btn-s mt-3" @click="signers.push({nome:'',cargo:''})">+ Adicionar responsável</button>
+    </div>
+    <div class="flex justify-between"><button type="button" class="btn-s" @click="go('import')">← Importação</button><button type="button" class="btn-p" @click="go(activePhases()[0].id)">Iniciar verificação →</button></div>
+  </section>
+
+  <!-- ============ FASES ============ -->
+  <template x-for="p in phases" :key="p.id">
+  <section x-show="view===p.id" :aria-labelledby="'h-'+p.id" class="space-y-4">
+    <div class="card">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <h2 :id="'h-'+p.id" class="h2" x-text="p.n+' – '+p.t"></h2>
+        <button type="button" class="btn-s !py-1 text-xs" x-show="!winMode" @click="popOut(p.id)">↗ Outra janela</button>
+      </div>
+      <p class="text-sm text-slate-700" x-text="p.d"></p>
+      <div x-show="locked()" class="mt-3 rounded-lg bg-amber-50 border border-amber-600 p-3 text-sm text-amber-950" role="alert">
+        <strong>Verificação manual bloqueada.</strong> Execute a 1ª Verificação e Cruzamento de Dados (ou registre justificativa técnica) em “Importação e auditoria” para liberar os campos.
+        <button type="button" class="ml-2 underline font-medium" @click="go('import')">Ir para a triagem</button>
+      </div>
+      <div x-show="!phaseOn(p)" class="mt-3 rounded-lg bg-slate-100 border border-slate-400 p-3 text-sm" role="status">Esta fase não se aplica à rota selecionada (<strong x-text="selecao()[ident.route]"></strong>). <span x-text="p.skip"></span></div>
+      <div x-show="phaseOn(p)" class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-sm">
+        <div class="rounded-lg bg-emerald-50 border border-emerald-700 py-2"><div class="text-xl font-bold text-emerald-900" x-text="stats(p).sim"></div>Sim</div>
+        <div class="rounded-lg bg-red-50 border border-red-700 py-2"><div class="text-xl font-bold text-red-900" x-text="stats(p).nao"></div>Não</div>
+        <div class="rounded-lg bg-amber-50 border border-amber-700 py-2"><div class="text-xl font-bold text-amber-900" x-text="stats(p).pend"></div>Pendentes</div>
+        <div class="rounded-lg bg-slate-100 border border-slate-500 py-2"><div class="text-xl font-bold text-slate-800" x-text="stats(p).na"></div>N/A</div>
+      </div>
+      <div x-show="phaseOn(p)" class="mt-4 flex flex-wrap items-center gap-3">
+        <div role="group" aria-label="Filtrar itens" class="flex flex-wrap gap-1">
+          <template x-for="f in filters" :key="f.k"><button type="button" class="chip-b" :class="filter===f.k && 'chip-on'" :aria-pressed="filter===f.k" @click="filter=f.k" x-text="f.l"></button></template>
+        </div>
+        <label class="sr-only" for="q">Buscar item</label>
+        <input id="q" type="search" class="inp !w-56" placeholder="Buscar item…" x-model="q">
+        <label class="text-sm inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" x-model="showNA"> Mostrar fora da rota</label>
+      </div>
+    </div>
+
+    <ol x-show="phaseOn(p)" class="items" :class="layout.cols==='2'?'cols-2':(layout.cols==='auto'?'cols-auto':'')">
+      <template x-for="it in visible(p)" :key="it.id">
+        <li :id="'it-'+it.id" class="it rounded-xl border bg-white p-4 shadow-sm" :class="cardCls(it)">
+          <fieldset class="contents" :disabled="locked()">
+          <template x-if="it.g"><p class="-mt-1 mb-2 text-xs font-bold uppercase tracking-wide text-blue-900" x-text="it.g"></p></template>
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0 flex-1 basis-60">
+              <div class="flex flex-wrap items-center gap-1.5 text-xs">
+                <span class="font-mono bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded" x-text="it.id"></span>
+                <span class="bg-blue-50 text-blue-950 border border-blue-300 px-1.5 py-0.5 rounded" x-text="it.b"></span>
+                <span class="bg-slate-100 text-slate-900 border border-slate-300 px-1.5 py-0.5 rounded" x-text="'Resp.: '+it.r"></span>
+                <span x-show="!applicable(it)" class="bg-slate-300 text-slate-900 px-1.5 py-0.5 rounded">Fora da rota/tipo</span>
+              </div>
+              <h3 class="font-semibold mt-1.5" x-text="it.t"></h3>
+              <p class="text-sm text-slate-800 mt-1"><span class="font-medium">Verificar:</span> <span x-text="it.v"></span></p>
+            </div>
+            <div x-show="applicable(it)" role="group" :aria-label="'Situação do item '+it.id" class="stgrp flex gap-1 shrink-0">
+              <template x-for="o in statusOpts" :key="o.k">
+                <button type="button" class="st-b disabled:opacity-60 disabled:cursor-not-allowed" :class="st[it.id].s===o.k ? o.on : 'bg-white text-slate-800 border-slate-400 hover:bg-slate-100'" :aria-pressed="st[it.id].s===o.k" @click="setS(it,o.k)"><span aria-hidden="true" x-text="o.i"></span> <span x-text="o.l"></span></button>
+              </template>
+            </div>
+          </div>
+
+          <template x-if="applicable(it) && it.subs">
+            <fieldset class="mt-3 border-t border-slate-200 pt-3">
+              <legend class="text-xs font-semibold text-slate-800 mb-1">Conferência por documento</legend>
+              <div class="grid sm:grid-cols-2 gap-x-4 gap-y-1">
+                <template x-for="(sl,i) in it.subs" :key="i">
+                  <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="h-4 w-4" :checked="st[it.id].subs[i]" @change="setSub(it,i)"><span x-text="sl"></span></label>
+                </template>
+              </div>
+            </fieldset>
+          </template>
+
+          <template x-if="applicable(it) && it.fields">
+            <div class="mt-3 border-t border-slate-200 pt-3 grid sm:grid-cols-2 gap-3">
+              <template x-for="fd in it.fields" :key="fd.k">
+                <div :class="(fd.k==='cred'||fd.type==='select') && 'sm:col-span-2'">
+                  <label class="lbl" :for="'fl-'+it.id+fd.k" x-text="fd.l"></label>
+                  <template x-if="!fd.type"><input :id="'fl-'+it.id+fd.k" class="inp" :placeholder="fd.ph" x-model="st[it.id].f[fd.k]" autocomplete="off"></template>
+                  <template x-if="fd.type==='select'"><select :id="'fl-'+it.id+fd.k" class="inp" x-model="st[it.id].f[fd.k]"><option value="">Selecione</option><template x-for="o in fd.opts" :key="o"><option x-text="o"></option></template></select></template>
+                  <template x-if="fd.type==='validade'">
+                    <div>
+                      <div class="flex gap-2">
+                        <select :id="'fl-'+it.id+fd.k" class="inp" x-model="st[it.id].f[fd.k+'_t']"><option value="">Selecione</option><option value="ind">Indeterminada</option><option value="ate">Até a data…</option></select>
+                        <input type="date" class="inp" :aria-label="'Data de validade do item '+it.id" x-show="st[it.id].f[fd.k+'_t']==='ate'" x-model="st[it.id].f[fd.k+'_d']">
+                      </div>
+                      <p class="text-xs text-red-800 mt-1" x-show="st[it.id].f[fd.k+'_t']==='ate' && st[it.id].f[fd.k+'_d'] && st[it.id].f[fd.k+'_d'] < (ident.data||'')">Validade anterior à data da análise.</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <div x-show="applicable(it)" class="mt-3">
+            <button type="button" class="text-sm text-blue-900 underline" :aria-expanded="obsOpen(it)" @click="openObs[it.id]=!obsOpen(it)" x-text="obsOpen(it) ? 'Ocultar observações' : (st[it.id].obs||st[it.id].sei ? 'Ver observações / ID' : 'Adicionar observação / ID SEI')"></button>
+            <div x-show="obsOpen(it)" class="mt-2 grid sm:grid-cols-[150px_1fr] gap-3">
+              <div><label class="lbl" :for="'sei-'+it.id">ID SEI</label><input :id="'sei-'+it.id" class="inp" x-model="st[it.id].sei" placeholder="Nº do documento"></div>
+              <div>
+                <label class="lbl" :for="'ob-'+it.id">Observações</label>
+                <select class="inp mb-1" :aria-label="'Inserir observação padrão no item '+it.id" @change="preset(it,$event)"><option value="">Inserir observação padrão…</option><template x-for="o in presets" :key="o"><option x-text="o"></option></template></select>
+                <textarea :id="'ob-'+it.id" rows="2" class="inp" x-model="st[it.id].obs"></textarea>
+              </div>
+            </div>
+          </div>
+          </fieldset>
+        </li>
+      </template>
+      <li x-show="visible(p).length===0" class="card text-center text-sm text-slate-700">Nenhum item corresponde ao filtro.</li>
+    </ol>
+
+    <div class="flex justify-between">
+      <button type="button" class="btn-s" x-show="prevView(p.id)" @click="go(prevView(p.id))">← Anterior</button><span></span>
+      <button type="button" class="btn-p" @click="go(nextView(p.id))">Próxima seção →</button>
+    </div>
+  </section>
+  </template>
+
+  <!-- ============ RESUMO ============ -->
+  <section x-show="view==='resumo'" aria-labelledby="h-res" class="space-y-6">
+    <div class="card">
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <h2 id="h-res" class="h2">Resumo da verificação</h2>
+        <button type="button" class="btn-s !py-1 text-xs" x-show="!winMode" @click="popOut('resumo')">↗ Outra janela</button>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-sm mb-4">
+        <div class="rounded-lg bg-emerald-50 border border-emerald-700 py-2"><div class="text-2xl font-bold text-emerald-900" x-text="overall().sim"></div>Sim</div>
+        <div class="rounded-lg bg-red-50 border border-red-700 py-2"><div class="text-2xl font-bold text-red-900" x-text="overall().nao"></div>Não</div>
+        <div class="rounded-lg bg-amber-50 border border-amber-700 py-2"><div class="text-2xl font-bold text-amber-900" x-text="overall().pend"></div>Pendentes</div>
+        <div class="rounded-lg bg-slate-100 border border-slate-500 py-2"><div class="text-2xl font-bold text-slate-800" x-text="overall().na"></div>N/A</div>
+      </div>
+      <div class="overflow-x-auto"><table class="w-full text-sm border-collapse">
+        <caption class="sr-only">Resumo por fase</caption>
+        <thead><tr class="bg-slate-100 text-left"><th scope="col" class="p-2">Fase</th><th scope="col" class="p-2">Sim</th><th scope="col" class="p-2">Não</th><th scope="col" class="p-2">Pend.</th><th scope="col" class="p-2">N/A</th><th scope="col" class="p-2">Conclusão</th></tr></thead>
+        <tbody><template x-for="p in activePhases()" :key="p.id"><tr class="border-t"><th scope="row" class="p-2 text-left font-medium" x-text="p.n+' · '+p.s"></th>
+          <td class="p-2" x-text="stats(p).sim"></td><td class="p-2" x-text="stats(p).nao"></td><td class="p-2" x-text="stats(p).pend"></td><td class="p-2" x-text="stats(p).na"></td><td class="p-2" x-text="phaseOn(p)?stats(p).pct+'%':'—'"></td></tr></template></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2 class="h2">Itens com “Não” (pendências a sanear)</h2>
+      <p x-show="naoList().length===0" class="text-sm text-slate-700">Nenhum item marcado como “Não”.</p>
+      <ul class="divide-y">
+        <template x-for="it in naoList()" :key="it.id"><li class="py-2 text-sm">
+          <button type="button" class="text-blue-900 underline font-medium" @click="goItem(it)" x-text="it.id+' – '+it.t"></button>
+          <p class="text-slate-800" x-show="st[it.id].obs" x-text="st[it.id].obs"></p></li></template>
+      </ul>
+    </div>
+
+    <div class="card" x-show="ident.rota==='osc'">
+      <h2 class="h2">Notas ao agente público</h2>
+      <ol class="list-decimal pl-5 text-sm space-y-1 text-slate-800">
+        <li><strong>Audesp Fase V:</strong> atentar aos arts. 26 e 77. A partir de 2026 não serão aceitos documentos físicos na prestação de contas; a OSC deve gerar arquivos JSON/API.</li>
+        <li><strong>Habilitação:</strong> verificar o art. 46.</li>
+        <li><strong>Rito de prestação de contas:</strong> verificar o art. 77 e seguintes.</li>
+        <li><strong>Vedações (nepotismo/improbidade):</strong> conferir a Declaração Única e a relação de dirigentes para evitar parcerias com entidades dirigidas por parentes de gestores públicos (art. 46, § 1º, VII, “c”).</li>
+      </ol>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="btn-p" @click="exportPDF()">Visualizar PDF (com dados embutidos)</button>
+      <button type="button" class="btn-s" @click="exportJSON()">Exportar JSON</button>
+      <button type="button" class="btn-s" @click="saveVersion()">Salvar versão</button>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============ PAINEL DE APOIO ============ -->
+  <aside x-show="showPanel()" :class="winMode==='panel'?'':'sticky-col'" aria-label="Painel de apoio">
+    <div class="card !p-3 space-y-3">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="text-base font-bold">Painel de apoio</h2>
+        <button type="button" class="btn-s !py-1 !px-2 text-xs" x-show="!winMode" @click="popOut('panel')">↗ Outra janela</button>
+      </div>
+      <div role="tablist" class="flex flex-wrap gap-1">
+        <template x-for="t in panelTabs" :key="t.k"><button type="button" role="tab" class="chip-b !px-2 !py-0.5 !text-xs" :class="panelTab===t.k&&'chip-on'" :aria-selected="panelTab===t.k" @click="panelTab=t.k" x-text="t.l"></button></template>
+      </div>
+
+      <div x-show="panelTab==='resumo'" role="tabpanel" class="space-y-2 text-sm">
+        <div class="grid grid-cols-4 gap-1 text-center text-xs">
+          <div class="rounded bg-emerald-50 border border-emerald-700 py-1"><div class="text-base font-bold text-emerald-900" x-text="overall().sim"></div>Sim</div>
+          <div class="rounded bg-red-50 border border-red-700 py-1"><div class="text-base font-bold text-red-900" x-text="overall().nao"></div>Não</div>
+          <div class="rounded bg-amber-50 border border-amber-700 py-1"><div class="text-base font-bold text-amber-900" x-text="overall().pend"></div>Pend.</div>
+          <div class="rounded bg-slate-100 border border-slate-500 py-1"><div class="text-base font-bold text-slate-800" x-text="overall().na"></div>N/A</div>
+        </div>
+        <template x-for="p in activePhases()" :key="p.id">
+          <button type="button" class="block w-full text-left" @click="go(p.id)">
+            <span class="flex justify-between text-xs"><span x-text="p.n+' · '+p.s"></span><span x-text="phaseOn(p)?stats(p).pct+'%':'—'"></span></span>
+            <span class="block h-1.5 bg-slate-200 rounded"><span class="block h-full rounded bg-blue-700" :style="'width:'+(phaseOn(p)?stats(p).pct:0)+'%'"></span></span>
+          </button>
+        </template>
+        <p class="text-xs" :class="gate.released?'text-emerald-900':'text-amber-900'" x-text="gate.released?'Análise manual liberada.':'Análise manual bloqueada.'"></p>
+      </div>
+
+      <div x-show="panelTab==='pend'" role="tabpanel" class="text-sm">
+        <p class="text-xs text-slate-700 mb-1" x-text="naoList().length+' item(ns) com “Não” · '+overall().pend+' pendente(s)'"></p>
+        <ul class="divide-y">
+          <template x-for="it in naoList()" :key="it.id"><li class="py-1.5"><button type="button" class="text-left text-blue-900 underline text-xs" @click="goItem(it)" x-text="it.id+' – '+it.t"></button></li></template>
+        </ul>
+        <p x-show="naoList().length===0" class="text-xs text-slate-700">Nenhum item marcado como “Não”.</p>
+      </div>
+
+      <div x-show="panelTab==='docs'" role="tabpanel" class="text-sm">
+        <p x-show="!audit.length" class="text-xs text-slate-700">Nenhum documento importado.</p>
+        <ul class="space-y-2">
+          <template x-for="a in audit" :key="a.id"><li class="rounded border p-2" :class="docWorst(a)==='err'?'border-red-700 bg-red-50':(docWorst(a)==='warn'?'border-amber-600 bg-amber-50':'border-emerald-700 bg-emerald-50')">
+            <p class="text-xs font-semibold break-all" x-text="a.name"></p>
+            <p class="text-xs" x-text="(a.origem==='og'?'Órgão Gestor':'OSC/Entidade')+' · '+(a.label||'tipo não identificado')"></p>
+            <p class="text-xs font-bold" x-text="'Geração: '+genTxt(a)"></p>
+          </li></template>
+        </ul>
+        <button type="button" class="mt-2 text-xs text-blue-900 underline" @click="go('import')">Abrir auditoria completa</button>
+      </div>
+
+      <div x-show="panelTab==='verif'" role="tabpanel" class="text-sm">
+        <p x-show="!verif" class="text-xs text-slate-700">1ª Verificação ainda não executada.</p>
+        <template x-if="verif">
+          <div>
+            <p class="text-xs" x-text="verif.counts.err+' divergência(s) · '+verif.counts.warn+' alerta(s) · '+verif.counts.ok+' conforme(s)'"></p>
+            <ul class="mt-1 space-y-1">
+              <template x-for="c in verif.checks.filter(x=>x.lvl==='err'||x.lvl==='warn')" :key="c.id"><li class="text-xs rounded border p-1.5" :class="c.lvl==='err'?'border-red-700 bg-red-50':'border-amber-600 bg-amber-50'"><strong x-text="(c.lvl==='err'?'✖ ':'⚠ ')+c.t"></strong><span class="block" x-text="c.m"></span></li></template>
+            </ul>
+          </div>
+        </template>
+        <button type="button" class="mt-2 text-xs text-blue-900 underline" @click="go('import')">Abrir verificação completa</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- ============ GAVETA RASCUNHOS ============ -->
+<div x-show="drawer" class="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-labelledby="dw-t">
+  <div class="absolute inset-0 bg-slate-900/50" @click="drawer=false"></div>
+  <aside class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl p-5 overflow-y-auto">
+    <div class="flex justify-between items-center mb-3"><h2 id="dw-t" class="text-lg font-bold">Rascunhos / Versões</h2><button type="button" class="btn-s" @click="drawer=false">Fechar</button></div>
+    <p class="text-sm text-slate-800 mb-3">O rascunho atual é salvo automaticamente neste navegador (1 s após cada alteração). Salve versões nomeadas para criar pontos de restauração.</p>
+    <div class="mb-4"><button type="button" class="btn-d w-full justify-center" @click="newChecklist()">Iniciar nova lista em branco</button></div>
+    <label class="lbl" for="v-nome">Nome da versão (opcional)</label>
+    <div class="flex gap-2 mb-4"><input id="v-nome" class="inp" x-model="versionName" placeholder="Ex.: Após parecer jurídico"><button type="button" class="btn-p" @click="saveVersion()">Salvar</button></div>
+    <p x-show="!versions.length" class="text-sm text-slate-700">Nenhuma versão salva.</p>
+    <ul class="space-y-2">
+      <template x-for="v in versions" :key="v.id"><li class="border border-slate-300 rounded-lg p-3">
+        <p class="font-semibold text-sm" x-text="v.nome"></p>
+        <p class="text-xs text-slate-700" x-text="v.em+' · '+(v.data.ident.processo||'sem nº de processo')+' · '+v.pct+'% concluído'"></p>
+        <div class="mt-2 flex flex-wrap gap-2"><button type="button" class="btn-s" @click="restoreVersion(v)">Restaurar</button><button type="button" class="btn-s" @click="exportJSON(v.data)">Baixar .json</button><button type="button" class="btn-d" @click="delVersion(v)">Excluir</button></div></li></template>
+    </ul>
+  </aside>
+</div>
+
+<!-- ============ MODAL SOBRE ============ -->
+<div x-show="modal==='sobre'" class="fixed inset-0 z-40 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="md-t">
+  <div class="absolute inset-0 bg-slate-900/50" @click="modal=''"></div>
+  <div class="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6">
+    <h2 id="md-t" class="text-lg font-bold mb-2">Rotas, correções e ajuda</h2>
+    <h3 class="font-semibold mt-3">Rotas de verificação</h3>
+    <ul class="list-disc pl-5 text-sm space-y-1 text-slate-800">
+      <li><strong>OSC (Lei 13.019/2014 · Decreto 7.456/2026):</strong> celebração (Fases 1 a 5) e alteração (Termo Aditivo ou Apostilamento, Fases 1 e 2).</li>
+      <li><strong>Convênio / Termo de Cooperação (Lei 14.133/2021 · Decreto 7.055/2023):</strong> celebração (Fases 1 a 3) e alteração (Fases 1 e 2). O modelo de convênios não traz fases de execução e prestação de contas.</li>
+      <li>Cada rota usa os itens, bases normativas e responsáveis do respectivo modelo; a rota de seleção (chamamento, dispensa, inexigibilidade, emenda) ajusta as fases da celebração.</li>
+    </ul>
+    <h3 class="font-semibold mt-3">Importação, auditoria e 1ª Verificação</h3>
+    <ul class="list-disc pl-5 text-sm space-y-1 text-slate-800">
+      <li>Aceita JSON e PDF (nato digital, PDF/A ou digitalizado, este último com OCR opcional por Tesseract.js, carregado só quando necessário). Cada arquivo é classificado por origem (OSC/Entidade ou Órgão Gestor) e por tipo de documento, ajustáveis manualmente.</li>
+      <li><strong>Temporalidade:</strong> a data/hora de geração é lida do texto do documento (emissão), dos metadados do PDF ou do JSON, e destacada. Alertas: data posterior à análise, documento desatualizado (prazo configurável), divergência entre a data impressa e os metadados, arquivo modificado após a criação e validade vencida.</li>
+      <li><strong>1ª Verificação:</strong> cruza nome, CNPJ, conta bancária, vigência, emenda, Plano de Trabalho (objeto, objetivos/metas/etapas/indicadores, quantificação, prazos, receitas, custos, despesas vedadas, cronograma de desembolso) e coerência de valores com o Órgão Gestor. É uma triagem por leitura de texto: Planos em formato livre podem exigir conferência manual.</li>
+      <li><strong>Liberação:</strong> os campos dos itens só são habilitados após a triagem ou mediante justificativa técnica, registradas no PDF. Os textos dos PDFs não são gravados no rascunho: para refazer a triagem após reabrir a lista, importe novamente os arquivos.</li>
+    </ul>
+    <h3 class="font-semibold mt-3">Leiaute e vários monitores</h3>
+    <ul class="list-disc pl-5 text-sm space-y-1 text-slate-800">
+      <li>Menu “Leiaute”: painel de apoio lateral (resumo, pendências, documentos, verificação), navegação lateral ou superior, densidade, colunas de itens e tamanho do texto. As escolhas ficam salvas no navegador.</li>
+      <li>“Outra janela” abre a seção ou o painel em nova janela, sincronizada em tempo real com a principal (mesmo navegador). Requer abrir o arquivo .html diretamente e permitir pop-ups.</li>
+    </ul>
+    <h3 class="font-semibold mt-3">Exportações</h3>
+    <ul class="list-disc pl-5 text-sm space-y-1 text-slate-800">
+      <li><strong>JSON:</strong> dados completos; pode ser reimportado.</li>
+      <li><strong>PDF:</strong> nome no formato “Lista Verificação_DD-MM-AAAA_vN”, com a versão aumentando a cada arquivo salvo para o mesmo processo. Inclui documentos importados, resultados da 1ª Verificação e a liberação da análise manual. O PDF com dados embutidos restaura a lista ao ser importado.</li>
+      <li><strong>PDF/A:</strong> este aplicativo não gera PDF/A certificado (exige fontes embutidas, perfil de cor e validação). Para o protocolo no SEI, converta com uma ferramenta de conversão/validação PDF/A (ex.: Ghostscript ou veraPDF).</li>
+    </ul>
+    <div class="mt-4 text-right"><button type="button" class="btn-p" @click="modal=''">Fechar</button></div>
+  </div>
+</div>
+
+<!-- ============ PRÉ-VISUALIZAÇÃO DO PDF ============ -->
+<div x-show="modal==='pdf'" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pv-t">
+  <div class="absolute inset-0 bg-slate-900/60" @click="closePreview()"></div>
+  <div class="relative bg-white rounded-xl shadow-xl w-full max-w-5xl h-[94vh] flex flex-col">
+    <div class="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-slate-300">
+      <div class="min-w-0"><h2 id="pv-t" class="text-base font-bold">Visualização do PDF</h2>
+        <p class="text-xs text-slate-700 break-all" x-text="pv.name+' · '+(pv.size/1024).toFixed(0)+' KB'"></p></div>
+      <div class="flex flex-wrap gap-2">
+        <a class="btn-s" :href="pv.url" target="_blank" rel="noopener">Abrir em nova aba</a>
+        <button type="button" class="btn-s" @click="closePreview()">Voltar e editar</button>
+        <button type="button" class="btn-p" @click="confirmPDF()">Salvar PDF</button>
+      </div>
+    </div>
+    <p class="px-3 py-1.5 text-xs text-slate-700 bg-slate-50 border-b border-slate-200">Confira o documento. A versão (v<span x-text="pv.ver"></span>) só é registrada ao clicar em “Salvar PDF”.</p>
+    <iframe x-show="pv.url" :src="pv.url" title="Pré-visualização do PDF" class="flex-1 w-full bg-slate-200 rounded-b-xl"></iframe>
+  </div>
+</div>
+
+<!-- ============ AVISOS ============ -->
+<div class="fixed bottom-4 right-4 z-50 space-y-2" aria-live="polite" role="status">
+  <template x-for="t in toasts" :key="t.id"><div class="bg-slate-900 text-white text-sm rounded-lg px-4 py-2 shadow-lg max-w-sm" x-text="t.m"></div></template>
+</div>
+
+<style type="text/tailwindcss">
+  @layer components {
+    .card{ @apply bg-white border border-slate-300 rounded-xl p-5 shadow-sm; }
+    .h2{ @apply text-lg font-bold text-slate-900 mb-1; }
+    .lbl{ @apply block text-sm font-medium text-slate-900 mb-1; }
+    .inp{ @apply w-full rounded-lg border border-slate-500 bg-white px-3 py-2 text-sm; }
+    .btn-p{ @apply inline-flex items-center rounded-lg bg-blue-800 text-white px-4 py-2 text-sm font-semibold hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed; }
+    .btn-s{ @apply inline-flex items-center rounded-lg border border-slate-500 bg-white text-slate-900 px-3 py-2 text-sm font-medium hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed; }
+    .btn-d{ @apply inline-flex items-center rounded-lg border border-red-700 bg-white text-red-800 px-3 py-2 text-sm font-medium hover:bg-red-50; }
+    .menu-i{ @apply block w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100; }
+    .nav-b{ @apply w-full min-w-[200px] text-left rounded-lg border border-slate-300 bg-white px-3 py-2 flex flex-col hover:bg-slate-100; }
+    .nav-on{ @apply border-blue-800 bg-blue-50 ring-1 ring-blue-800; }
+    .chip-b{ @apply rounded-full border border-slate-500 bg-white px-3 py-1 text-sm hover:bg-slate-100; }
+    .chip-on{ @apply bg-blue-800 text-white border-blue-800 hover:bg-blue-900; }
+    .st-b{ @apply rounded-lg border px-3 py-1.5 text-sm font-semibold; }
+  }
+</style>
+
+<script>
+/* ===================== CONSTANTES ===================== */
+const ROTAS_V={
+ osc:{l:'Acordo de Cooperação, Termo de Fomento ou Termo de Colaboração',lei:'Lei Federal nº 13.019/2014 e Decreto nº 7.456/2026',fam:'osc',alt:false,tipos:['fomento','colab','acordo']},
+ osc_alt:{l:'Termo Aditivo ou Apostilamento',lei:'Lei Federal nº 13.019/2014 e Decreto nº 7.456/2026',fam:'osc',alt:true,tipos:['aditivo','apost'],origem:['Termo de Fomento','Termo de Colaboração','Acordo de Cooperação (sem repasse)']},
+ conv:{l:'Convênio ou Termo de Cooperação',lei:'Lei Federal nº 14.133/2021 e Decreto nº 7.055/2023',fam:'conv',alt:false,tipos:['convenio','coop']},
+ conv_alt:{l:'Termo Aditivo ou Apostilamento',lei:'Lei Federal nº 14.133/2021 e Decreto nº 7.055/2023',fam:'conv',alt:true,tipos:['aditivo','apost'],origem:['Convênio','Termo de Cooperação']}
+};
+const TIPOS={fomento:'Termo de Fomento',colab:'Termo de Colaboração',acordo:'Acordo de Cooperação (sem repasse)',convenio:'Convênio',coop:'Termo de Cooperação',aditivo:'Termo Aditivo',apost:'Apostilamento'};
+const SEL={
+ osc:{cham:'Chamamento público',disp:'Dispensa (com credenciamento prévio)',inex:'Inexigibilidade',emenda:'Emenda parlamentar (sem chamamento)'},
+ conv:{cham:'Chamamento público (arts. 675 a 678)',disp:'Dispensa de chamamento (art. 673)',inex:'Inexigibilidade de chamamento (art. 674)',emenda:'Emenda parlamentar (art. 674, III – seguir à Fase 3)'}
+};
+const SECRETARIAS=['PARAG-GAP Gabinete do Prefeito','PARAG-IMSS Instituto Municipal de Seguridade Social','PARAG-SMAA Secretaria Municipal de Agricultura e Abastecimento','PARAG-SMAF Secretaria Municipal de Administração e Finanças','PARAG-SMAJ Secretaria Municipal de Assuntos Jurídicos','PARAG-SMAS Secretaria Municipal de Assistência Social','PARAG-SMC Secretaria Municipal de Cultura','PARAG-SMDE Secretaria Municipal de Desenvolvimento Econômico','PARAG-SME Secretaria Municipal de Educação','PARAG-SMEL Secretaria Municipal de Esportes e Lazer','PARAG-SMMA Secretaria Municipal de Meio Ambiente e Projetos Especiais','PARAG-SMMUS Secretaria Municipal de Mobilidade Urbana e Segurança Pública','PARAG-SMOS Secretaria Municipal de Obras e Serviços Públicos','PARAG-SMPG Secretaria Municipal de Planejamento e Gestão Orçamentária','PARAG-SMRH Secretaria Municipal de Recursos Humanos','PARAG-SMS Secretaria Municipal de Saúde','PARAG-SMT Secretaria Municipal de Turismo','PARAG-SMUH Secretaria Municipal de Urbanismo e Habitação'];
+const FONTES=['Municipal','Estadual','Federal','Emenda Municipal','Emenda Estadual','Emenda Federal'];
+const OBS_PADRAO=['A ser providenciado no trâmite do processo.','Conformidade atestada pelo Órgão Gestor.','Complementação solicitada ao Órgão Gestor.','Documento conforme.','Documento vencido – solicitar atualização.','Documento ilegível – solicitar novo arquivo em PDF/A.','Divergência com a última ata de eleição.','Documento sem assinatura – solicitar regularização.','Aguardando manifestação/parecer.','Item corrigido e reapresentado.'];
+const STATUS_L={p:'Pendente',s:'Sim',n:'Não',x:'N/A'};
+const IDENT_FIELDS=[['rota','Rota de verificação'],['tipo','Tipo de ajuste'],['route','Rota de seleção'],['origem_mod','Modalidade do ajuste de origem'],['origem_num','Nº/Ano do ajuste de origem'],['processo','Processo SEI nº'],['secretaria','Secretaria / Órgão Gestor'],['osc','OSC / Entidade'],['cnpj','CNPJ'],['objeto','Objeto'],['valor','Valor global (R$)'],['vigencia','Vigência'],['gestor','Gestor do ajuste'],['data','Data da análise'],['fonte','Fonte do recurso'],['emenda.tipo','Emenda – Tipo'],['emenda.num','Emenda – Nº'],['emenda.valor','Emenda – Valor R$'],['emenda.autor','Emenda – Autor']];
+const ORIGEM_ALL=[...new Set(Object.values(ROTAS_V).flatMap(r=>r.origem||[]))];
+
+/* ===================== ITENS POR ROTA ===================== */
+const X=(id,t,b,v,r,o)=>Object.assign({id,t,b,v,r},o||{});
+const NS=['cham','disp','inex'];
+const F39=[{k:'insc',l:'Inscrição no Conselho Municipal – Nº/Ano',ph:'Ex.: 123/2024'},{k:'val',l:'Validade da inscrição',type:'validade'},{k:'cred',l:'Credenciamento – Edital Nº/ANO-SIGLA SECRETARIA',ph:'Ex.: 001/2026-SMAS'}];
+const CERT_SUBS=['Federal / União','FGTS','Trabalhista','Estadual (ou declaração de isenção)','Municipal'];
+const RATIF_SUBS=['Requerimento de impacto (Anexo III)','Demonstrativo e Declaração do Ordenador','Reserva orçamentária','Comprovante de outros entes (se houver)'];
+const ENQ_ALT=['Apostilamento – uso de rendimentos e saldos','Apostilamento – ajustes do Plano de Trabalho','Apostilamento – remanejamento de recursos sem alterar o valor global','Termo Aditivo – alteração do valor global (ampliação/redução)','Termo Aditivo – prorrogação de vigência','Termo Aditivo – destino dos bens remanescentes'];
+
+const PHASES=[
+/* ---------- OSC: celebração ---------- */
+{id:'f1',ro:['osc'],n:'Fase 1',s:'Planejamento',t:'Planejamento (fase interna)',d:'Autuação e documentos iniciais — responsável: Órgão Gestor interessado.',rt:NS,skip:'Em emendas parlamentares (Termo de Fomento), siga direto à Fase 3.',items:[
+ X('1.1','Autuação do processo eletrônico de planejamento / instrução inicial','Arts. 8º e 9º, caput','Definir se há necessidade de ETI. Emendas (Termo de Fomento): ir direto à Fase 3.','Órgão Gestor'),
+ X('1.2','Estudo Técnico Inicial – ETI (Anexo II)','Art. 9º, II','Adequação orçamentária/financeira e capacidade do órgão; hipótese de chamamento, dispensa ou inexigibilidade; Planos de Trabalho comparativos (execução direta × parceria); manifestação técnica; base do valor de referência.','Órgão Gestor'),
+ X('1.3','Ofício de Solicitação inicial (Anexo I)','Art. 9º, I','Justificativa, tipo de parceria, objeto, valor, vigência e fonte de recurso.','Órgão Gestor'),
+ X('1.4','Requerimento DIOF de análise de impacto orçamentário (Anexo III)','Art. 9º, III','Existência de dotação na LOA/LDO/PPA.','Órgão Gestor',{m:1}),
+ X('1.5','Autorização inicial do GAP','Art. 10','Favorável: tramita à AGCP; desfavorável: arquiva ou devolve ao Órgão Gestor para readequação/saneamento.','GAP / AGCP'),
+ X('1.6','Lista de verificação (Anexo XVI) anexada ao processo','Art. 11, I','Etapas e documentos necessários — gere o PDF deste aplicativo e anexe.','AGCP'),
+ X('1.7','Justificativa / Autorização do GAP para não realizar chamamento (Anexo V)','Art. 11, II, “a”, c/c arts. 17 ou 18, 20/21 ou 22/23','Ratifica a não realização do chamamento. Assinar e publicar no Diário Oficial após o parecer jurídico.','Prefeito / AGCP',{rt:['disp','inex']}),
+ X('1.8','Edital de Credenciamento (Anexo IV)','Art. 20, § 2º','Dispensa: credenciamento prévio das OSCs (saúde, educação e assistência social). Após o credenciamento, ir à Fase 3.','Órgão Gestor',{rt:['disp']}),
+ X('1.9','Justificativa / Autorização para realizar chamamento público (Anexo VI)','Art. 11, II, “b”','Ratifica e autoriza o chamamento. Assinar e publicar no Diário Oficial após o parecer jurídico desta fase.','Prefeito / AGCP',{rt:['cham']}),
+ X('1.10','Minuta do Edital de Chamamento Público e anexos','Art. 11, III; Art. 25','Critérios de julgamento (art. 25, VIII).','AGCP',{rt:['cham']}),
+ X('1.11','Minuta do instrumento – Termo de Fomento/Colaboração (Anexo X)','Art. 11, IV; Art. 41','Utilização da minuta padrão.','AGCP'),
+ X('1.12','Minuta de projeto de lei autorizativo ou de crédito adicional','Art. 11, V','Lei autorizativa (enviar ao Legislativo após habilitação da OSC) ou crédito (aprovado antes da publicação do Edital). Marque N/A se não for o caso.','AGCP',{df:'x'}),
+ X('1.13','Decreto de designação da Comissão de Seleção','Art. 11, VI; Art. 26','Mínimo de 3 membros, sendo 1 servidor efetivo.','AGCP',{rt:['cham']}),
+ X('1.14','Demonstrativo do Impacto Orçamentário (Anexo III) e Declaração do Ordenador','Art. 13, II','Dotação na LOA/LDO/PPA, cálculo do impacto e ordenação da despesa.','SMPG',{m:1}),
+ X('1.15','Reserva orçamentária (comprovante de dotação / pré-empenho)','Art. 13, III','Indicação expressa da dotação.','SMPG',{m:1}),
+ X('1.16','Comprovante de financiamento parcial/total por outros entes','Art. 13, IV','Aplicável se houver recurso federal ou estadual.','SMPG',{m:1,df:'x'}),
+ X('1.17','Parecer técnico e contábil','Art. 14','Análise técnica e contábil.','CGM'),
+ X('1.18','Parecer jurídico','Art. 15','Análise jurídica, nos casos previstos.','SMAJ'),
+ X('1.19','Documentos finais para assinatura e publicação','Art. 16','Versão final dos documentos para assinatura e publicação.','AGCP')]},
+{id:'f2',ro:['osc'],n:'Fase 2',s:'Chamamento',t:'Chamamento público (fase externa)',d:'Aplicável apenas para selecionar a OSC parceira.',rt:['cham'],skip:'Na dispensa/inexigibilidade siga ao credenciamento/Fase 3; em emendas, direto à Fase 3.',items:[
+ X('2.1','Publicação da Justificativa/Autorização do chamamento (Anexo VI)','Art. 11, II, “b”','Publicada no Diário Oficial (documento do item 1.9).','Prefeito / AGCP'),
+ X('2.2','Edital de Chamamento Público','Art. 28','Publicação no Diário Oficial e divulgação no site oficial.','AGCP'),
+ X('2.3','Inscrição e apresentação das propostas','Art. 29','Prazo mínimo de 30 dias; Roteiro da Proposta previsto no Edital.','OSCs / Comissão de Seleção'),
+ X('2.4','Ata de análise e julgamento das propostas','Arts. 30 a 35','Assinada eletronicamente.','Comissão de Seleção'),
+ X('2.5','Publicação do resultado preliminar','Art. 36','No Diário Oficial.','Comissão / Órgão Gestor / AGCP'),
+ X('2.6','Julgamento de recursos','Art. 37','Prazo de 5 dias para recurso. N/A se não houve recurso.','Comissão de Seleção',{df:'x'}),
+ X('2.7','Homologação e publicação do resultado final','Arts. 38 a 40','Divulgar no site e publicar no Diário Oficial: resultado final, termo de homologação e julgamento de recursos (se houver). Convidar a OSC selecionada a cadastrar/atualizar a documentação (Fase 3).','Órgão Gestor')]},
+{id:'f3',ro:['osc'],n:'Fase 3',s:'Cadastro e celebração',t:'Cadastro e celebração (requisitos da OSC)',d:'Verificação obrigatória dos documentos da OSC selecionada (art. 46). Protocolo no SEI Usuários Externos, em PDF/A.',skip:'',items:[
+ X('3.1','Ofício de cadastramento e certidões da OSC','Art. 46, § 1º, V','Conferir se estão atualizados conforme a última ata de eleição do quadro dirigente.','OSC protocola · Órgão Gestor verifica',{g:'Cadastro da OSC (Art. 4º, I, “a”, Dec. 7.531/2026)',subs:['Ofício de Solicitação de Cadastramento','Certidão Dados OSC/Entidade','Certidão Corpo Diretivo','Certidão Conselho (Ajuste)','Certidão Recursos OSC/Entidade']}),
+ X('3.2','Estatuto registrado e alterações (+ Regimento Interno)','Art. 46, § 1º, I','Objeto social compatível com o da parceria. Em dúvida, consultar a SMAJ.','Órgão Gestor'),
+ X('3.3','Comprovante de inscrição no CNPJ','Art. 46, § 1º, II','Ativo há no mínimo 1 ano; verificar CNAE principal e secundários.','Órgão Gestor'),
+ X('3.4','Comprovantes de experiência prévia e capacidade técnica e operacional','Art. 46, § 1º, III','Mínimo de 1 ano; parcerias anteriores, relatórios, atestados de objeto semelhante.','Órgão Gestor'),
+ X('3.5','Certidões de regularidade fiscal, previdenciária, tributária, de contribuições e de dívida ativa','Art. 46, § 1º, IV','Todas vigentes. Estadual: certidão ou declaração de isenção.','Órgão Gestor',{subs:CERT_SUBS}),
+ X('3.6','Comprovante de endereço (conta de consumo ou contrato de locação)','Art. 46, § 1º, VI','Em nome da OSC e recente.','Órgão Gestor'),
+ X('3.7','Ata de eleição do quadro dirigente atual','Art. 46, § 1º (inciso a conferir)','Se é atual; serve de base para as certidões do item 3.1.','Órgão Gestor'),
+ X('3.8','Certidão de Habilitação Profissional (CRC) do responsável contábil','Art. 46, § 1º, XII','Dados do profissional responsável pela OSC e validade.','Órgão Gestor'),
+ X('3.9','Inscrição no Conselho Municipal ou credenciamento no órgão gestor da política','Art. 46, § 1º, X','Inscrição no CMDCA, CMI, CMAS ou outro conselho; validade do credenciamento.','Órgão Gestor',{fields:F39}),
+ X('3.10','Demais documentos exigidos em decreto regulamentar','Art. 4º, I, “a”, Dec. 7.531/2026','Conforme o objeto; exigir complementação, se necessário.','Órgão Gestor',{df:'x'}),
+ X('3.11','Certificado de Regularidade Cadastral – CRC/OSC','—','Certificação da regularidade cadastral.','Órgão Gestor / Unidade responsável'),
+ X('3.12','Ofício de solicitação de celebração de ajustes (OSC)','Art. 46, I','Contém as informações exigidas.','Órgão Gestor',{g:'Celebração (Art. 46, I; Art. 4º, I, “b”, §§ 1º a 8º, Dec. 7.531/2026)'}),
+ X('3.13','Plano de Trabalho com Demonstrativo dos Custos apurados (metas e orçamento)','Art. 46, II','Objeto, objetivos, prazo, metas, indicadores, custos e cronograma. Conta específica: banco público, isenta de tarifa; em emenda, conta exclusiva e individualizada (Banco do Brasil 001 ou Caixa 104).','Órgão Gestor',{subs:['Conta bancária específica','Objeto, objetivos e prazo','Metas e indicadores','Custos e cronograma']}),
+ X('3.14','Declaração Única da OSC (art. 39 da Lei 13.019)','Art. 46, § 1º, VII, VIII e IX','Conformidade com o cadastro (ficha da OSC e dirigentes, capacidade técnica e operacional). Verificar nepotismo/improbidade (§ 1º, VII, “c”).','Órgão Gestor'),
+ X('3.15','Anexo PC-02 – Termo de Consentimento de Contas Bancárias (TCESP)','—','Dados corretos de banco, agência e conta.','Órgão Gestor',{m:1}),
+ X('3.16','Plano de trabalho, em formato .JSON (enviado por e-mail pela OSC e anexado ao processo pelo Órgão Gestor)','—','Arquivo .JSON recebido por e-mail da OSC e anexado ao processo; conferir se o conteúdo corresponde ao Plano de Trabalho (item 3.13).','OSC envia · Órgão Gestor anexa'),
+ X('3.17','Demais documentos exigidos pela Secretaria / Controladoria Geral do Município','—','Conforme o objeto; exigir complementação, se necessário.','Órgão Gestor',{df:'x'}),
+ X('3.18','Ofício de solicitação de celebração do Órgão Gestor ao GAP','—','Encaminhamento ao GAP.','Órgão Gestor'),
+ X('3.19','Avaliação e aprovação da OSC e do Plano de Trabalho (Anexo XIII)','Arts. 48 e 50','Mérito, custos e capacidade de execução do objeto.','Órgão Gestor'),
+ X('3.20','Ratificação orçamentária (impacto, ordenador, reserva e financiamento externo)','Art. 9º, III; Art. 13, II a IV','Anexar os documentos da Fase 1 (itens 1.4, 1.14 a 1.16) ou, em emendas, elaborá-los agora.','Órgão Gestor / SMPG',{m:1,subs:RATIF_SUBS}),
+ X('3.21','Lei autorizativa','Art. 14, XI, LOM','Existe lei autorizativa? Senão, elaborar minuta de projeto de lei.','AGCP'),
+ X('3.22','Minuta do Termo de Fomento/Colaboração (Anexo X)','Art. 41','Conteúdo conforme a minuta padrão.','AGCP'),
+ X('3.23','Parecer técnico','Arts. 48 e 50','Mérito, custos e capacidade.','CGM'),
+ X('3.24','Parecer jurídico','Art. 51','Legalidade.','SMAJ'),
+ X('3.25','Publicação da Justificativa/Autorização do GAP (dispensa / inexigibilidade)','—','Publicar no Diário Oficial. Prazo de 5 dias para impugnação.','AGCP',{rt:['disp','inex']}),
+ X('3.26','Assinatura e publicação do extrato da parceria','Art. 53','Versão final para assinatura; extrato publicado até 20 dias após a assinatura.','AGCP'),
+ X('3.27','Cadastro AUDESP Fase V (TCESP)','Art. 54; IN 01/2024 TCESP, art. 149, I','Até 10 dias úteis após a assinatura. Cadastro contábil (CGM) e empenho; informar o código AUDESP à CGM; após o empenho, concluir o AUDESP. Instruir a documentação para eventual fiscalização (prazo TCESP: 5 dias úteis). Ajustes não fiscalizados: documentação permanece na origem por 10 anos.','AGCP · CGM · SMAF',{subs:['SEI Cadastro da OSC (certidões)','Plano de Trabalho','Termo assinado','Extrato do termo']}),
+ X('3.28','Divulgação: Pesquisa Pública SEI e Portal da Legislação','—','Arquivo único em PDF com documentos assinados e tarjados (LGPD).','AGCP · CGM · SMAF',{subs:['Termo','Plano de Trabalho','ANEXO RP9','Justificativa (publicação)','Extrato do Termo (publicação)']})]},
+{id:'f4',ro:['osc'],n:'Fase 4',s:'Execução',t:'Execução e monitoramento',d:'Durante a vigência da parceria.',skip:'',items:[
+ X('4.1','Conta específica (banco público, isenta de tarifa)','Art. 56, § 1º','Obrigatória antes do 1º repasse, se não providenciada anteriormente.','OSC',{m:1}),
+ X('4.2','Designação do Gestor da Parceria','Art. 121, VI','Conferir o decreto; se não houver, providenciar.','AGCP / Prefeito'),
+ X('4.3','Designação da Comissão de Monitoramento e Avaliação (CMA)','Art. 73','Conferir o decreto; se não houver, providenciar.','AGCP / Prefeito'),
+ X('4.4','Relatórios de visita técnica in loco','Art. 75','Elaborar e anexar ao processo.','Órgão Gestor'),
+ X('4.5','Pesquisa de satisfação (parcerias com mais de 1 ano)','Art. 76','Realizar e anexar ao processo.','Órgão Gestor'),
+ X('4.6','Apostilamento (se houver)','Art. 67, II','Uso de rendimentos e saldos, ajustes do PT, remanejamento sem alterar o valor global, ou prorrogação por atraso na liberação de recursos/indicação de créditos futuros. Submeter previamente a parecer técnico e jurídico, se exigível. Em dúvida, usar Termo Aditivo.','Órgão Gestor / SMAJ',{df:'x'}),
+ X('4.7','Termo Aditivo (se houver)','Art. 67, I; Art. 68','Ampliação/redução do valor global, prorrogação de vigência ou alteração da destinação de bens remanescentes. Parecer técnico e jurídico prévios.','Órgão Gestor / SMAJ',{df:'x'})]},
+{id:'f5',ro:['osc'],n:'Fase 5',s:'Prestação de contas',t:'Prestação de contas (quadrimestral, anual e final)',d:'Conformidade financeira e de objeto.',skip:'',items:[
+ X('5.1','Relatório quadrimestral de execução do objeto','Art. 82, I','Cumprimento das metas.','OSC'),
+ X('5.2','Relatório quadrimestral financeiro + extratos','Art. 82, II','Conciliação bancária (obrigatória).','OSC',{m:1}),
+ X('5.3','Relatório técnico de monitoramento (homologado pela CMA)','Art. 73, § 3º','Apresentação a cada quadrimestre.','CMA / Gestor'),
+ X('5.4','Prestação de contas anual (até 31/jan)','Art. 86','Consolidado do ano anterior.','OSC'),
+ X('5.5','Prestação de contas 100% digital (JSON/API – Audesp V)','Art. 77, § 2º','Obrigatória a partir de 2026; a OSC deve ter sistema compatível. Não serão aceitos documentos físicos.','OSC / DPTI'),
+ X('5.6','Prestação de contas final (objeto + financeira)','Arts. 88 e 91','Até 30–45 dias após o término.','OSC'),
+ X('5.7','Comprovante de devolução de saldo (se houver)','Art. 89, parágrafo único','Saldo corrigido pela poupança.','OSC',{m:1,df:'x'}),
+ X('5.8','Parecer técnico conclusivo','Art. 94','Análise do atingimento de resultados.','Órgão Gestor'),
+ X('5.9','Manifestação conclusiva da autoridade (aprovação/rejeição)','Art. 96','Base para baixa no sistema e no TCESP.','Órgão Gestor / Autoridade competente')]},
+
+/* ---------- OSC: alteração (Termo Aditivo / Apostilamento) ---------- */
+{id:'a1',ro:['osc_alt'],n:'Fase 1',s:'Alteração',t:'Alteração da parceria',d:'Termo Aditivo ou Apostilamento de Termo de Fomento ou de Colaboração (Decreto 7.456/2026 e Decreto 7.531/2026). Responsável pela autuação: Órgão Gestor interessado.',skip:'',items:[
+ X('A1.1','Reabertura do processo eletrônico após solicitação da OSC ou deliberação do Órgão Gestor','Art. 67','Interesse e vantagem na alteração da parceria em relação à celebração de um novo instrumento.','Órgão Gestor'),
+ X('A1.2','Ofício de Solicitação ou Anuência, com justificativa fundamentada (ou anuência ao pedido do Órgão Gestor)','Art. 67; Art. 18, I, Dec. 7.531/2026 e Anexos','Deve conter vigência, resumo da execução, motivos da alteração e saldos existentes.','OSC'),
+ X('A1.3','Ofício de Autorização prévia ou Solicitação ao Prefeito (aprovação do pedido da OSC ou proposta justificada)','Art. 67; Art. 18, I, Dec. 7.531/2026 e Anexos','Deve conter vigência, fonte de recurso, motivos ou autorização da alteração. Antecedência de 60 dias: ampliação do valor global e prorrogação de vigência.','Órgão Gestor'),
+ X('A1.4','Plano de Trabalho (inserido no sistema e aprovado pelo Órgão Gestor)','Art. 46, I; Art. 18, I, Dec. 7.531/2026 e Anexos','Objeto, objetivos, prazo, metas, indicadores, cronograma e custos.','OSC atualiza · Órgão Gestor avalia e aprova'),
+ X('A1.5','Declaração Única da OSC (art. 39 da Lei 13.019)','Art. 46, § 1º, V, § 2º; Art. 18, I, Dec. 7.531/2026 e Anexos','Situação atual de atendimento aos requisitos e não impedimentos.','OSC'),
+ X('A1.6','Requerimento para Análise de Impacto Orçamentário (Anexo III)','Art. 67','Confirmação de dotação na LOA/LDO/PPA.','Órgão Gestor',{m:1}),
+ X('A1.7','Lista de verificação de alterações da parceria','—','Etapas e documentos necessários — gere o PDF deste aplicativo e anexe.','AGCP'),
+ X('A1.8','Justificativa / Autorização do Prefeito (Anexo XIV)','Art. 67, § 7º','Enviar para assinatura após parecer técnico da CGM. Ratifica a autorização do Órgão Gestor, justifica e autoriza a formalização; deve ser publicada no Diário Oficial.','AGCP · Prefeito assina'),
+ X('A1.9','Minuta do Termo Aditivo ou da Certidão de Apostilamento','Art. 67, I, II, § 1º','Enquadramento correto. Apostilamento: rendimentos e saldos, ajustes do PT, remanejamento sem alterar o valor global. Termo Aditivo: valor, vigência e destino de bens remanescentes.','AGCP',{fields:[{k:'enq',l:'Enquadramento da alteração',type:'select',opts:ENQ_ALT}]}),
+ X('A1.10','Demonstrativo do Impacto Orçamentário (Anexo III) e Declaração do Ordenador','Art. 13, II','Confirmação de dotação na LOA/LDO/PPA.','SMPG · Órgão Gestor e Prefeito assinam',{m:1}),
+ X('A1.11','Reserva orçamentária (comprovante de dotação / pré-empenho)','Art. 13, III','Indicação expressa da dotação.','SMPG',{m:1}),
+ X('A1.12','Ofício de solicitação de Projeto de Lei ou Decreto de crédito adicional','—','Se necessário crédito adicional.','SMPG / Órgão Gestor',{m:1,df:'x'}),
+ X('A1.13','Ofício, Projeto de Lei e Decreto autorizativo / abertura de crédito adicional (minutas)','—','Se necessário crédito adicional.','AGCP',{m:1,df:'x'}),
+ X('A1.14','Parecer técnico','Art. 14; Art. 18, I, Dec. 7.531/2026 e Anexos','Análise técnica e contábil.','CGM'),
+ X('A1.15','Parecer jurídico','Art. 15; Art. 68; Art. 18, I, Dec. 7.531/2026 e Anexos','Nos casos previstos: I – ampliação do valor global; II – redução do valor global; III – prorrogação de vigência; IV – alteração da destinação dos bens remanescentes.','SMAJ')]},
+{id:'a2',ro:['osc_alt'],n:'Fase 2',s:'Celebração',t:'Celebração (requisitos da OSC e formalização)',d:'Verificação obrigatória da atualização dos documentos.',skip:'',items:[
+ X('A2.1','Certificado de Regularidade Cadastral – CRC/OSC','—','Certificação da regularidade cadastral.','OSC atualiza · Órgão Gestor verifica periodicamente'),
+ X('A2.2','Documentos finais para assinatura e publicação dos extratos (Termo Aditivo ou Certidão de Apostilamento)','Art. 16','Conteúdo final na plataforma ou sistema digital para assinatura. Publicação do extrato no Diário Oficial.','AGCP · OSC, Órgão Gestor e Prefeito assinam'),
+ X('A2.3','Cadastro AUDESP Fase V (TCESP)','Art. 54; IN 01/2024 TCESP, art. 149, I','Até 10 dias úteis após a assinatura. Cadastro contábil (CGM) e empenho; informar o código AUDESP à CGM; após o empenho, concluir o AUDESP. Instruir a documentação para eventual fiscalização (prazo TCESP: 5 dias úteis). Documentação não fiscalizada permanece na origem por 10 anos.','AGCP · CGM · SMAF',{subs:['SEI Cadastro da OSC (certidões)','Plano de Trabalho','Termo assinado','Extrato do termo']}),
+ X('A2.4','Divulgação: Pesquisa Pública SEI e Portal da Legislação','—','Arquivo único em PDF com os documentos assinados e tarjados (LGPD).','AGCP · CGM · SMAF',{subs:['Termo','Plano de Trabalho','ANEXO RP9','Justificativa (publicação)','Extrato do Termo (publicação)']})]},
+
+/* ---------- Convênio / Termo de Cooperação: celebração ---------- */
+{id:'c1',ro:['conv'],n:'Fase 1',s:'Planejamento',t:'Planejamento / Dispensa ou Inexigibilidade de Chamamento Público',d:'A ser verificada pelo Órgão Gestor interessado, em planejamento inicial ou conforme as hipóteses dos arts. 672 a 674 do Decreto Municipal nº 7.055/2023.',rt:NS,skip:'Em ajustes originários de emendas, siga direto à Fase 3.',items:[
+ X('C1.1','Início do processo eletrônico após planejamento e estruturação','—','Interesse e vantagem da execução via convênio.','Órgão Gestor'),
+ X('C1.2','Ofício de Solicitação inicial (Anexo I)','—','Justificativa, tipo de ajuste, objeto, valor, vigência e fonte de recurso.','Órgão Gestor'),
+ X('C1.3','Estudo Técnico Preliminar com Demonstrativo dos Custos Apurados para Metas e Orçamento','—','Se origem na Administração Pública (não aplicável a ajustes originários de emendas). Base para definição do valor do ajuste.','Órgão Gestor'),
+ X('C1.4','Requerimento inicial de Análise de Impacto Orçamentário','—','Existência de dotação na LOA/LDO/PPA.','Órgão Gestor',{m:1}),
+ X('C1.5','Autorização inicial do GAP','—','Favorável: tramita à AGCP; desfavorável: arquiva ou devolve ao Órgão Gestor para readequação/saneamento.','GAP / AGCP'),
+ X('C1.6','Lista de verificação anexada ao processo','—','Etapas e documentos necessários — gere o PDF deste aplicativo e anexe.','AGCP'),
+ X('C1.7','Justificativa / Autorização do GAP – Dispensa de chamamento','Art. 673','Órgão Gestor informou e justificou o enquadramento. Assinar e publicar após o parecer jurídico (Fase 3). Hipóteses: I – emergência ou calamidade pública; II – guerra, calamidade pública, grave perturbação; III – programa de proteção a pessoas ameaçadas ou em risco; IV – serviços de educação, saúde e assistência social (entidades previamente credenciadas); V – repasse por convenente até o limite do art. 75, I e II, da Lei 14.133/2021.','Órgão Gestor · AGCP · GAP',{rt:['disp'],fields:[{k:'inc',l:'Enquadramento (art. 673)',type:'select',opts:['I – emergência ou calamidade pública','II – guerra, calamidade pública, grave perturbação','III – proteção de pessoas ameaçadas ou em risco','IV – educação, saúde e assistência social (entidades credenciadas)','V – até o limite do art. 75, I e II, da Lei 14.133/2021']}]}),
+ X('C1.8','Edital de Credenciamento (dispensa – inciso IV)','Art. 673, IV','Dispensa: credenciamento prévio das entidades (saúde, educação e assistência social). Após o credenciamento, ir à Fase 3.','Órgão Gestor',{rt:['disp']}),
+ X('C1.9','Justificativa / Autorização do GAP – Inexigibilidade de chamamento','Art. 674','Órgão Gestor informou e justificou o enquadramento. Assinar e publicar após o parecer jurídico (Fase 3). Hipóteses: I – acordo, ato ou compromisso internacional; II – entidade beneficiária identificada em lei (art. 26 da LC 101/2000); III – emendas individuais ou de bancada às leis orçamentárias anuais.','Órgão Gestor · AGCP · GAP',{rt:['inex'],fields:[{k:'inc',l:'Enquadramento (art. 674)',type:'select',opts:['I – acordo, ato ou compromisso internacional','II – entidade identificada em lei (art. 26 da LC 101/2000)','III – emendas individuais ou de bancada']}]}),
+ X('C1.10','Demonstrativo do Impacto Orçamentário (Anexo III) e Declaração do Ordenador','—','Dotação na LOA/LDO/PPA, cálculo do impacto e ordenação da despesa.','SMPG',{m:1}),
+ X('C1.11','Reserva orçamentária (comprovante de dotação / pré-empenho)','—','Indicação expressa da dotação.','SMPG',{m:1}),
+ X('C1.12','Comprovante de financiamento parcial/total por outros entes','—','Caso de uso de recurso federal ou estadual.','SMPG',{m:1,df:'x'}),
+ X('C1.13','Parecer técnico','—','Análise técnica e contábil.','CGM'),
+ X('C1.14','Parecer jurídico','—','Análise jurídica, nos casos previstos.','SMAJ'),
+ X('C1.15','Documentos para assinatura e publicação','—','Versão final dos documentos para assinatura e publicação.','AGCP')]},
+{id:'c2',ro:['conv'],n:'Fase 2',s:'Chamamento',t:'Chamamento público (fase externa)',d:'A ser verificado conforme os arts. 675 a 678 do Decreto Municipal nº 7.055/2023. Se dispensado ou inexigível (Fase 1), pular esta etapa.',rt:['cham'],skip:'Dispensa ou inexigibilidade: pule esta etapa.',items:[
+ X('C2.1','Conteúdo mínimo do edital do chamamento público','Art. 675','Edital contém o exigido no Decreto. Vedadas cláusulas que comprometam, restrinjam ou frustrem o caráter competitivo (parágrafo único).','AGCP',{subs:['I – programação orçamentária que autoriza e viabiliza o ajuste','II – objeto do convênio','III – datas, prazos, condições, local e forma de apresentação das propostas','IV – datas e critérios de seleção e julgamento (metodologia de pontuação e pesos)','V – valor previsto para a realização do objeto','VI – condições para recurso administrativo e prazo de julgamento','VII – minuta do instrumento','VIII – prazo para impugnação do edital','Parágrafo único – ausência de cláusulas restritivas']}),
+ X('C2.2','Divulgação do edital','Art. 676','Página do sítio eletrônico oficial, com antecedência mínima de 30 dias. Publicação no Diário Oficial e divulgação no site oficial.','Órgão Gestor · AGCP'),
+ X('C2.3','Grau de adequação, julgamento, homologação e justificativa','Art. 677','Critérios mínimos de adequação no edital; julgamento pela Comissão de Seleção; homologação e publicação do resultado; justificativa excepcional se selecionada proposta que não for a mais adequada ao valor de referência.','Comissão de Seleção · Órgão Gestor · AGCP · GAP',{subs:['Grau de adequação da proposta','Julgamento das propostas (ata da Comissão)','Homologação e publicação do resultado (DOEM e site oficial)','Justificativa excepcional (se aplicável)']}),
+ X('C2.4','Comissão de seleção','Art. 678','Ato de designação (Resolução do Órgão Gestor), composta por, no mínimo, 2/3 de servidores efetivos do Município (arredondamento para maior).','Órgão Gestor')]},
+{id:'c3',ro:['conv'],n:'Fase 3',s:'Cadastro e celebração',t:'Cadastro e celebração (requisitos da Entidade)',d:'Verificação obrigatória dos documentos da Entidade selecionada. Instrução no SEI Cidades ou outro sistema do Município (Decreto 7.531/2026). Protocolo no SEI Usuários Externos, em PDF/A.',skip:'',items:[
+ X('C3.1','Ofício de cadastramento e certidões da Entidade','Art. 4º, I, “a”, Dec. 7.531/2026; Art. 679, caput e incisos','Conferir se estão atualizados conforme a última ata de eleição do quadro dirigente.','Entidade protocola · Órgão Gestor verifica',{g:'Cadastro da Entidade (Art. 4º, I, “a”, Dec. 7.531/2026)',subs:['Ofício de Solicitação de Cadastramento','Certidão Dados OSC/Entidade','Certidão Corpo Diretivo','Certidão Conselho (Ajuste)','Certidão Recursos OSC/Entidade']}),
+ X('C3.2','Estatuto registrado e alterações (+ Regimento Interno)','Art. 679, I','Objeto social compatível. Em dúvida, consultar a SMAJ.','Órgão Gestor'),
+ X('C3.3','Comprovante de inscrição no CNPJ','Art. 679, II','Ativo há no mínimo 1 ano; verificar CNAE principal e secundários.','Órgão Gestor'),
+ X('C3.4','Comprovantes de experiência prévia e capacidade técnica e operacional','Art. 679, III','Mínimo de 3 anos; convênios anteriores, relatórios, atestados de objeto semelhante.','Órgão Gestor'),
+ X('C3.5','Certidões de regularidade fiscal, previdenciária, tributária, de contribuições e de dívida ativa','Art. 679, IV','Todas vigentes no momento do cadastro e antes da celebração. Estadual: certidão ou declaração de isenção.','Órgão Gestor',{subs:CERT_SUBS}),
+ X('C3.6','Comprovante de endereço (conta de consumo ou contrato de locação)','Art. 679, V','Em nome da Entidade e recente.','Órgão Gestor'),
+ X('C3.7','Ata de eleição do quadro dirigente atual','Art. 679, VI','Se é atual.','Órgão Gestor'),
+ X('C3.8','Certidão de Habilitação Profissional (CRC) do responsável contábil','Art. 679, VII','Dados do profissional responsável e validade.','Órgão Gestor'),
+ X('C3.9','Inscrição no Conselho Municipal ou credenciamento no órgão gestor da política','Art. 679, VIII','Inscrição no CMS ou outro conselho; validade do credenciamento.','Órgão Gestor',{fields:F39}),
+ X('C3.10','Certidões do Tribunal de Contas do Estado de São Paulo','Art. 4º, I, “a”, Dec. 7.531/2026','Certidão Negativa de Contas Julgadas Irregulares – Pessoa Jurídica; e Certidão de Apenados de Impedimentos de Repasse.','Órgão Gestor',{subs:['Contas Julgadas Irregulares – Pessoa Jurídica','Apenados de Impedimentos de Repasse']}),
+ X('C3.11','Demais documentos exigidos em decreto regulamentar','Art. 4º, I, “a”, Dec. 7.531/2026','Conforme o objeto; exigir complementação, se necessário.','Órgão Gestor',{df:'x'}),
+ X('C3.12','Certificado de Regularidade Cadastral – CRC/Entidade','—','Certificação da regularidade cadastral.','Órgão Gestor'),
+ X('C3.13','Ofício de solicitação de celebração de ajustes (Entidade)','Art. 4º, I, “b”, §§ 1º a 8º, Dec. 7.531/2026','Contém as informações exigidas.','Órgão Gestor',{g:'Celebração (Art. 679, X; Art. 4º, I, “b”, §§ 1º a 8º, Dec. 7.531/2026)'}),
+ X('C3.14','Plano de Trabalho com Demonstrativo dos Custos Apurados (metas e orçamento)','Art. 679, X; Art. 681','Objeto, objetivos, prazo, metas, indicadores, custos e cronograma (art. 681). Aquisição de bens/serviços: orçamento preliminar (art. 682). Obra e serviço de engenharia/arquitetura: projeto, orçamento e demais documentos do art. 683.','Órgão Gestor',{subs:['Objeto, objetivos e prazo','Metas, indicadores e cronograma','Custos (art. 681)','Orçamento preliminar / cotação – bens e serviços (art. 682) (se aplicável)','Projeto e orçamento – obra e engenharia (art. 683) (se aplicável)']}),
+ X('C3.15','Declaração Única da Entidade','Art. 684, § 1º, II','Conformidade com o cadastro (ficha da Entidade e dirigentes, capacidade técnica e operacional).','Órgão Gestor'),
+ X('C3.16','Anexo PC-02 – Termo de Consentimento de Contas Bancárias (TCESP)','Art. 4º, I, “b”, Dec. 7.531/2026','Dados corretos de banco, agência e conta.','Órgão Gestor',{m:1}),
+ X('C3.17','Plano de trabalho, em formato .JSON (enviado por e-mail pela Entidade e anexado ao processo pelo Órgão Gestor)','Art. 4º, I, “b”, Dec. 7.531/2026','Arquivo .JSON recebido por e-mail da Entidade e anexado ao processo; conferir se o conteúdo corresponde ao Plano de Trabalho (item C3.14).','Entidade envia · Órgão Gestor anexa'),
+ X('C3.18','Demais documentos exigidos pela Secretaria / Controladoria Geral do Município','Art. 4º, I, “b”, Dec. 7.531/2026','Conforme o objeto; exigir complementação, se necessário.','Órgão Gestor',{df:'x'}),
+ X('C3.19','Ofício de solicitação de celebração do Órgão Gestor ao GAP','—','Encaminhamento ao GAP.','Órgão Gestor'),
+ X('C3.20','Avaliação e aprovação da Entidade e do Plano de Trabalho','Art. 681','Mérito, custos e capacidade da Entidade de execução do objeto.','Órgão Gestor'),
+ X('C3.21','Ratificação orçamentária (impacto, ordenador, reserva e financiamento externo)','—','Anexar os documentos da Fase 1 (itens C1.4, C1.10 a C1.12) ou, em ajustes de emendas, elaborá-los agora.','Órgão Gestor / SMPG',{m:1,subs:RATIF_SUBS}),
+ X('C3.22','Lei autorizativa','Art. 14, XI, LOM','Existe lei autorizativa? Senão, elaborar minuta de projeto de lei.','AGCP'),
+ X('C3.23','Minuta do Convênio / Termo de Cooperação','Art. 684','Conteúdo conforme a minuta padrão.','AGCP'),
+ X('C3.24','Parecer técnico','—','Mérito, custos e capacidade.','CGM'),
+ X('C3.25','Parecer jurídico','—','Legalidade.','SMAJ'),
+ X('C3.26','Publicação da Justificativa / Autorização','—','Publicar no Diário Oficial. Limite para impugnação: 5 dias úteis. Se houve impugnação, anexar a decisão do titular do Órgão Gestor.','AGCP',{rt:['disp','inex','emenda']}),
+ X('C3.27','Cadastro AUDESP Fase V (TCESP)','Art. 155, I, IN 01/2024 TCESP','Até 10 dias úteis após a assinatura. Cadastro contábil (CGM) e empenho; informar o código AUDESP à CGM; após o empenho, concluir o AUDESP. Instruir a documentação para eventual fiscalização (prazo TCESP: 5 dias úteis). Documentação não fiscalizada permanece na origem por 10 anos.','AGCP · CGM · SMAF',{subs:['SEI Cadastro da Entidade (certidões)','Plano de Trabalho','Termo assinado','Extrato do termo']}),
+ X('C3.28','Divulgação: Pesquisa Pública SEI e Portal da Legislação','—','Arquivo único em PDF com os documentos assinados e tarjados (LGPD).','AGCP · CGM · SMAF',{subs:['Termo','Plano de Trabalho','ANEXO RP-11','Justificativa (publicação)','Extrato do Termo (publicação)']})]},
+
+/* ---------- Convênio / Termo de Cooperação: alteração ---------- */
+{id:'b1',ro:['conv_alt'],n:'Fase 1',s:'Alteração',t:'Alteração do ajuste',d:'Termo Aditivo ou Apostilamento de Convênio ou Termo de Cooperação (Decreto 7.055/2023 e Decreto 7.531/2026). Responsável pela autuação: Órgão Gestor interessado.',skip:'',items:[
+ X('B1.1','Reabertura do processo eletrônico após solicitação da Entidade ou deliberação do Órgão Gestor','Art. 708','Interesse e vantagem na alteração do ajuste em relação à celebração de um novo instrumento.','Órgão Gestor'),
+ X('B1.2','Ofício de Solicitação ou Anuência, com justificativa fundamentada (ou anuência ao pedido do Órgão Gestor)','Art. 708; Art. 18, II, Dec. 7.531/2026 e alterações','Deve conter vigência, resumo da execução, motivos da alteração e saldos existentes.','Entidade'),
+ X('B1.3','Ofício de Autorização prévia ou Solicitação ao Prefeito (aprovação do pedido da Entidade ou proposta justificada)','Art. 708; Art. 18, II, Dec. 7.531/2026 e alterações','Deve conter vigência, fonte de recurso, motivos ou autorização da alteração.','Órgão Gestor'),
+ X('B1.4','Plano de Trabalho (inserido no sistema e aprovado pelo Órgão Gestor)','Art. 18, II, Dec. 7.531/2026 e alterações','Objeto, objetivos, prazo, metas, indicadores, cronograma e custos.','Entidade · Órgão Gestor'),
+ X('B1.5','Declaração Única da Entidade','Art. 18, II, Dec. 7.531/2026 e alterações','Situação atual de atendimento aos requisitos e não impedimentos.','Entidade'),
+ X('B1.6','Requerimento para Análise de Impacto Orçamentário','Art. 67 (conferir)','Confirmação de dotação na LOA/LDO/PPA.','Órgão Gestor',{m:1}),
+ X('B1.7','Autorização inicial do GAP','—','Favorável: tramita à AGCP; desfavorável: arquiva ou devolve ao Órgão Gestor para readequação/saneamento.','AGCP · Prefeito'),
+ X('B1.8','Justificativa / Autorização do Prefeito (Anexo XIV)','Art. 67, § 7º (conferir)','Enviar para assinatura após parecer técnico da CGM. Ratifica a autorização do Órgão Gestor, justifica e autoriza a formalização; deve ser publicada no Diário Oficial.','AGCP · Prefeito'),
+ X('B1.9','Minuta do Termo Aditivo ou da Certidão de Apostilamento','Art. 67, I, II, § 1º (conferir)','Enquadramento correto. Apostilamento: rendimentos e saldos, ajustes do PT, remanejamento sem alterar o valor global. Termo Aditivo: valor, vigência e destino de bens remanescentes.','AGCP',{fields:[{k:'enq',l:'Enquadramento da alteração',type:'select',opts:ENQ_ALT}]}),
+ X('B1.10','Demonstrativo do Impacto Orçamentário (Anexo III) e Declaração do Ordenador','Art. 13, II','Confirmação de dotação na LOA/LDO/PPA.','SMPG · Órgão Gestor · Prefeito',{m:1}),
+ X('B1.11','Reserva orçamentária (comprovante de dotação / pré-empenho)','Art. 13, III','Indicação expressa da dotação.','SMPG',{m:1}),
+ X('B1.12','Ofício de solicitação de Projeto de Lei ou Decreto de crédito adicional','—','Se necessário crédito adicional.','SMPG · Órgão Gestor',{m:1,df:'x'}),
+ X('B1.13','Ofício, Projeto de Lei e Decreto autorizativo / abertura de crédito adicional (minutas)','—','Se necessário crédito adicional.','AGCP',{m:1,df:'x'}),
+ X('B1.14','Parecer técnico','Art. 14; Art. 18, II, Dec. 7.531/2026 e alterações','Análise técnica e contábil.','CGM'),
+ X('B1.15','Parecer jurídico','Art. 15; Art. 68; Art. 18, II, Dec. 7.531/2026 e alterações','Nos casos previstos: I – ampliação do valor global; II – redução do valor global; III – prorrogação de vigência; IV – alteração da destinação dos bens remanescentes.','SMAJ')]},
+{id:'b2',ro:['conv_alt'],n:'Fase 2',s:'Celebração',t:'Celebração (requisitos da Entidade e formalização)',d:'Verificação obrigatória da atualização dos documentos.',skip:'',items:[
+ X('B2.1','Certificado de Regularidade Cadastral – CRC/Entidade','—','Certificação da regularidade cadastral.','Entidade · Órgão Gestor'),
+ X('B2.2','Documentos finais para assinatura e publicação dos extratos (Termo Aditivo ou Certidão de Apostilamento)','Art. 16','Conteúdo final na plataforma ou sistema digital para assinatura. Publicação do extrato no Diário Oficial.','AGCP · Entidade · Órgão Gestor · Prefeito'),
+ X('B2.3','Cadastro AUDESP Fase V (TCESP)','Art. 54; IN 01/2024 TCESP, art. 149, I','Até 10 dias úteis após a assinatura. Cadastro contábil (CGM) e empenho; informar o código AUDESP à CGM; após o empenho, concluir o AUDESP. Instruir a documentação para eventual fiscalização (prazo TCESP: 5 dias úteis). Documentação não fiscalizada permanece na origem por 10 anos.','AGCP · CGM · SMAF',{subs:['SEI Cadastro da Entidade (certidões)','Plano de Trabalho','Termo assinado','Extrato do termo']}),
+ X('B2.4','Divulgação: Pesquisa Pública SEI e Portal da Legislação','—','Arquivo único em PDF com os documentos assinados e tarjados (LGPD).','AGCP · CGM · SMAF',{subs:['Termo','Plano de Trabalho','ANEXO RP11','Justificativa (publicação)','Extrato do Termo (publicação)']})]}
+];
+const PH={};PHASES.forEach(p=>{PH[p.id]=p;p.items.forEach(i=>{i.ph=p.id;i.rt=i.rt||p.rt})});
+const ALL=PHASES.flatMap(p=>p.items);
+const ITEM={};ALL.forEach(i=>ITEM[i.id]=i);
+
+/* Itens vinculados por tipo de documento e rota */
+const ITM={
+ plano:{osc:'3.13',osc_alt:'A1.4',conv:'C3.14',conv_alt:'B1.4'},
+ plano_json:{osc:'3.16',conv:'C3.17'},
+ pc02:{osc:'3.15',conv:'C3.16'},
+ dun:{osc:'3.14',osc_alt:'A1.5',conv:'C3.15',conv_alt:'B1.5'},
+ resv:{osc:'3.20',osc_alt:'A1.11',conv:'C3.21',conv_alt:'B1.11'},
+ impacto:{osc:'3.20',osc_alt:'A1.10',conv:'C3.21',conv_alt:'B1.10'},
+ cnpj:{osc:'3.3',conv:'C3.3'}
+};
+
+/* Tipos de documento reconhecidos (texto normalizado, sem acentos). Ordem = prioridade. */
+const DOCTYPES=[
+ {k:'pc02',l:'Anexo PC-02 – Termo de Consentimento de Contas Bancárias',itm:'pc02',all:true,re:[/termo de consentimento/,/(contas? bancarias?|conta corrente)/]},
+ {k:'dun',l:'Declaração Única da OSC/Entidade',itm:'dun',re:[/declaracao unica/]},
+ {k:'parecer',l:'Parecer técnico/jurídico',og:true,all:true,re:[/parecer (tecnico|juridico)/,/(conclusao|fundamentacao|opino|manifestacao)/]},
+ {k:'impacto',l:'Demonstrativo de Impacto Orçamentário / Declaração do Ordenador',itm:'impacto',sub:1,og:true,all:true,re:[/impacto orcamentario/,/ordenador/]},
+ {k:'resv',l:'Reserva orçamentária / pré-empenho',itm:'resv',sub:2,og:true,re:[/(reserva orcamentaria|nota de reserva|pre-?empenho|reserva de dotacao)/]},
+ {k:'just',l:'Justificativa / Autorização (GAP/Prefeito)',og:true,re:[/justificativa.{0,60}autorizacao/,/autorizacao do (prefeito|gap)/]},
+ {k:'plano',l:'Plano de Trabalho',itm:'plano',all:true,re:[/plano de trabalho/,/\bmetas?\b/,/(cronograma|etapas?|atividades?)/,/(objeto|objetivo)/]},
+ {k:'cnpj',l:'Comprovante de Inscrição e Situação Cadastral (CNPJ)',item:'3.3',re:[/comprovante de inscricao e de situacao cadastral/]},
+ {k:'fed',l:'Certidão Federal (RFB/PGFN)',item:'3.5',sub:0,re:[/debitos relativos aos creditos tributarios federais/,/divida ativa da uniao/]},
+ {k:'fgts',l:'Certificado de Regularidade do FGTS',item:'3.5',sub:1,re:[/regularidade do fgts/]},
+ {k:'trab',l:'Certidão Negativa de Débitos Trabalhistas',item:'3.5',sub:2,re:[/debitos trabalhistas/,/cndt/]},
+ {k:'est',l:'Certidão Estadual',item:'3.5',sub:3,re:[/debitos tributarios nao inscritos na divida ativa/,/fazenda do estado/,/divida ativa do estado/]},
+ {k:'mun',l:'Certidão Municipal',item:'3.5',sub:4,re:[/tributos mobiliarios/,/debitos municipais/,/certidao negativa de debitos.{0,60}municip/]},
+ {k:'tce',l:'Certidão do TCESP (Contas Julgadas Irregulares / Apenados)',item:'3.10',only:'conv',sub:0,re:[/contas julgadas irregulares/,/impedimentos? de repasse/]},
+ {k:'crc',l:'Certidão de Habilitação Profissional (CRC)',item:'3.8',re:[/conselho regional de contabilidade/,/habilitacao profissional/]},
+ {k:'cons',l:'Inscrição em Conselho Municipal',item:'3.9',re:[/conselho municipal (dos direitos|de assistencia|do idoso|de saude|de educacao)/,/cmdca|cmas/]},
+ {k:'ata',l:'Ata de eleição / posse',item:'3.7',re:[/ata .{0,80}(eleicao|posse)/,/assembleia geral.{0,80}(eleicao|posse)/]},
+ {k:'est_s',l:'Estatuto Social',item:'3.2',re:[/estatuto/,/(capitulo|art\.? ?\d|das finalidades|da denominacao)/],all:true},
+ {k:'end',l:'Comprovante de endereço',item:'3.6',re:[/fatura|conta de (energia|luz|agua)|cpfl|sabesp|energisa|elektro|contrato de locacao|locador|locatario/]},
+ {k:'exp',l:'Atestado de capacidade técnica / experiência',item:'3.4',re:[/atestado de capacidade tecnica/,/atestado.{0,80}(execucao|prestacao de servicos)/]}
+];
+const EXTRA_DOCS=[{k:'plano_json',l:'Plano de Trabalho (JSON)',itm:'plano_json'},{k:'lista',l:'Lista de Verificação desta aplicação (JSON/PDF)',og:true},{k:'outro',l:'Outro documento'}];
+const DOCS_ALL=[...DOCTYPES,...EXTRA_DOCS];
+const STORE={draft:'chkosc.draft.v1',vers:'chkosc.versions.v1',brasao:'chkosc.brasao.v1',pdfv:'chkosc.pdfv.v1',layout:'chkosc.layout.v1'};
+const STOPN=new Set(['associacao','entidade','organizacao','sociedade','civil','beneficente','social','instituto','centro','fundacao','comunitaria','municipal','para','dos','das']);
+
+/* ===================== UTIL ===================== */
+const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const parseBR=s=>{const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(s);return m?new Date(+m[3],+m[2]-1,+m[1]):null};
+const fmtBR=d=>d.toLocaleDateString('pt-BR');
+const uid=()=>Math.random().toString(36).slice(2,10);
+const CNPJ_RE=/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/g;
+function maskCnpjStr(v){const d=(v||'').replace(/\D/g,'').slice(0,14);return d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2')}
+function cnpjValid(v){const d=(v||'').replace(/\D/g,'');if(d.length!==14||/^(\d)\1+$/.test(d))return false;
+ const calc=n=>{let s=0,p=n-7;for(let i=0;i<n;i++){s+=+d[i]*p--;if(p<2)p=9}const r=s%11;return r<2?0:11-r};
+ return calc(12)===+d[12]&&calc(13)===+d[13]}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+function defaultIdent(){return{rota:'osc',processo:'',secretaria:'',tipo:'fomento',route:'cham',origem_mod:'',origem_num:'',osc:'',cnpj:'',valor:'',objeto:'',vigencia:'',gestor:'',data:new Date().toISOString().slice(0,10),fonte:'',emenda:{tipo:'',num:'',valor:'',autor:''}}}
+const LINK_7055='https://cidades.sei.sp.gov.br/marilia/sei/modulos/pesquisa/md_pesq_documento_consulta_externa.php?dJVLRE4Td3_RxMXEsr-kkyemzMdZpUdwVn3lUsRMNixGDsNCMdQJpkGbzom-L_Jkey0vMztuG4hqeyEqcYuzecHHB8pQaQ2LEm0eAOJ8p2YCfOGmJ68haKrZpV-zKlS0dTevO4-HcaGNMH3rEM3WlQ,,';
+function leisPadrao(){return{
+ osc:[
+  {t:'Lei Federal nº 13.019, de 31 de julho de 2014',url:'https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2014/lei/l13019compilado.htm'},
+  {t:'Decreto Municipal nº 7.456, de 20 de janeiro de 2026 (0083776)',url:'https://cidades.sei.sp.gov.br/marilia/sei/controlador.php?acao=procedimento_trabalhar&id_procedimento=96992'},
+  {t:'Decreto nº 7.500/2026',url:'https://cidades.sei.sp.gov.br/marilia/sei/controlador.php?acao=procedimento_trabalhar&id_procedimento=173942'},
+  {t:'Anexos atualizados',url:'https://cidades.sei.sp.gov.br/marilia/sei/controlador.php?acao=procedimento_trabalhar&id_procedimento=154021'},
+  {t:'Decreto nº 7.531/2026 (0200769)',url:'https://cidades.sei.sp.gov.br/marilia/sei/modulos/pesquisa/md_pesq_processo_exibir.php?rTuJ1Bdsrmq4nxUq9mDwGLoMfr4jT4WFPgytQKVkj2lEiXXsTY3uRvvFKNmNjaAJSVC_VAdAVMl5h8qzdNBI6IWiOL58DF4up0iPVpFQM5Apcw22MBw_3-Zew6EdF1jWq_TmlzWnMvzALBM2joBC9w,,'}],
+ conv:[
+  {t:'Lei Federal nº 14.133, de 1º de abril de 2021',url:'https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm'},
+  {t:'Decreto nº 7.055/2023',url:LINK_7055},
+  {t:'Decreto nº 7.531, de 3 de agosto de 2026 (0200769)',url:'https://cidades.sei.sp.gov.br/marilia/sei/modulos/pesquisa/md_pesq_processo_exibir.php?rTuJ1Bdsrmq4nxUq9mDwGLoMfr4jT4WFPgytQKVkj2lEiXXsTY3uRvvFKNmNjaAJSVC_VAdAVMl5h8qzdNBI6IWiOL58DF4up0iPVpFQM5Apcw22MBw_3-Zew6EdF1jWq_TmlzWnMvzALBM2joBC9w,,'}]}}
+function defaultMeta(){return{municipio:'Prefeitura Municipal da Estância Turística de Paraguaçu Paulista – SP',unidade:'Assessoria em Gestão de Convênios e Projetos',cidade:'Paraguaçu Paulista',leis:leisPadrao()}}
+function fieldInit(it){const f={};(it.fields||[]).forEach(d=>{if(d.type==='validade'){f[d.k+'_t']='';f[d.k+'_d']=''}else f[d.k]=''});return f}
+function isSnap(d){return d&&typeof d.schema==='string'&&/^(checklist-osc|lista-verificacao)\//.test(d.schema)}
+function detectTipo(t){const c=k=>(t.match(new RegExp(k,'g'))||[]).length;
+ const n={aditivo:c('termo aditivo'),apost:c('apostilamento'),fomento:c('termo de fomento'),colab:c('termo de colaboracao'),acordo:c('acordo de cooperacao'),convenio:c('convenio'),coop:c('termo de cooperacao')};
+ const base=['fomento','colab','acordo','convenio','coop'].sort((a,b)=>n[b]-n[a])[0];const hasBase=n[base]>0;
+ const alt=(n.aditivo+n.apost)>0?(n.aditivo>=n.apost?'aditivo':'apost'):'';
+ return{tipo:alt||(hasBase?base:''),base:hasBase?base:''}}
+const ORIGEM_LABEL={fomento:'Termo de Fomento',colab:'Termo de Colaboração',acordo:'Acordo de Cooperação (sem repasse)',convenio:'Convênio',coop:'Termo de Cooperação'};
+function factsFromText(text){const t=norm(text).replace(/\s+/g,' ');const f={};const d=detectTipo(t);
+ const cn=[...new Set((text.match(CNPJ_RE)||[]).map(maskCnpjStr))].filter(cnpjValid);
+ if(cn.length===1||(/comprovante de inscricao e de situacao cadastral/.test(t)&&cn.length))f.cnpj=cn[0];
+ const pm=/processo(?:\s+sei)?\s*(?:n[ºo°\.]{0,2})?\s*[:\-]?\s*(\d[\d.\/\-]{6,25}\d)/i.exec(text);if(pm)f.processo=pm[1];
+ if(d.tipo){f.tipo=d.tipo;
+  if(['aditivo','apost'].includes(d.tipo)){f.rota=(['convenio','coop'].includes(d.base))?'conv_alt':'osc_alt';if(d.base){f.origem_mod=ORIGEM_LABEL[d.base];
+   const om=/(?:termo|conv[eê]nio|acordo)[^\d]{0,40}n[ºo°.]{0,2}\s*(\d{1,5}\/\d{4})/i.exec(text);if(om)f.origem_num=om[1]}}
+  else f.rota=['convenio','coop'].includes(d.tipo)?'conv':'osc';
+  const vm=/R\$\s*([\d.]+,\d{2})/.exec(text);if(vm)f.valor=vm[1]}
+ return f}
+function factsFromJson(o){const flat=[];(function w(x,p){if(x&&typeof x==='object'){for(const k in x)w(x[k],p+'.'+k)}else flat.push([p.toLowerCase(),x])})(o,'');
+ const get=(re,test)=>{const e=flat.find(([p,v])=>re.test(p)&&v!==''&&v!=null&&(!test||test(v)));return e?e[1]:''};
+ const txt=JSON.stringify(o);const f=factsFromText(txt);
+ const cn=[...new Set(flat.map(([p,v])=>(String(v).match(CNPJ_RE)||[])[0]).filter(Boolean).map(maskCnpjStr))].filter(cnpjValid);if(cn.length===1)f.cnpj=cn[0];
+ const pr=String(get(/processo/));if(pr&&!f.processo)f.processo=pr;
+ const nm=get(/(raz[aã]o|osc|entidade|organiza)/,v=>typeof v==='string'&&v.length>4&&!/^[\d.\/-]+$/.test(v));if(nm)f.osc=String(nm);
+ const ob=get(/objeto/,v=>typeof v==='string');if(ob)f.objeto=String(ob);
+ const vl=get(/valor|global|total/,v=>typeof v==='number'||/^[\d.]+,\d{2}$/.test(String(v)));if(vl!==''&&!f.valor)f.valor=typeof vl==='number'?vl.toLocaleString('pt-BR',{minimumFractionDigits:2}):String(vl);
+ const vg=get(/vig[eê]ncia|prazo/,v=>typeof v==='string'||typeof v==='number');if(vg!=='')f.vigencia=String(vg);
+ const gs=get(/gestor/,v=>typeof v==='string'&&v.length>3);if(gs)f.gestor=String(gs);
+ return f}
+
+/* ===================== TEMPORALIDADE ===================== */
+function parsePdfDate(s){const m=/D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(?:(Z)|([+-])(\d{2})'?(\d{2})?)?/.exec(s||'');if(!m)return '';
+ let ms=Date.UTC(+m[1],(+m[2]||1)-1,+m[3]||1,+m[4]||0,+m[5]||0,+m[6]||0);
+ if(m[8]){const off=(+m[9]*60+(+m[10]||0))*60000;ms-=(m[8]==='+'?1:-1)*off}
+ const d=new Date(ms);return isNaN(d)?'':d.toISOString()}
+function emitDate(t){let best=null;
+ const add=(d,h)=>{const m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(d);if(!m)return;const iso=m[3]+'-'+m[2]+'-'+m[1]+'T'+(h?h+':00':'00:00:00');const dt=new Date(iso);if(isNaN(dt))return;if(!best||dt>best.dt)best={dt,iso,hasTime:!!h}};
+ for(const m of t.matchAll(/(\d{2}:\d{2})(?::\d{2})?\s*(?:horas?\s*)?do\s+dia\s*(\d{2}\/\d{2}\/\d{4})/g))add(m[2],m[1]);
+ for(const m of t.matchAll(/(?:emitid[ao]|emissao|gerad[ao]|expedid[ao]|expedicao|impress[ao]|consultad[ao]|extraid[ao]|assinad[ao](?:\s+digitalmente)?)\D{0,30}(\d{2}\/\d{2}\/\d{4})(?:\D{0,12}(\d{2}:\d{2}))?/g))add(m[1],m[2]);
+ return best}
+function jsonGen(o){const c=[];(function w(x,p){if(x&&typeof x==='object'){for(const k in x)w(x[k],p+'.'+k)}
+  else if(typeof x==='string'||typeof x==='number'){if(/(gerad|emiss|geracao|criad|exportad|timestamp|data.?hora|savedat|updated|atualiz|datadocumento)/i.test(p)){const s=String(x);let d=null;
+   if(/^\d{4}-\d{2}-\d{2}/.test(s))d=new Date(s);else{const m=parseBR(s);if(m)d=m}if(d&&!isNaN(d))c.push({d,t:/T\d{2}:\d{2}/.test(s)})}}})(o,'');
+ if(!c.length)return null;c.sort((a,b)=>b.d-a.d);return{iso:c[0].d.toISOString(),hasTime:c[0].t}}
+function jsonToText(o){const L=[];
+ const lab={meta:'Meta',metas:'Meta',etapa:'Etapa',etapas:'Etapa',atividade:'Atividade',atividades:'Atividade',indicador:'Indicador',indicadores:'Indicador',parcela:'Parcela',parcelas:'Parcela',desembolso:'Parcela',desembolsos:'Parcela',objetivo:'Objetivo',objetivos:'Objetivo'};
+ const fmt=(k,v)=>typeof v==='number'?(/valor|custo|total|parcela|desembolso|contrapartida|repasse|preco|montante/i.test(k)?'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2}):String(v)):String(v);
+ (function w(x,k){if(Array.isArray(x)){const l=lab[norm(k)];x.forEach((it,i)=>{if(it&&typeof it==='object'&&l){const vals=Object.entries(it).map(([kk,vv])=>(typeof vv==='object'&&vv!==null?JSON.stringify(vv):kk+': '+fmt(kk,vv)));L.push(l+' '+(it.numero||it.num||it.id||i+1)+': '+vals.join(' | '))}else w(it,k)})}
+  else if(x&&typeof x==='object'){for(const kk in x)w(x[kk],kk)}
+  else if(x!==null&&x!==''&&x!==undefined)L.push(k+': '+fmt(k,x))})(o,'raiz');
+ return L.join('\n')}
+
+/* ===================== ANÁLISE DO PLANO DE TRABALHO ===================== */
+const money=s=>{const n=parseFloat(String(s).replace(/\./g,'').replace(',','.'));return isNaN(n)?null:n};
+const fmtMoney=n=>n==null?'—':n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const near=(a,b,tol)=>Math.abs(a-b)<=(tol==null?0.01:tol);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+function findMoney(tn,re){const out=[];const g=new RegExp(re.source,'gi');let m;while((m=g.exec(tn))){const v=money(m[m.length-1]);if(v!=null)out.push(v)}return out}
+function tokensOf(s){return new Set(norm(s).split(/[^a-z0-9]+/).filter(w=>w.length>3))}
+function overlap(a,b){const A=tokensOf(a),B=tokensOf(b);if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>{if(B.has(x))n++});return n/Math.min(A.size,B.size)}
+function contasFrom(tn){
+ const ag=[...tn.matchAll(/agencia\s*(?:n[ºo.]*\s*)?[:\-]?\s*(\d{3,5}(?:-?[\dx])?)/g)].map(m=>m[1].replace(/[^0-9x]/g,''));
+ const cc=[...tn.matchAll(/conta(?:\s+(?:corrente|poupanca|especifica|bancaria))*\s*(?:n[ºo.]*\s*)?[:\-]?\s*(\d{3,12}(?:-?[\dx])?)/g)].map(m=>m[1].replace(/[^0-9x]/g,''));
+ const bc=[];
+ if(/banco\s+do\s+brasil/.test(tn))bc.push('001');
+ if(/caixa\s+economica/.test(tn))bc.push('104');
+ for(const m of tn.matchAll(/\bbanco\s*[:\-]?\s*(\d{3})\b/g))bc.push(m[1]);
+ return{ag:[...new Set(ag)],cc:[...new Set(cc)],bc:[...new Set(bc)]}}
+function parseVig(s){const t=norm(s||'');if(!t.trim())return null;
+ const r=/(\d{2}\/\d{2}\/\d{4})\s*(?:a|ate|ao|-|–)\s*(\d{2}\/\d{2}\/\d{4})/.exec(t);
+ if(r){const i=parseBR(r[1]),f=parseBR(r[2]);if(i&&f)return{ini:i,fim:f,meses:Math.round((f-i)/(30.44*864e5))}}
+ const q=/(\d{1,3})\s*(?:\([^)]*\)\s*)?(mes(?:es)?|anos?)\b/.exec(t);if(q)return{meses:+q[1]*(/ano/.test(q[2])?12:1)};return null}
+function vigFrom(tn){const k=/(?:vigencia|periodo\s+de\s+execucao|prazo\s+de\s+execucao|prazo\s+de\s+vigencia)/g;let m,res=null;
+ while((m=k.exec(tn))){const sl=tn.slice(m.index,m.index+200);
+  const r=/(\d{2}\/\d{2}\/\d{4})\s*(?:a|ate|ao|-|–)\s*(\d{2}\/\d{2}\/\d{4})/.exec(sl);
+  if(r){const i=parseBR(r[1]),f=parseBR(r[2]);if(i&&f){res={ini:i,fim:f,meses:Math.round((f-i)/(30.44*864e5)),txt:r[0]};break}}
+  const q=/(\d{1,3})\s*(?:\([^)]*\)\s*)?(mes(?:es)?|anos?)\b/.exec(sl);if(q&&!res)res={meses:+q[1]*(/ano/.test(q[2])?12:1),txt:q[0]}}
+ return res}
+function analisaPlano(raw){
+ const tn=norm(raw);const A={};
+ let mo=/(?:^|\n)[ \t]*(?:\d+(?:\.\d+)*[.)]?[ \t]*)?objeto(?:[ \t]+(?:da[ \t]+parceria|do[ \t]+(?:termo|plano(?:[ \t]+de[ \t]+trabalho)?|ajuste|convenio|projeto)))?[ \t]*[:\-–]?[ \t]*/.exec(tn);
+ if(!mo)mo=/\bobjeto(?:[ \t]+(?:da[ \t]+parceria|do[ \t]+[a-z ]{3,25}?))?[ \t]*[:\-–][ \t]*/.exec(tn);
+ if(mo){const s=mo.index+mo[0].length;const rest=tn.slice(s,s+1200);
+  const sm=/\n\s*(?:\d+(?:\.\d+)*[.)]?\s*)?(?:objetivos?|justificativa|metas?|publico|vigencia|prazo|etapas?|atividades?|indicadores?|cronograma|receitas?|custos?|beneficiarios|identificacao|dados|plano\s+de\s+aplicacao|contrapartida)\b/.exec(rest);
+  A.objeto=raw.slice(s,s+(sm?sm.index:rest.length)).replace(/\s+/g,' ').trim()}else A.objeto='';
+ const items=[];const re=/\b(objetivo|meta|etapa|atividade|indicador)\s*(?:n[ºo.]*\s*)?(\d+(?:\.\d+)*)\s*[:\-–.)]\s*([^\n]{4,260}?)(?=\s+(?:objetivo|meta|etapa|atividade|indicador)\s*(?:n[ºo.]*\s*)?\d|\n|$)/gi;
+ let m;while((m=re.exec(tn))){items.push({k:m[1],num:m[2],txt:raw.slice(m.index+m[0].length-m[3].length,m.index+m[0].length).trim()})}
+ A.items=items;
+ const hd=k=>new RegExp('(?:^|\\n)[ \\t]*(?:\\d+(?:\\.\\d+)*[.)]?[ \\t]*)?'+k+'\\b').test(tn);
+ A.head={objetivo:hd('objetivos?'),meta:hd('metas?'),etapa:hd('(?:etapas?|atividades?)'),indicador:hd('indicadores?')};
+ A.cron=/cronograma/.test(tn);
+ A.receitas=/(receitas?|fontes?\s+de\s+recursos?|contrapartida|recursos?\s+proprios)/.test(tn);
+ A.memoria=/(valor\s+unitario|quantidade|\bqtd\b|memoria\s+de\s+calculo)/.test(tn);
+ A.nValores=[...tn.matchAll(/R\$\s*[\d.]+,\d{2}/gi)].length;
+ A.rubricas=[...new Set(tn.match(/\b(pessoal|encargos|material\s+de\s+consumo|material|servicos?\s+de\s+terceiros|equipamentos?|despesas?\s+administrativas?|alimentacao|transporte|locacao|capacitacao|diarias?|custos?\s+indiretos?)\b/g)||[])];
+ A.total=findMoney(tn,/(?:valor\s+(?:global|total)|total\s+geral|total\s+do\s+(?:plano|projeto|termo|ajuste))[^\d\n]{0,60}R?\$?\s*([\d.]+,\d{2})/);
+ A.contra=findMoney(tn,/contrapartida[^\d\n]{0,60}R\$\s*([\d.]+,\d{2})/);
+ A.repasse=findMoney(tn,/(?:valor\s+do\s+repasse|repasse(?:\s+(?:publico|do\s+municipio|financeiro))?|recursos?\s+(?:publicos?|do\s+municipio|da\s+administracao))[^\d\n]{0,60}R\$\s*([\d.]+,\d{2})/);
+ const pm=new Map();for(const x of tn.matchAll(/(?:parcela|desembolso|mes)\s*(?:n[ºo.]*\s*)?(\d{1,3})\b[^\d\n]{0,50}(?:\d{2}\/\d{2}\/\d{4}[^\d\n]{0,20})?R\$\s*([\d.]+,\d{2})/g)){if(!pm.has(x[1]))pm.set(x[1],money(x[2]))}
+ A.parcelas=[...pm.values()].filter(v=>v!=null);
+ const V=[[/taxa\s+de\s+(?:administracao|gerencia)/,'taxa de administração/gerência','err'],
+  [/\b(?:multas?|juros\s+de\s+mora|encargos\s+moratorios|correcao\s+monetaria)\b/,'multas, juros ou correção monetária','err'],
+  [/servidor(?:es)?\s+(?:ou\s+empregado\s+)?publicos?[^\n.]{0,80}(?:remuneracao|pagamento|salario|honorario|gratificacao)|(?:remuneracao|pagamento|salario|honorario)[^\n.]{0,80}servidor(?:es)?\s+(?:ou\s+empregado\s+)?publicos?/,'pagamento a servidor ou empregado público','err'],
+  [/bebidas?\s+alcoolicas?/,'bebidas alcoólicas','err'],
+  [/(?:publicidade|propaganda)/,'publicidade/propaganda (vedada se de cunho pessoal)','warn'],
+  [/tarifas?\s+bancarias?/,'tarifas bancárias (a conta deve ser isenta)','warn'],
+  [/(?:anteriores?\s+a\s+vigencia|retroativ[oa]s?)/,'despesa anterior à vigência/retroativa','warn'],
+  [/remuneracao[^\n.]{0,60}dirigentes?|dirigentes?[^\n.]{0,60}remuneracao/,'remuneração de dirigente (conferir estatuto e regras do decreto)','warn']];
+ A.vedacoes=V.map(([r,t,l])=>{const x=r.exec(tn);return x?{t,l,ev:raw.slice(Math.max(0,x.index-40),x.index+x[0].length+60).replace(/\s+/g,' ').trim()}:null}).filter(Boolean);
+ return A}
+
+/* ===================== APLICAÇÃO ===================== */
+function app(){return{
+ phases:PHASES, rotasV:ROTAS_V, tipos:TIPOS, presets:OBS_PADRAO, fontes:FONTES, secretarias:SECRETARIAS, docsAll:DOCS_ALL, ITEM,
+ statusOpts:[{k:'s',l:'Sim',i:'✔',on:'bg-emerald-800 text-white border-emerald-800'},{k:'n',l:'Não',i:'✖',on:'bg-red-800 text-white border-red-800'},{k:'x',l:'N/A',i:'–',on:'bg-slate-700 text-white border-slate-700'}],
+ filters:[{k:'all',l:'Todos'},{k:'p',l:'Pendentes'},{k:'n',l:'Não'},{k:'s',l:'Sim'}],
+ panelTabs:[{k:'resumo',l:'Resumo'},{k:'pend',l:'Pendências'},{k:'docs',l:'Documentos'},{k:'verif',l:'Verificação'}],
+ view:'import', filter:'all', q:'', showNA:false, openObs:{}, drawer:false, modal:'', menuExp:false, menuLay:false, tbOpen:false,
+ ident:defaultIdent(), meta:defaultMeta(), st:{}, signers:[{nome:'',cargo:''}], audit:[], brasao:'',
+ imp:{rows:[],sources:[]}, impShowSame:false, pv:{url:'',name:'',ver:0,size:0,bytes:null,key:''}, pdfSeq:{},
+ versions:[], versionName:'', toasts:[], savedAt:'', timer:null, busy:false, busyMsg:'',
+ layout:{panel:true,nav:'side',dens:'n',cols:'auto',fs:16}, panelTab:'resumo', winMode:'', wid:uid(), bc:null, lastSig:'', syncTimer:null,
+ gate:{released:false,mode:'',just:'',ack:false,at:''}, verif:null, vFilter:'all', ack:false, regObs:true, justTxt:'',
+ impOrigem:'auto', maxAge:90, ocrOn:true,
+
+ init(){
+  this.resetState();
+  try{const l=JSON.parse(localStorage.getItem(STORE.layout)||'null');if(l)Object.assign(this.layout,l)}catch(e){}
+  this.applyLayout();
+  try{const m=/[#&]w=(\w+)/.exec(location.hash||'');if(m)this.winMode=m[1]}catch(e){}
+  try{const b=localStorage.getItem(STORE.brasao);if(b)this.brasao=b}catch(e){}
+  try{const v=localStorage.getItem(STORE.vers);if(v)this.versions=JSON.parse(v)}catch(e){}
+  try{const v=localStorage.getItem(STORE.pdfv);if(v)this.pdfSeq=JSON.parse(v)}catch(e){}
+  try{const d=localStorage.getItem(STORE.draft);if(d){this.applySnap(JSON.parse(d),true)}}catch(e){}
+  if(this.winMode==='panel')this.view='resumo';
+  else if(this.winMode&&this.order().includes(this.winMode))this.view=this.winMode;
+  if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  this.$watch('ident.rota',r=>{const R=ROTAS_V[r];if(!R)return;
+   if(!R.tipos.includes(this.ident.tipo))this.ident.tipo=R.tipos[0];
+   if(!R.alt){this.ident.origem_mod='';this.ident.origem_num=''}else if(!(R.origem||[]).includes(this.ident.origem_mod))this.ident.origem_mod='';
+   if(!['import','ident','resumo'].includes(this.view)&&!this.activePhases().some(p=>p.id===this.view))this.view='ident'});
+  this.$watch('layout',()=>{this.applyLayout();try{localStorage.setItem(STORE.layout,JSON.stringify(this.layout))}catch(e){}});
+  this.$watch(()=>JSON.stringify(this.core()),()=>this.schedule());
+  this.$nextTick(()=>{this.measureHdr();const h=this.$refs.hdr;if(h&&window.ResizeObserver)new ResizeObserver(()=>this.measureHdr()).observe(h);window.addEventListener('resize',()=>this.measureHdr())});
+  this.initSync();
+ },
+ resetState(){const s={};ALL.forEach(i=>{s[i.id]={s:i.df||'p',obs:'',sei:'',subs:(i.subs||[]).map(()=>false),f:fieldInit(i)}});this.st=s},
+ toast(m){const t={id:uid(),m};this.toasts.push(t);setTimeout(()=>this.toasts=this.toasts.filter(x=>x.id!==t.id),4200)},
+ selecao(){return SEL[ROTAS_V[this.ident.rota].fam]},
+ leisAtivas(){const f=ROTAS_V[this.ident.rota].fam;if(!this.meta.leis||Array.isArray(this.meta.leis))this.meta.leis=leisPadrao();if(!this.meta.leis[f])this.meta.leis[f]=leisPadrao()[f];return this.meta.leis[f]},
+ restaurarLeis(){const f=ROTAS_V[this.ident.rota].fam;if(!confirm('Restaurar as normas e links padrão da base legal (Lei Federal nº '+(f==='osc'?'13.019/2014':'14.133/2021')+')? Alterações e normas adicionadas nesta lista serão substituídas.'))return;
+  if(!this.meta.leis||Array.isArray(this.meta.leis))this.meta.leis=leisPadrao();this.meta.leis[f]=JSON.parse(JSON.stringify(leisPadrao()[f]));this.toast('Base legal restaurada ao padrão.')},
+ emendaKind(){return {'Emenda Municipal':'m','Emenda Estadual':'e','Emenda Federal':'f'}[this.ident.fonte]||''},
+ fonteText(){const i=this.ident;if(!i.fonte)return '—';const e=i.emenda,k=this.emendaKind();if(!k)return i.fonte;
+  return i.fonte+' — '+[k!=='m'&&e.tipo?'Tipo: '+e.tipo:'',e.num?'Nº '+e.num:'',e.valor?'R$ '+e.valor:'',e.autor?'Autor: '+e.autor:''].filter(Boolean).join(' · ')},
+ fieldsText(it){if(!it.fields)return '';const f=this.st[it.id].f;return it.fields.map(d=>{if(d.type==='validade'){const t=f[d.k+'_t'];
+   const v=t==='ind'?'Indeterminada':(t==='ate'&&f[d.k+'_d']?'até '+fmtBR(new Date(f[d.k+'_d']+'T12:00:00')):'');return v?d.l+': '+v:''}
+   return f[d.k]?d.l+': '+f[d.k]:''}).filter(Boolean).join('\n')},
+ fmtDT(iso){if(!iso)return '';const d=new Date(iso);return isNaN(d)?'':d.toLocaleString('pt-BR')},
+
+ /* ---- leiaute / múltiplas telas ---- */
+ applyLayout(){document.documentElement.style.setProperty('--fs',(+this.layout.fs||16)+'px')},
+ measureHdr(){const h=this.$refs.hdr;if(!h)return;const s=getComputedStyle(h).position==='sticky';document.documentElement.style.setProperty('--hdr',(s?h.offsetHeight:0)+'px')},
+ resetLayout(){this.layout={panel:true,nav:'side',dens:'n',cols:'auto',fs:16}},
+ showPanel(){return this.winMode==='panel'||(!this.winMode&&this.layout.panel)},
+ popOut(v){try{
+   if(!/^(https?|file):$/.test(location.protocol)){this.toast('Disponível ao abrir o arquivo .html diretamente no navegador.');return}
+   const w=window.open(location.href.split('#')[0]+'#w='+v,'chk_'+v,'popup=yes,width=1180,height=860');
+   if(!w)this.toast('O navegador bloqueou a nova janela. Permita pop-ups para este arquivo.');else this.toast('Janela aberta; as alterações ficam sincronizadas.')
+  }catch(e){this.toast('Não foi possível abrir nova janela neste ambiente.')}},
+ sig(){return JSON.stringify(this.core())},
+ initSync(){if(!('BroadcastChannel' in window))return;
+  try{this.bc=new BroadcastChannel('chkosc-sync')}catch(e){return}
+  this.bc.onmessage=e=>{const m=e.data;if(!m||m.from===this.wid)return;
+   if(m.t==='snap'){try{this.applySnap(m.d,true);this.lastSig=this.sig()}catch(er){console.error(er)}}
+   else if(m.t==='hello'){this.sendSnap()}};
+  this.bc.postMessage({t:'hello',from:this.wid})},
+ sendSnap(){if(!this.bc)return;try{this.bc.postMessage({t:'snap',from:this.wid,d:JSON.parse(JSON.stringify(this.snap(false)))})}catch(e){}},
+
+ /* ---- aplicabilidade e estatísticas ---- */
+ semRepasse(id){id=id||this.ident;return id.tipo==='acordo'||(['aditivo','apost'].includes(id.tipo)&&/sem repasse/.test(id.origem_mod||''))},
+ applicable(it,id){id=id||this.ident;const p=PH[it.ph];if(!p||!p.ro.includes(id.rota))return false;
+  if(it.rt&&!it.rt.includes(id.route))return false;if(it.m&&this.semRepasse(id))return false;return true},
+ activePhases(){return PHASES.filter(p=>p.ro.includes(this.ident.rota))},
+ phaseOn(p){return p.ro.includes(this.ident.rota)&&(!p.rt||p.rt.includes(this.ident.route))},
+ stats(p){const L=(typeof p==='string'?PH[p]:p).items.filter(i=>this.applicable(i));
+  const c=k=>L.filter(i=>this.st[i.id].s===k).length;const sim=c('s'),nao=c('n'),na=c('x'),pend=c('p');
+  const total=L.length;return{total,sim,nao,na,pend,done:sim+na,pct:total?Math.round((sim+na)/total*100):100}},
+ overall(){const t={total:0,sim:0,nao:0,na:0,pend:0};this.activePhases().filter(p=>this.phaseOn(p)).forEach(p=>{const s=this.stats(p);for(const k in t)t[k]+=s[k]});t.pct=t.total?Math.round((t.sim+t.na)/t.total*100):0;return t},
+ identOk(){return !!(this.ident.processo&&this.ident.osc&&this.ident.secretaria&&cnpjValid(this.ident.cnpj))},
+ naoList(){return this.activePhases().flatMap(p=>p.items).filter(i=>this.applicable(i)&&this.st[i.id].s==='n')},
+ visible(p){const q=norm(this.q.trim());return p.items.filter(i=>{
+   if(!this.applicable(i)&&!this.showNA)return false;
+   const s=this.st[i.id].s;if(this.filter!=='all'&&this.applicable(i)&&s!==this.filter)return false;
+   if(this.filter!=='all'&&!this.applicable(i))return false;
+   if(q&&!norm(i.id+' '+i.t+' '+i.b+' '+i.v).includes(q))return false;return true})},
+ cardCls(it){if(!this.applicable(it))return 'border-slate-300 opacity-60';const s=this.st[it.id].s;const lk=this.locked()?' opacity-80':'';
+  return (s==='s'?'border-emerald-700 border-l-8':s==='n'?'border-red-700 border-l-8':s==='x'?'border-slate-400 border-l-8':'border-amber-600 border-l-8')+lk},
+ obsOpen(it){return this.openObs[it.id]!==undefined?this.openObs[it.id]:!!(this.st[it.id].obs||this.st[it.id].sei)},
+
+ /* ---- ações de item ---- */
+ locked(){return !this.gate.released},
+ reqOk(it,subs){return !it.subs||it.subs.every((l,i)=>/\(se aplic[aá]vel\)/i.test(l)||subs[i])},
+ setS(it,k){if(this.locked())return;const o=this.st[it.id];o.s=(o.s===k)?'p':k},
+ setSub(it,i){if(this.locked())return;const o=this.st[it.id];o.subs[i]=!o.subs[i];const ok=this.reqOk(it,o.subs);
+  if(ok&&o.s==='p')o.s='s'; else if(!ok&&o.s==='s')o.s='p'},
+ preset(it,ev){const v=ev.target.value;if(v&&!this.locked()){const o=this.st[it.id];o.obs=o.obs?o.obs+'\n'+v:v;this.openObs[it.id]=true}ev.target.value=''},
+
+ /* ---- navegação ---- */
+ order(){return ['import','ident',...this.activePhases().map(p=>p.id),'resumo']},
+ prevView(id){const o=this.order(),i=o.indexOf(id);return i>0?o[i-1]:''},
+ nextView(id){const o=this.order(),i=o.indexOf(id);return o[Math.min(i+1,o.length-1)]},
+ go(v){this.view=v;this.filter='all';this.q='';this.$nextTick(()=>{window.scrollTo({top:0,behavior:'smooth'});const m=document.getElementById('main');m&&m.focus({preventScroll:true})})},
+ goItem(it){if(!it)return;if(this.winMode==='panel'){this.toast('Abra o item na janela principal: '+it.id);return}this.view=it.ph;this.filter='all';this.q='';this.$nextTick(()=>{const e=document.getElementById('it-'+it.id);e&&e.scrollIntoView({behavior:'smooth',block:'center'})})},
+
+ /* ---- máscaras ---- */
+ maskCnpj:maskCnpjStr, cnpjOk:cnpjValid,
+
+ /* ---- brasão ---- */
+ loadBrasao(ev){const f=ev.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{const img=new Image();img.onload=()=>{const M=260,k=Math.min(1,M/Math.max(img.width,img.height)),c=document.createElement('canvas');
+    c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    this.brasao=c.toDataURL('image/png');try{localStorage.setItem(STORE.brasao,this.brasao)}catch(e){}this.toast('Brasão incluído.')};
+   img.onerror=()=>this.toast('Não foi possível ler a imagem.');img.src=r.result};r.readAsDataURL(f);ev.target.value=''},
+
+ /* ---- persistência ---- */
+ pkey(){return this.ident.processo||'sem-processo'},
+ snap(withB=true){const o={schema:'lista-verificacao/3',savedAt:new Date().toISOString(),ident:this.ident,meta:this.meta,signers:this.signers,st:this.st,
+   audit:this.audit.map(a=>{const c={...a};delete c.txt;return c}),gate:this.gate,verif:this.verif,maxAge:this.maxAge,pdfSeq:this.pdfSeq[this.pkey()]||0};
+  if(withB&&this.brasao)o.brasao=this.brasao;return o},
+ core(){const s=this.snap(false);delete s.savedAt;return s},
+ schedule(){clearTimeout(this.timer);this.timer=setTimeout(()=>{try{localStorage.setItem(STORE.draft,JSON.stringify(this.snap(false)));this.savedAt=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){this.toast('Não foi possível salvar o rascunho (armazenamento cheio).')}},1000);
+  clearTimeout(this.syncTimer);this.syncTimer=setTimeout(()=>{const s=this.sig();if(s===this.lastSig)return;this.lastSig=s;this.sendSnap()},500)},
+ normIdent(src){const di=Object.assign(defaultIdent(),src||{});di.emenda=Object.assign({tipo:'',num:'',valor:'',autor:''},(src&&src.emenda)||{});return di},
+ normLeis(l){const d=leisPadrao();const mg=a=>(Array.isArray(a)?a:[]).map(x=>(x&&/^Decreto Municipal nº 7\.055\/2023$/.test((x.t||'').trim()))?{t:'Decreto nº 7.055/2023',url:x.url||LINK_7055}:x);if(l&&!Array.isArray(l)&&Array.isArray(l.conv))l={...l,conv:mg(l.conv)};if(Array.isArray(l))return{osc:l,conv:d.conv};if(l&&typeof l==='object')return{osc:Array.isArray(l.osc)?l.osc:d.osc,conv:Array.isArray(l.conv)?l.conv:d.conv};return d},
+ normAudit(a){return Object.assign({kind:'pdf',origem:'osc',docKey:'',gen:{},tflags:[],flags:[],cnpjs:[],label:'',validade:'',nat:'',ocr:false,target:'',applied:false,pages:0,size:0},a)},
+ hasProgress(d){return Object.keys(d.st||{}).some(id=>{const s=d.st[id],it=ITEM[id];return s&&it&&(s.s!==(it.df||'p')||s.obs||s.sei||(s.subs||[]).some(Boolean))})},
+ applySnap(d,silent){
+  if(!isSnap(d))throw new Error('Arquivo não reconhecido.');
+  this.ident=this.normIdent(d.ident);
+  if(!ROTAS_V[this.ident.rota])this.ident.rota='osc';
+  if(!FONTES.includes(this.ident.fonte))this.ident.fonte='';
+  this.meta=Object.assign(defaultMeta(),d.meta||{});this.meta.leis=this.normLeis((d.meta||{}).leis);
+  this.signers=Array.isArray(d.signers)&&d.signers.length?d.signers:[{nome:'',cargo:''}];
+  this.resetState();
+  for(const id in (d.st||{})){const t=this.st[id],s=d.st[id];if(!t||!s)continue;
+   if(['p','s','n','x'].includes(s.s))t.s=s.s;t.obs=String(s.obs||'');t.sei=String(s.sei||'');
+   if(Array.isArray(s.subs)&&s.subs.length===t.subs.length)t.subs=s.subs.map(Boolean);
+   if(s.f&&typeof s.f==='object')Object.keys(t.f).forEach(k=>{if(typeof s.f[k]==='string')t.f[k]=s.f[k]})}
+  const keepTxt=new Map(this.audit.filter(a=>a.txt).map(a=>[a.id,a.txt]));
+  this.audit=(Array.isArray(d.audit)?d.audit:[]).map(a=>{const n=this.normAudit(a);if(keepTxt.has(n.id))n.txt=keepTxt.get(n.id);return n});
+  if(d.gate&&typeof d.gate==='object')this.gate=Object.assign({released:false,mode:'',just:'',ack:false,at:''},d.gate);
+  else this.gate=this.hasProgress(d)?{released:true,mode:'just',just:'Lista iniciada antes da implantação da 1ª Verificação.',ack:false,at:new Date().toISOString()}:{released:false,mode:'',just:'',ack:false,at:''};
+  this.verif=d.verif&&Array.isArray(d.verif.checks)?d.verif:null;
+  if(d.maxAge)this.maxAge=+d.maxAge||90;
+  if(d.pdfSeq){const k=this.pkey();this.pdfSeq[k]=Math.max(this.pdfSeq[k]||0,+d.pdfSeq||0);this.persistSeq()}
+  if(d.brasao&&/^data:image\//.test(d.brasao)){this.brasao=d.brasao;try{localStorage.setItem(STORE.brasao,d.brasao)}catch(e){}}
+  if(!silent)this.toast('Dados importados.')},
+ persistSeq(){try{localStorage.setItem(STORE.pdfv,JSON.stringify(this.pdfSeq))}catch(e){}},
+ saveVersion(){const pct=this.overall().pct;const nome=this.versionName.trim()||('Versão '+(this.versions.length+1));
+  this.versions.unshift({id:uid(),nome,em:new Date().toLocaleString('pt-BR'),pct,data:JSON.parse(JSON.stringify(this.snap(false)))});
+  this.versionName='';this.persistVersions();this.toast('Versão “'+nome+'” salva.')},
+ persistVersions(){try{localStorage.setItem(STORE.vers,JSON.stringify(this.versions))}catch(e){this.toast('Armazenamento cheio: exporte e exclua versões antigas.')}},
+ restoreVersion(v){if(!confirm('Restaurar “'+v.nome+'”? O estado atual será substituído (salve uma versão antes, se necessário).'))return;this.applySnap(JSON.parse(JSON.stringify(v.data)),true);this.drawer=false;this.toast('Versão restaurada.')},
+ delVersion(v){if(!confirm('Excluir a versão “'+v.nome+'”?'))return;this.versions=this.versions.filter(x=>x.id!==v.id);this.persistVersions()},
+ newChecklist(){if(!confirm('Iniciar uma lista em branco? O rascunho atual será descartado (versões salvas são mantidas).'))return;
+  this.ident=defaultIdent();this.signers=[{nome:'',cargo:''}];this.audit=[];this.imp={rows:[],sources:[]};this.verif=null;this.gate={released:false,mode:'',just:'',ack:false,at:''};this.ack=false;this.justTxt='';this.resetState();this.drawer=false;this.go('import')},
+
+ /* ============ IMPORTAÇÃO E CONFRONTO ============ */
+ getCur(key){return key.startsWith('emenda.')?this.ident.emenda[key.slice(7)]:this.ident[key]},
+ setIdent(key,v){if(key.startsWith('emenda.'))this.ident.emenda[key.slice(7)]=v;else this.ident[key]=(key==='cnpj'?maskCnpjStr(v):v)},
+ kindOf(key,di){
+  if(key==='rota')return{kind:'select',opts:Object.keys(ROTAS_V).map(k=>({v:k,l:ROTAS_V[k].l+' ('+ROTAS_V[k].lei.split(' e ')[0]+')'}))};
+  if(key==='tipo')return{kind:'select',opts:Object.keys(TIPOS).map(k=>({v:k,l:TIPOS[k]}))};
+  if(key==='route')return{kind:'select',opts:Object.keys(SEL.osc).map(k=>({v:k,l:SEL.osc[k]}))};
+  if(key==='origem_mod')return{kind:'select',opts:ORIGEM_ALL.map(o=>({v:o,l:o}))};
+  if(key==='secretaria')return{kind:'select',opts:SECRETARIAS.map(o=>({v:o,l:o}))};
+  if(key==='fonte')return{kind:'select',opts:FONTES.map(o=>({v:o,l:o}))};
+  if(key==='data')return{kind:'date'};
+  return{kind:'text'}},
+ validateIdent(key,v,di){const a=[];const R=ROTAS_V[di.rota];
+  if(key==='rota'&&!ROTAS_V[v])a.push('Rota de verificação desconhecida.');
+  if(key==='tipo'){if(!TIPOS[v])a.push('Tipo de ajuste desconhecido.');else if(R&&!R.tipos.includes(v))a.push('Tipo incompatível com a rota de verificação do arquivo.');
+   if(['aditivo','apost'].includes(v)&&(!di.origem_mod||!di.origem_num))a.push('Ajuste de origem (modalidade e Nº/Ano) não informado.')}
+  if(key==='route'&&!SEL.osc[v])a.push('Rota de seleção desconhecida.');
+  if(key==='cnpj'&&!cnpjValid(v))a.push('CNPJ inválido (dígitos verificadores).');
+  if(key==='secretaria'&&!SECRETARIAS.includes(v))a.push('Secretaria fora da lista oficial.');
+  if(key==='fonte'){if(!FONTES.includes(v))a.push('Fonte do recurso fora das opções atuais.');
+   else if(/^Emenda/.test(v)&&(!di.emenda.num||!di.emenda.autor))a.push('Dados da emenda (Nº e Autor) não informados.')}
+  if(key==='data'&&!(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(new Date(v))))a.push('Data inválida (use AAAA-MM-DD).');
+  if((key==='valor'||key==='emenda.valor')&&!/^[\d.]+(,\d{1,2})?$/.test(v))a.push('Valor em formato inesperado (use 0.000,00).');
+  if(key==='origem_mod'&&R&&R.alt&&!(R.origem||[]).includes(v))a.push('Modalidade incompatível com a rota de verificação.');
+  if(key==='processo'&&String(v).replace(/\D/g,'').length<5)a.push('Nº do processo com poucos dígitos.');
+  return a},
+ pushRow(rows,src,r){r.id=uid();r.src=src;r.edit=r.t==='item'?r.doc.s:(r.t==='misc'?(r.edit||''):r.doc);
+  const same=r.t==='item'?this.itemSame(r.doc,r.cur):(r.t==='misc'?r.sameFlag:norm(r.doc)===norm(r.cur));
+  r.same=!!same;r.empty=r.t==='ident'?!String(r.cur||'').trim():false;
+  r.state=r.alerts.length?'warn':same?'same':(r.empty?'new':'diff');
+  r.choice=(!r.alerts.length&&(same||(r.empty&&!r.approx)))?'doc':'';rows.push(r)},
+ itemSame(a,b){if(!a||!b)return false;return a.s===b.s&&(a.obs||'')===(b.obs||'')&&(a.sei||'')===(b.sei||'')&&JSON.stringify(a.subs||[])===JSON.stringify(b.subs||[])&&JSON.stringify(a.f||{})===JSON.stringify(b.f||{})},
+ rowTxt(r,v){
+  if(r.t==='item'){if(!v)return '—';const parts=[STATUS_L[v.s]||v.s];const sc=(v.subs||[]).filter(Boolean).length;if(v.subs&&v.subs.length)parts.push(sc+'/'+v.subs.length+' conferências');
+   if(v.sei)parts.push('SEI '+v.sei);if(v.obs)parts.push(String(v.obs).replace(/\s+/g,' ').slice(0,90));return parts.join(' · ')}
+  if(r.t==='misc')return (r.fmt?r.fmt(v):(v===''||v==null?'—':String(v)));
+  if(r.key==='rota')return ROTAS_V[v]?ROTAS_V[v].l+' ('+ROTAS_V[v].lei.split(' e ')[0]+')':(v||'—');
+  if(r.key==='tipo')return TIPOS[v]||v||'—';
+  if(r.key==='route')return SEL.osc[v]||v||'—';
+  return v===''||v==null?'—':String(v)},
+ rowsShown(){return this.imp.rows.filter(r=>this.impShowSame||!(r.state==='same'))},
+ impCount(k){const R=this.imp.rows;return k==='ok'?R.filter(r=>!r.alerts.length).length:k==='warn'?R.filter(r=>r.alerts.length).length:R.filter(r=>!r.choice&&r.state!=='same').length},
+ acceptRows(all){this.imp.rows.forEach(r=>{if(all||!r.alerts.length)r.choice='doc'})},
+ stageSnapshot(d,name){
+  const di=this.normIdent(d.ident);if(!ROTAS_V[di.rota])di.rota='osc';const rows=[];
+  for(const [k,l] of IDENT_FIELDS){const v=k.startsWith('emenda.')?di.emenda[k.slice(7)]:di[k];if(v===undefined||v===null||v==='')continue;
+   if(k==='route'&&ROTAS_V[di.rota].alt)continue;
+   this.pushRow(rows,name,Object.assign({t:'ident',g:'Identificação',key:k,label:l,doc:String(v),cur:String(this.getCur(k)||''),alerts:this.validateIdent(k,String(v),di)},this.kindOf(k,di)))}
+  for(const id in (d.st||{})){const s=d.st[id];if(!s)continue;const it=ITEM[id];
+   if(!it){this.pushRow(rows,name,{t:'misc',g:'Itens da lista',key:'ignore:'+id,label:id+' – item inexistente nesta versão',doc:'',cur:'',alerts:['Item não existe nesta versão da lista; será ignorado.'],kind:'none',ignore:true,sameFlag:false});continue}
+   const nonDef=s.s!==(it.df||'p')||s.obs||s.sei||(s.subs||[]).some(Boolean)||Object.values(s.f||{}).some(Boolean);if(!nonDef)continue;
+   const doc={s:['p','s','n','x'].includes(s.s)?s.s:'p',obs:String(s.obs||''),sei:String(s.sei||''),subs:Array.isArray(s.subs)?s.subs.map(Boolean):[],f:(s.f&&typeof s.f==='object')?s.f:{}};
+   const al=[];
+   if(it.subs&&doc.subs.length!==it.subs.length){al.push('Estrutura de conferências diferente: conferências por documento serão ignoradas.');doc.subs=[]}
+   if(doc.s==='s'&&it.subs&&doc.subs.length&&!this.reqOk(it,doc.subs))al.push('Marcado “Sim”, mas há conferências por documento pendentes.');
+   if(doc.s!=='x'&&!this.applicable(it,di))al.push('Item fora da rota/tipo do arquivo importado.');
+   if(doc.s==='n'&&!doc.obs.trim())al.push('Marcado “Não” sem observação.');
+   (it.fields||[]).forEach(fd=>{if(fd.type==='validade'&&doc.f[fd.k+'_t']==='ate'&&doc.f[fd.k+'_d']&&doc.f[fd.k+'_d']<(di.data||''))al.push('Validade anterior à data da análise.')});
+   const curCopy=JSON.parse(JSON.stringify(this.st[id]));
+   this.pushRow(rows,name,{t:'item',g:PH[it.ph].n+' · '+PH[it.ph].s,key:id,label:id+' – '+it.t,doc,cur:curCopy,alerts:al,kind:'status'})}
+  const sg=(d.signers||[]).filter(s=>s&&(s.nome||s.cargo));
+  if(sg.length)this.pushRow(rows,name,{t:'misc',g:'Outros',key:'signers',label:'Responsáveis pela verificação',doc:sg,cur:this.signers,alerts:[],kind:'none',fmt:v=>(v||[]).filter(s=>s&&(s.nome||s.cargo)).map(s=>s.nome+(s.cargo?' ('+s.cargo+')':'')).join('; ')||'—',sameFlag:JSON.stringify(sg)===JSON.stringify(this.signers)});
+  if(d.gate&&d.gate.released)this.pushRow(rows,name,{t:'misc',g:'Outros',key:'gate',label:'Liberação da análise manual',doc:d.gate,cur:this.gate,alerts:[],kind:'none',fmt:v=>v&&v.released?('Liberada em '+this.fmtDT(v.at)+(v.mode==='just'?' (justificativa técnica)':' (após 1ª Verificação)')):'Bloqueada',sameFlag:!!(this.gate.released&&this.gate.at===d.gate.at)});
+  if(d.brasao&&/^data:image\//.test(d.brasao))this.pushRow(rows,name,{t:'misc',g:'Outros',key:'brasao',label:'Brasão do Município',doc:d.brasao,cur:this.brasao,alerts:[],kind:'none',fmt:v=>v?'Imagem incluída':'—',sameFlag:d.brasao===this.brasao});
+  const dm=Object.assign(defaultMeta(),d.meta||{});
+  [['municipio','Município / Órgão'],['unidade','Unidade'],['cidade','Cidade (fechamento)']].forEach(([k,l])=>{if(dm[k]&&dm[k]!==this.meta[k])this.pushRow(rows,name,{t:'misc',g:'Outros',key:'meta.'+k,label:l,doc:dm[k],cur:this.meta[k],alerts:[],kind:'text',edit:dm[k],sameFlag:false})});
+  const lei=this.normLeis((d.meta||{}).leis);
+  if(JSON.stringify(lei)!==JSON.stringify(this.meta.leis))this.pushRow(rows,name,{t:'misc',g:'Outros',key:'leis',label:'Base legal (links)',doc:lei,cur:this.meta.leis,alerts:[],kind:'none',fmt:v=>v&&v.osc?(v.osc.length+' norma(s) OSC · '+v.conv.length+' norma(s) Convênio'):'—',sameFlag:false});
+  this.imp.rows.push(...rows);this.imp.sources.push(name+' (lista)')},
+ stageFacts(f,name,tag){const rows=[];const di=Object.assign(this.normIdent(this.ident),f);if(f.rota&&ROTAS_V[f.rota])di.rota=f.rota;
+  const order=['rota','tipo','origem_mod','origem_num','processo','osc','cnpj','objeto','valor','vigencia','gestor'];
+  const LBL=Object.fromEntries(IDENT_FIELDS);
+  for(const k of order){if(f[k]===undefined||f[k]==='')continue;
+   this.pushRow(rows,name,Object.assign({t:'ident',g:tag,key:k,label:LBL[k],doc:String(f[k]),cur:String(this.getCur(k)||''),alerts:this.validateIdent(k,String(f[k]),di),approx:true,info:'Lido do arquivo por reconhecimento de texto'},this.kindOf(k,di)))}
+  if(rows.length){this.imp.rows.push(...rows);this.imp.sources.push(name)}return rows.length},
+ applyStage(){const rows=this.imp.rows;let ap=0,und=0;
+  const prio=['rota','tipo','route'];
+  rows.filter(r=>r.t==='ident').sort((a,b)=>{const x=prio.indexOf(a.key),y=prio.indexOf(b.key);return (x<0?9:x)-(y<0?9:y)}).forEach(r=>{
+   if(r.choice==='doc'){this.setIdent(r.key,r.doc);ap++}else if(r.choice==='edit'){this.setIdent(r.key,r.edit);ap++}else if(!r.same)und++});
+  rows.filter(r=>r.t==='item').forEach(r=>{const o=this.st[r.key];if(!o)return;
+   if(r.choice==='doc'){o.s=r.doc.s;o.obs=r.doc.obs;o.sei=r.doc.sei;if(r.doc.subs.length===o.subs.length&&r.doc.subs.length)o.subs=[...r.doc.subs];Object.keys(o.f).forEach(k=>{if(typeof r.doc.f[k]==='string')o.f[k]=r.doc.f[k]});ap++}
+   else if(r.choice==='edit'){o.s=r.edit;ap++}else if(!r.same)und++});
+  rows.filter(r=>r.t==='misc'&&!r.ignore).forEach(r=>{const use=r.choice==='doc'?'doc':(r.choice==='edit'?'edit':'');if(!use){if(!r.same)und++;return}
+   const v=use==='doc'?r.doc:r.edit;
+   if(r.key==='signers')this.signers=JSON.parse(JSON.stringify(v));else if(r.key==='brasao'){this.brasao=v;try{localStorage.setItem(STORE.brasao,v)}catch(e){}}
+   else if(r.key==='gate'&&use==='doc')this.gate=Object.assign({released:false,mode:'',just:'',ack:false,at:''},JSON.parse(JSON.stringify(v)));
+   else if(r.key==='leis')this.meta.leis=JSON.parse(JSON.stringify(v));else if(r.key.startsWith('meta.'))this.meta[r.key.slice(5)]=v;ap++});
+  this.imp={rows:[],sources:[]};this.toast(ap+' linha(s) aplicada(s)'+(und?'; '+und+' sem decisão mantida(s) como estava':'')+'.');this.go('ident')},
+
+ async readAttached(file){const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const att=await pdf.getAttachments();
+  const key=att&&Object.keys(att).find(k=>/(checklist-osc|lista-verificacao).*\.json$/i.test(att[k].filename||k));
+  return key?JSON.parse(new TextDecoder().decode(att[key].content)):null},
+ origemFor(k){if(this.impOrigem!=='auto')return this.impOrigem;const d=DOCS_ALL.find(x=>x.k===k);return d&&d.og?'og':'osc'},
+ async importFiles(files){files=[...(files||[])];if(!files.length)return;if(!this.winMode)this.view='import';this.busy=true;let n=0;
+  for(const f of files){this.busyMsg='Lendo '+f.name+'…';
+   try{
+    if(/\.json$/i.test(f.name)||f.type==='application/json'){const d=JSON.parse(await f.text());
+     if(isSnap(d)){this.stageSnapshot(d,f.name);this.audit.unshift(this.auditJson(f,d,true))}
+     else{const c=this.stageFacts(factsFromJson(d),f.name,'Dados lidos de '+f.name);if(!c)this.toast('JSON sem campos reconhecidos: '+f.name);this.audit.unshift(this.auditJson(f,d,false))}
+     n++}
+    else if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){
+     if(!window.pdfjsLib){this.toast('Leitor de PDF indisponível (verifique a conexão).');continue}
+     const emb=await this.readAttached(f);
+     if(emb&&isSnap(emb)){this.stageSnapshot(emb,f.name);this.audit.unshift(this.auditJson(f,emb,true,true))}
+     else{const a=await this.auditOne(f);this.audit.unshift(a);this.stageFacts(a.facts||{},f.name,'Dados lidos de '+f.name)}
+     n++}
+    else this.toast('Formato não suportado: '+f.name);
+   }catch(e){console.error(e);this.toast('Falha ao ler '+f.name+': '+(e.message||'arquivo inválido'))}}
+  this.busy=false;this.busyMsg='';if(n)this.toast(n+' arquivo(s) importado(s). Confira a auditoria e execute a 1ª Verificação.')},
+
+ /* ============ AUDITORIA DE DOCUMENTOS ============ */
+ famId(){return ROTAS_V[this.ident.rota].fam},
+ docTarget(d){if(d.only&&d.only!==this.famId())return '';let id;
+  if(d.itm)id=(ITM[d.itm]||{})[this.ident.rota]||'';else if(d.item)id=(this.famId()==='conv'?'C':'')+d.item;else return '';
+  if(!id)return '';const it=ITEM[id];if(!it||!this.applicable(it))return '';return id+'|'+(d.sub!=null&&it.subs?d.sub:'')},
+ targets(){const out=[];this.activePhases().forEach(p=>p.items.forEach(it=>{if(!this.applicable(it))return;
+   const lab=it.id+' – '+it.t.slice(0,60);if(it.subs)it.subs.forEach((s,i)=>out.push({v:it.id+'|'+i,l:lab+' · '+s}));else out.push({v:it.id+'|',l:lab})}));return out},
+ reclass(a){const d=DOCS_ALL.find(x=>x.k===a.docKey);if(!d){a.label='';a.target='';return}a.label=d.l;a.origem=d.og?'og':'osc';a.target=this.docTarget(d)||'';a.applied=false},
+ worstOf(fl){return fl.some(f=>f.l==='err')?'err':fl.some(f=>f.l==='warn')?'warn':'ok'},
+ docWorst(a){return this.worstOf([...(a.flags||[]),...(a.tflags||[])])},
+ tBox(a){const w=(a.tflags&&a.tflags.length)?this.worstOf(a.tflags):'';return w==='err'?'border-red-700 bg-red-50':w==='warn'?'border-amber-600 bg-amber-50':w==='ok'?'border-emerald-700 bg-emerald-50':'border-slate-400 bg-slate-50'},
+ genTxt(a){const g=a.gen||{};if(!g.best)return 'Não identificada';const d=new Date(g.best);if(isNaN(d))return 'Não identificada';return g.hasTime?d.toLocaleString('pt-BR'):d.toLocaleDateString('pt-BR')},
+ tempFlags(a){const fl=[];const g=a.gen||{};const base=this.ident.data?new Date(this.ident.data+'T23:59:59'):new Date();
+  if(!g.best){fl.push({l:'warn',m:'Data/hora de geração não identificada no texto nem nos metadados: conferir manualmente.'});return fl}
+  const d=new Date(g.best);const dias=Math.floor((base-d)/864e5);
+  if(d>new Date(Date.now()+864e5))fl.push({l:'err',m:'Data de geração posterior à data atual: inconsistência de relógio ou de metadados.'});
+  else if(d>new Date(base.getTime()+864e5))fl.push({l:'warn',m:'Documento gerado após a data da análise informada na Identificação.'});
+  if(dias>this.maxAge)fl.push({l:'warn',m:'Documento desatualizado: gerado há '+dias+' dia(s) (limite configurado: '+this.maxAge+').'});
+  else if(dias>=0)fl.push({l:'ok',m:'Gerado há '+dias+' dia(s), dentro do prazo de '+this.maxAge+' dia(s).'});
+  if(g.text&&g.meta){const dd=Math.abs(new Date(g.text)-new Date(g.meta))/864e5;if(dd>2)fl.push({l:'warn',m:'Divergência de '+Math.round(dd)+' dia(s) entre a data impressa no documento ('+this.fmtDT(g.text)+') e os metadados do arquivo ('+this.fmtDT(g.meta)+').'})}
+  if(g.mod&&g.meta&&(new Date(g.mod)-new Date(g.meta))>864e5)fl.push({l:'warn',m:'Arquivo modificado após a criação (metadados): conferir se houve alteração do conteúdo.'});
+  return fl},
+ retemp(){this.audit.forEach(a=>{a.tflags=this.tempFlags(a)});this.toast('Temporalidade reavaliada (prazo: '+this.maxAge+' dias).')},
+ tSummary(){const A=this.audit;if(!A.length)return{bad:false,txt:''};const bad=A.filter(a=>this.worstOf(a.tflags||[])!=='ok');
+  const ds=A.filter(a=>a.gen&&a.gen.best).map(a=>new Date(a.gen.best)).sort((x,y)=>x-y);
+  const rng=ds.length?' Geração mais antiga: '+ds[0].toLocaleDateString('pt-BR')+'; mais recente: '+ds[ds.length-1].toLocaleDateString('pt-BR')+'.':'';
+  return{bad:bad.length>0,txt:bad.length?bad.length+' de '+A.length+' arquivo(s) com alerta de temporalidade.'+rng:'Todos os '+A.length+' arquivo(s) com data de geração coerente e dentro do prazo.'+rng}},
+ buildGen({t,info,jg,file}){const g={text:'',textTime:false,meta:'',mod:'',producer:'',file:file&&file.lastModified?new Date(file.lastModified).toISOString():''};
+  const e=t?emitDate(t):null;if(e){g.text=e.iso;g.textTime=e.hasTime}
+  if(info){g.meta=parsePdfDate(info.CreationDate);g.mod=parsePdfDate(info.ModDate);g.producer=[info.Producer,info.Creator].filter(Boolean).join(' / ')}
+  if(jg){g.json=jg.iso}
+  if(g.text){g.best=g.text;g.hasTime=g.textTime;g.src='data impressa no documento'}
+  else if(jg){g.best=jg.iso;g.hasTime=jg.hasTime;g.src='campo de data do JSON'}
+  else if(g.meta){g.best=g.meta;g.hasTime=true;g.src='metadados do PDF (criação)'}
+  else if(g.file){g.best=g.file;g.hasTime=true;g.src='data de modificação do arquivo no sistema (menos confiável)'}
+  return g},
+ async loadOCR(){if(window.Tesseract)return window.Tesseract;
+  await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=res;s.onerror=()=>rej(new Error('Não foi possível carregar o OCR (Tesseract.js).'));document.head.appendChild(s)});
+  return window.Tesseract},
+ async ocrPdf(pdf,name){const T=await this.loadOCR();let out='';const n=Math.min(pdf.numPages,8);
+  for(let p=1;p<=n;p++){this.busyMsg='OCR de '+name+' — página '+p+'/'+n+'…';const pg=await pdf.getPage(p);const vp=pg.getViewport({scale:2});
+   const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+   const r=await T.recognize(c,'por');out+=r.data.text+'\n\n'}
+  return out},
+ async auditOne(file){
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let raw='';const n=Math.min(pdf.numPages,40);
+  for(let p=1;p<=n;p++){const pg=await pdf.getPage(p);const c=await pg.getTextContent();raw+=c.items.map(x=>x.str+(x.hasEOL?'\n':' ')).join('')+'\n\n'}
+  let pdfa=false,info=null;try{const m=await pdf.getMetadata();pdfa=!!(m.metadata&&m.metadata.has('pdfaid:part'));info=m.info||null}catch(e){}
+  const extra=[];let ocr=false;
+  const hasText=raw.replace(/[^A-Za-z0-9]/g,'').length>=60;
+  if(!hasText){
+   if(this.ocrOn){try{const o=await this.ocrPdf(pdf,file.name);if(o.replace(/[^A-Za-z0-9]/g,'').length>=60){raw=o;ocr=true;extra.push({l:'warn',m:'PDF digitalizado: texto obtido por OCR (até 8 páginas). Conferir valores, datas e números manualmente.'})}else extra.push({l:'warn',m:'PDF digitalizado: o OCR não obteve texto suficiente.'})}catch(e){console.error(e);extra.push({l:'warn',m:'PDF digitalizado e OCR indisponível: '+(e.message||'erro')+'. Conferir manualmente.'})}}
+   else extra.push({l:'warn',m:'PDF sem camada de texto (digitalizado): ative o OCR ou confira manualmente.'})}
+  const nat=(pdfa?'PDF/A':(hasText?'PDF nato digital':'PDF digitalizado'));
+  return this.analyseDoc({name:file.name,size:file.size,kind:'pdf',pages:pdf.numPages,pdfa,nat,raw,ocr,extra,gen:this.buildGen({t:norm(raw).replace(/\s+/g,' '),info,file})})},
+ auditJson(file,obj,isList,fromPdf){
+  const txt=isList?'':jsonToText(obj);const jg=jsonGen(obj);
+  const a=this.analyseDoc({name:file.name,size:file.size,kind:isList?(fromPdf?'pdf':'json'):'json',pages:0,pdfa:false,nat:isList?'Lista desta aplicação (dados embutidos)':'JSON estruturado',raw:txt,ocr:false,extra:[],gen:this.buildGen({t:txt?norm(txt).replace(/\s+/g,' '):'',jg:isList?(obj.savedAt?{iso:new Date(obj.savedAt).toISOString(),hasTime:true}:jg):jg,file}),forced:isList?'lista':'plano_json'});
+  return a},
+ analyseDoc(o){
+  const text=o.raw||'';const t=norm(text).replace(/\s+/g,' ');const flags=[...(o.extra||[])];
+  const hits=o.forced?[]:DOCTYPES.filter(d=>d.all?d.re.every(r=>r.test(t)):d.re.some(r=>r.test(t)));
+  let main=hits.find(h=>this.docTarget(h))||hits[0]||null;
+  if(o.forced)main=DOCS_ALL.find(d=>d.k===o.forced);
+  if(o.kind==='pdf'&&!o.forced){if(!o.pdfa)flags.push({l:'warn',m:'O arquivo não declara conformidade PDF/A (exigida no protocolo do SEI).'});else flags.push({l:'ok',m:'Declara conformidade PDF/A.'})}
+  if(main)flags.push({l:'ok',m:'Identificado como: '+main.l+(hits.length>1?' (também: '+hits.filter(h=>h!==main).map(h=>h.l).join('; ')+')':'')+'.'});
+  else flags.push({l:'warn',m:'Tipo de documento não identificado: classifique manualmente e vincule ao item.'});
+  const cn=[...new Set((text.match(CNPJ_RE)||[]).map(maskCnpjStr))];
+  const mine=(this.ident.cnpj||'').replace(/\D/g,'');
+  if(text&&!o.forced||o.forced==='plano_json'){
+   if(cn.length&&mine&&cnpjValid(this.ident.cnpj)){if(cn.some(x=>x.replace(/\D/g,'')===mine))flags.push({l:'ok',m:'CNPJ do documento confere com o da OSC/Entidade.'});else flags.push({l:'err',m:'CNPJ do documento diverge do CNPJ informado na identificação.'})}
+   else if(!mine)flags.push({l:'warn',m:'CNPJ da OSC/Entidade não informado na identificação: conferência de CNPJ não realizada.'});
+   else if(!cn.length&&t.length>60)flags.push({l:'warn',m:'Nenhum CNPJ localizado no texto do documento.'})}
+  const facts=text?factsFromText(text):{};
+  if(this.ident.processo&&facts.processo&&norm(facts.processo).replace(/\D/g,'')!==norm(this.ident.processo).replace(/\D/g,''))flags.push({l:'warn',m:'Processo SEI citado no documento ('+facts.processo+') difere do informado na identificação.'});
+  if(facts.tipo&&TIPOS[facts.tipo]&&this.ident.tipo&&facts.tipo!==this.ident.tipo)flags.push({l:'warn',m:'O documento menciona “'+TIPOS[facts.tipo]+'”, mas o tipo de ajuste selecionado é “'+TIPOS[this.ident.tipo]+'”.'});
+  const base=this.ident.data?new Date(this.ident.data+'T12:00:00'):new Date();let validade='';
+  const ds=[...t.matchAll(/(validade|valida ate|valido ate|data de validade|vencimento)\D{0,40}(\d{2}\/\d{2}\/\d{4})(?:\s*a\s*(\d{2}\/\d{2}\/\d{4}))?/g)].map(m=>parseBR(m[3]||m[2])).filter(Boolean);
+  if(ds.length){const d=new Date(Math.max(...ds));validade=fmtBR(d);const dias=Math.round((d-base)/864e5);
+   if(dias<0)flags.push({l:'err',m:'Documento VENCIDO em '+validade+'.'});else if(dias<=15)flags.push({l:'warn',m:'Vence em '+dias+' dia(s) ('+validade+').'});else flags.push({l:'ok',m:'Dentro da validade ('+validade+').'})}
+  else if(main&&['fed','fgts','trab','est','mun','crc','cons','tce'].includes(main.k))flags.push({l:'warn',m:'Validade não identificada no texto: conferir manualmente.'});
+  if(hits.some(h=>h.k==='cnpj')){
+   const ab=/data de abertura.{0,60}?(\d{2}\/\d{2}\/\d{4})/.exec(t);
+   if(ab){const d=parseBR(ab[1]);const anos=(base-d)/(365.25*864e5);flags.push(anos>=1?{l:'ok',m:'Abertura em '+ab[1]+' (≥ 1 ano).'}:{l:'err',m:'Abertura em '+ab[1]+': menos de 1 ano de inscrição.'})}
+   const si=/situacao cadastral.{0,80}?\b(ativa|baixada|suspensa|inapta|nula)\b/.exec(t);
+   if(si)flags.push(si[1]==='ativa'?{l:'ok',m:'Situação cadastral: ATIVA.'}:{l:'err',m:'Situação cadastral: '+si[1].toUpperCase()+'.'})}
+  const a={id:uid(),name:o.name,size:o.size,kind:o.kind,pages:o.pages,pdfa:o.pdfa,nat:o.nat,ocr:!!o.ocr,docKey:main?main.k:'',label:main?main.l:'',origem:this.origemFor(main?main.k:''),
+   validade,cnpjs:cn,flags,gen:o.gen,tflags:[],target:main?(this.docTarget(main)||''):'',applied:false,facts,txt:text.slice(0,250000)};
+  if(this.impOrigem==='auto'&&o.forced==='lista')a.origem='og';
+  a.tflags=this.tempFlags(a);return a},
+ applyAudit(a){if(!a.target||this.locked())return;const [id,sub]=a.target.split('|');const it=ITEM[id],o=this.st[id];if(!it||!o)return;
+  const bad=this.docWorst(a)==='err';const line='Auditoria PDF ('+new Date().toLocaleDateString('pt-BR')+'): '+a.name+(a.validade?' · validade '+a.validade:'')+(a.gen&&a.gen.best?' · gerado em '+this.genTxt(a):'')+(bad?' · DIVERGÊNCIA detectada':'')+'.';
+  o.obs=o.obs?o.obs+'\n'+line:line;this.openObs[id]=true;
+  if(!bad){if(sub!==''&&it.subs){if(!o.subs[+sub]){o.subs[+sub]=true;if(this.reqOk(it,o.subs)&&o.s==='p')o.s='s'}}else if(o.s==='p')o.s='s'}
+  else if(o.s==='p')o.s='n';
+  a.applied=true;this.toast(bad?'Registrado com divergência no item '+id+'.':'Aplicado ao item '+id+'.')},
+ applyAllOk(){if(this.locked()){this.toast('Libere a análise manual primeiro.');return}let n=0;this.audit.forEach(a=>{if(!a.applied&&a.target&&this.docWorst(a)==='ok'){this.applyAudit(a);n++}});this.toast(n+' sugestão(ões) aplicada(s).')},
+
+ /* ============ 1ª VERIFICAÇÃO E CRUZAMENTO ============ */
+ fp(){const I=this.ident;return JSON.stringify([this.audit.map(a=>a.name+'|'+a.size+'|'+a.origem+'|'+a.docKey),I.cnpj,I.valor,I.vigencia,I.osc,I.fonte,I.emenda,I.objeto])},
+ verifStale(){return !!this.verif&&this.verif.fp!==this.fp()},
+ checksOf(g){if(!this.verif)return [];return this.verif.checks.filter(c=>c.grp===g&&(this.vFilter==='all'||c.lvl==='err'||c.lvl==='warn'))},
+ runVerif(){
+  const I=this.ident,R=I.rota,D=this.audit.filter(a=>a.txt),out=[];
+  const C=(grp,lvl,t,m,item,ev)=>out.push({id:uid(),grp,lvl,t,m,item:item||'',ev:ev||[]});
+  const it=k=>(ITM[k]||{})[R]||'';
+  const oscD=D.filter(a=>a.origem==='osc'),ogD=D.filter(a=>a.origem==='og'&&a.docKey!=='lista');
+  const plan=D.filter(a=>['plano','plano_json'].includes(a.docKey));
+  const P=plan.map(a=>a.txt).join('\n'),AP=P?analisaPlano(P):null;
+  const vg=money(I.valor);
+  if(!D.length)C('osc','warn','Documentos importados','Nenhum documento com texto legível foi importado (ou a lista foi reaberta sem reimportar os arquivos). Somente os dados da Identificação foram conferidos.','');
+
+  /* ----- OSC / Entidade ----- */
+  if(!I.osc.trim())C('osc','err','Nome da OSC/Entidade','Nome não informado na Identificação.','');
+  else if(!oscD.length)C('osc','warn','Nome da OSC/Entidade','Nenhum documento da OSC/Entidade com texto legível para conferir o nome.','');
+  else{const toks=[...new Set(norm(I.osc).split(/[^a-z0-9]+/).filter(w=>w.length>3&&!STOPN.has(w)))].slice(0,4);const tk=toks.length?toks:[norm(I.osc).trim()];
+   const hit=oscD.filter(a=>{const n=norm(a.txt);return tk.every(w=>n.includes(w))}),miss=oscD.filter(a=>!hit.includes(a));
+   if(!hit.length)C('osc','err','Nome da OSC/Entidade','O nome informado não foi localizado em nenhum dos '+oscD.length+' documento(s) da OSC/Entidade.','',miss.map(a=>a.name));
+   else if(miss.length)C('osc','warn','Nome da OSC/Entidade','Nome localizado em '+hit.length+' de '+oscD.length+' documento(s). Não localizado em:','',miss.map(a=>a.name));
+   else C('osc','ok','Nome da OSC/Entidade','Nome localizado em todos os '+oscD.length+' documento(s) da OSC/Entidade.','')}
+
+  const cd=(I.cnpj||'').replace(/\D/g,'');
+  if(!cd)C('osc','err','CNPJ','CNPJ não informado na Identificação.','');
+  else if(!cnpjValid(I.cnpj))C('osc','err','CNPJ','CNPJ informado com dígitos verificadores inválidos.','');
+  else{const need=['cnpj','fed','fgts','trab','est','mun','crc','tce','pc02','dun','plano'];
+   const dd=oscD.filter(a=>need.includes(a.docKey)),sem=dd.filter(a=>!(a.txt.match(CNPJ_RE)||[]).some(x=>x.replace(/\D/g,'')===cd));
+   const inv=oscD.filter(a=>(a.txt.match(CNPJ_RE)||[]).some(x=>!cnpjValid(x)));
+   if(sem.length)C('osc','err','CNPJ','CNPJ válido, porém ausente em documento(s) que deveriam citá-lo:','',sem.map(a=>a.name));
+   else C('osc','ok','CNPJ','CNPJ válido'+(dd.length?' e presente em '+dd.length+' documento(s) conferido(s).':'; nenhum documento específico para cruzar.'),'');
+   if(inv.length)C('osc','warn','CNPJ','Sequências com formato de CNPJ e dígitos inválidos em:','',inv.map(a=>a.name))}
+
+  const contas=D.map(a=>({a,c:contasFrom(norm(a.txt))})).filter(x=>x.c.ag.length||x.c.cc.length||x.c.bc.length);
+  const ags=[...new Set(contas.flatMap(x=>x.c.ag))],ccs=[...new Set(contas.flatMap(x=>x.c.cc))],bcs=[...new Set(contas.flatMap(x=>x.c.bc))];
+  if(!contas.length)C('osc','warn','Conta bancária','Banco, agência e conta não localizados nos documentos (PC-02/Plano de Trabalho).',it('pc02'));
+  else{const ev=contas.map(x=>x.a.name+': ag. '+(x.c.ag.join('/')||'—')+' · conta '+(x.c.cc.join('/')||'—')+' · banco '+(x.c.bc.join('/')||'—'));
+   const emenda=/^Emenda/.test(I.fonte),pub=bcs.length?bcs.every(b=>['001','104'].includes(b)):null;
+   if(ags.length>1||ccs.length>1)C('osc','err','Conta bancária','Divergência de agência/conta entre os documentos.',it('pc02'),ev);
+   else if(emenda&&pub===false)C('osc','err','Conta bancária','Emenda: a conta deve ser exclusiva, em instituição financeira oficial (Banco do Brasil 001 ou Caixa 104).',it('pc02'),ev);
+   else if(emenda&&pub===null)C('osc','warn','Conta bancária','Emenda: banco não identificado; confirmar que é Banco do Brasil (001) ou Caixa (104).',it('pc02'),ev);
+   else C('osc','ok','Conta bancária','Agência/conta consistentes entre os documentos'+(pub?' e em banco público.':'.'),it('pc02'),ev)}
+  if(AP&&!/conta\s+(?:bancaria\s+)?especifica|conta\s+exclusiva/.test(norm(P)))C('osc','warn','Conta específica no Plano','O Plano de Trabalho não menciona conta específica/exclusiva para a parceria.',it('plano'));
+
+  const vi=parseVig(I.vigencia),vd=D.map(a=>({a,v:vigFrom(norm(a.txt))})).filter(x=>x.v);
+  if(!vd.length)C('osc','warn','Vigência','Vigência não localizada nos documentos importados.','');
+  else{const ev=vd.map(x=>x.a.name+': '+x.v.txt+(x.v.meses!=null?' (≈ '+x.v.meses+' mês(es))':''));
+   const ms=[...new Set(vd.map(x=>x.v.meses).filter(x=>x!=null))];
+   if(vi&&vi.meses!=null&&vd.some(x=>x.v.meses!=null&&Math.abs(x.v.meses-vi.meses)>1))C('osc','err','Vigência','A vigência citada nos documentos diverge da informada na Identificação ('+vi.meses+' mês(es)).','',ev);
+   else if(ms.length>1&&Math.max(...ms)-Math.min(...ms)>1)C('osc','warn','Vigência','Documentos citam vigências diferentes entre si.','',ev);
+   else if(vd.some(x=>x.v.ini&&x.v.fim&&x.v.fim<=x.v.ini))C('osc','err','Vigência','Período de vigência com término anterior ao início.','',ev);
+   else C('osc','ok','Vigência','Vigência consistente com a Identificação e entre os documentos.','',ev)}
+
+  if(!/^Emenda/.test(I.fonte))C('osc','na','Emenda parlamentar','Fonte de recurso não é emenda.','');
+  else{const e=I.emenda,miss=[!e.num&&'número',!e.autor&&'autor',!e.valor&&'valor'].filter(Boolean);
+   if(miss.length)C('osc','err','Emenda parlamentar','Dados da emenda incompletos na Identificação: '+miss.join(', ')+'.','');
+   else{const An=norm(D.map(a=>a.txt).join('\n'));const ev=[];let lvl='ok';
+    if(!An.includes(norm(e.num))){lvl='warn';ev.push('Nº '+e.num+' não localizado nos documentos.')}
+    if(!An.includes(norm(e.autor).split(' ')[0])){lvl='warn';ev.push('Autor "'+e.autor+'" não localizado nos documentos.')}
+    const ev1=money(e.valor);if(ev1!=null){const vals=D.flatMap(a=>[...a.txt.matchAll(/R\$\s*([\d.]+,\d{2})/g)].map(m=>money(m[1])));
+     if(vals.length&&!vals.some(v=>near(v,ev1))){lvl='warn';ev.push('Valor da emenda ('+fmtMoney(ev1)+') não aparece nos documentos.')}
+     if(vg!=null&&ev1>vg+0.01){lvl='err';ev.push('Valor da emenda maior que o valor global ('+fmtMoney(vg)+').')}
+     else if(vg!=null&&ev1<vg-0.01){if(lvl==='ok')lvl='warn';ev.push('Valor da emenda menor que o global: deve haver contrapartida de '+fmtMoney(vg-ev1)+'.')}}
+    C('osc',lvl,'Emenda parlamentar',lvl==='ok'?'Número, autor e valor da emenda conferem com os documentos.':'Pontos a conferir na emenda:','',ev)}}
+
+  /* ----- Plano de Trabalho ----- */
+  const pit=it('plano');
+  if(!AP)C('osc','warn','Plano de Trabalho','Nenhum Plano de Trabalho (PDF ou JSON) importado: verificações de objeto, metas, cronogramas, custos e despesas não realizadas.',pit);
+  else{
+   const ob=AP.objeto;
+   if(!ob)C('osc','warn','Objeto','Objeto não localizado no Plano (título “Objeto”).',pit);
+   else{const L=ob.length,nb=norm(ob),nums=(nb.replace(/\d{2}\/\d{2}\/\d{4}/g,'').match(/\d+/g)||[]).length;const pr=[];
+    if(L<40)pr.push('muito curto (< 40 caracteres)');if(L>600)pr.push('extenso para um objeto sucinto (> 600 caracteres)');
+    if(nums>=3||/r\$/.test(nb))pr.push('contém quantificações/valores (o objeto deve ser qualitativo; quantifique nas Metas)');
+    if(!/\b(promov|garant|ampli|fortalec|atend|desenvolv|oferta|execu|implement|assegur|apoi|qualific|prestar|realiz|manter|viabiliz|contribu|proporcion)/.test(nb))pr.push('não explicita o propósito central (verbo de resultado, ex.: promover, garantir, ampliar)');
+    if(/\b(meta|etapa|indicador)\s*\d/.test(nb))pr.push('mistura Metas/Etapas/Indicadores ao objeto');
+    if(I.objeto.trim()&&overlap(ob,I.objeto)<0.4)pr.push('diverge do objeto informado na Identificação');
+    C('osc',pr.length?'warn':'ok','Objeto do Plano de Trabalho',pr.length?'O objeto '+pr.join('; ')+'.':'Objeto claro, sucinto, qualitativo e coerente com a Identificação ('+L+' caracteres).',pit,[ob.slice(0,260)+(ob.length>260?'…':'')])}
+
+   const cnt={objetivo:AP.items.filter(i=>i.k==='objetivo').length,meta:AP.items.filter(i=>i.k==='meta').length,etapa:AP.items.filter(i=>i.k==='etapa'||i.k==='atividade').length,indicador:AP.items.filter(i=>i.k==='indicador').length};
+   const has=k=>cnt[k]>0||AP.head[k],ms=['objetivo','meta','etapa','indicador'].filter(k=>!has(k));
+   const LB={objetivo:'Objetivo',meta:'Meta',etapa:'Etapa/Atividade',indicador:'Indicador'};
+   if(ms.length)C('osc','err','Separação Objetivo × Meta × Etapa × Indicador','Não identificados no Plano: '+ms.map(k=>LB[k]).join(', ')+'. Itens encontrados: '+Object.entries(cnt).map(([k,v])=>LB[k]+' '+v).join(' · ')+'.',pit);
+   else C('osc',Object.values(cnt).some(v=>v===0)?'warn':'ok','Separação Objetivo × Meta × Etapa × Indicador','Seções distintas identificadas. Itens numerados: '+Object.entries(cnt).map(([k,v])=>LB[k]+' '+v).join(' · ')+'.'+(Object.values(cnt).some(v=>v===0)?' Há seção sem itens numerados (“Meta 1: …”); conferir.':''),pit);
+
+   const metas=AP.items.filter(i=>i.k==='meta'),etp=AP.items.filter(i=>i.k==='etapa'||i.k==='atividade'),inds=AP.items.filter(i=>i.k==='indicador');
+   if(!metas.length)C('osc','err','Metas','Nenhuma Meta numerada (“Meta 1: …”) identificada.',pit);
+   else{const tdt=s=>norm(s).replace(/\d{2}\/\d{2}\/\d{4}/g,' ');
+    const hasQ=s=>/\d[\d.,]*\s*(%|por cento|[a-z]{3,})/.test(tdt(s)),hasP=s=>/\d{2}\/\d{2}\/\d{4}|\d+\s*(dias?|mes(?:es)?|trimestres?|semestres?|anos?)\b|\bate\b[^\n]{0,30}\d|\bmes\s*\d+/.test(norm(s));
+    const sq=[],sp=[],se=[],si=[];
+    metas.forEach(m=>{const et=etp.filter(e=>e.num.startsWith(m.num+'.')||new RegExp('meta\\s*'+m.num.replace('.','\\.')+'\\b').test(norm(e.txt)));
+     if(!hasQ(m.txt))sq.push('Meta '+m.num);if(!(hasP(m.txt)||et.some(e=>hasP(e.txt))))sp.push('Meta '+m.num);if(!et.length)se.push('Meta '+m.num);
+     if(!inds.some(i=>i.num===m.num||i.num.startsWith(m.num+'.')||new RegExp('meta\\s*'+m.num.replace('.','\\.')+'\\b').test(norm(i.txt))))si.push('Meta '+m.num)});
+    const ev=[];if(sq.length)ev.push('Sem quantificação mensurável (número + unidade): '+sq.join(', '));if(sp.length)ev.push('Sem prazo/período: '+sp.join(', '));if(se.length)ev.push('Sem etapa/atividade vinculada: '+se.join(', '));if(si.length)ev.push('Sem indicador vinculado: '+si.join(', '));
+    C('osc',ev.length?(sq.length>metas.length/2?'err':'warn'):'ok','Metas: quantificação, prazos e vinculação',ev.length?'Das '+metas.length+' meta(s), há pontos a corrigir:':'As '+metas.length+' meta(s) têm quantificação, prazo, etapas e indicadores vinculados.',pit,ev)}
+
+   const ep=etp.filter(e=>/\d{2}\/\d{2}\/\d{4}|\bmes\s*\d+|\d+\s*(dias?|mes(?:es)?)/.test(norm(e.txt)));
+   if(!AP.cron&&!etp.length)C('osc','err','Cronograma de execução','Cronograma não localizado e nenhuma etapa/atividade identificada.',pit);
+   else{const pr=[];if(!AP.cron)pr.push('não há menção a “cronograma”');if(etp.length&&ep.length<etp.length)pr.push((etp.length-ep.length)+' de '+etp.length+' etapa(s) sem período/prazo');
+    const vr=vd.find(x=>x.v.ini&&x.v.fim);if(vr){const fora=[];AP.items.forEach(i=>{for(const d of (i.txt.match(/\d{2}\/\d{2}\/\d{4}/g)||[])){const dt=parseBR(d);if(dt&&(dt<new Date(vr.v.ini-31*864e5)||dt>new Date(+vr.v.fim+31*864e5)))fora.push(d)}});if(fora.length)pr.push('datas fora da vigência ('+[...new Set(fora)].join(', ')+')')}
+    C('osc',pr.length?'warn':'ok','Cronograma de execução e vínculo com etapas',pr.length?'Pontos a conferir: '+pr.join('; ')+'.':'Cronograma presente e etapas vinculadas a períodos dentro da vigência.',pit)}
+
+   C('osc',AP.receitas?'ok':'warn','Receitas e fontes de recursos',AP.receitas?'Plano indica receitas/fontes de recursos'+(I.fonte?' (fonte informada: '+I.fonte+').':'.'):'Plano não indica receitas, fontes de recursos ou contrapartida.',pit);
+
+   const cp=[];if(AP.nValores<3)cp.push('menos de 3 valores monetários ('+AP.nValores+')');if(!AP.rubricas.length)cp.push('rubricas de despesa não identificadas');if(!AP.memoria)cp.push('sem memória de cálculo (quantidade × valor unitário)');
+   C('osc',cp.length?'warn':'ok','Detalhamento dos custos',cp.length?'Detalhamento insuficiente: '+cp.join('; ')+'.':'Custos detalhados: '+AP.nValores+' valores, rubricas ('+AP.rubricas.slice(0,6).join(', ')+') e memória de cálculo.',pit);
+
+   if(!AP.vedacoes.length)C('osc','ok','Coerência das despesas com as normativas','Nenhuma despesa vedada identificada por palavra-chave (triagem textual; não substitui a análise do mérito).',pit);
+   else AP.vedacoes.forEach(v=>C('osc',v.l,'Despesa possivelmente vedada: '+v.t,'Trecho identificado no Plano. Conferir as vedações da Lei 13.019/2014 e do decreto regulamentar (verificar o artigo vigente).',pit,[v.ev]));
+
+   if(!AP.parcelas.length)C('osc','warn','Cronograma de desembolso','Parcelas de desembolso (“Parcela 1: R$ …”) não identificadas no Plano.',pit);
+   else{const sp=sum(AP.parcelas),alvo=AP.repasse.length?AP.repasse[0]:vg,ev=[AP.parcelas.length+' parcela(s); soma '+fmtMoney(sp)];const vm=vi&&vi.meses;
+    let lvl='ok',msg='Cronograma de desembolso consistente.';
+    if(alvo!=null&&!near(sp,alvo)){lvl='err';msg='A soma das parcelas ('+fmtMoney(sp)+') difere do '+(AP.repasse.length?'valor do repasse':'valor global')+' ('+fmtMoney(alvo)+').'}
+    else if(vm&&AP.parcelas.length>vm+1){lvl='warn';msg='Há mais parcelas ('+AP.parcelas.length+') do que meses de vigência ('+vm+').'}
+    C('osc',lvl,'Cronograma de desembolso',msg,pit,ev)}
+  }
+
+  /* ----- Órgão Gestor / coerência de valores ----- */
+  const rows=[];
+  if(vg!=null)rows.push(['Identificação (valor global)',vg]);
+  if(AP)AP.total.slice(0,1).forEach(v=>rows.push(['Plano – valor total',v]));
+  if(AP&&AP.parcelas.length)rows.push(['Plano – soma do desembolso',sum(AP.parcelas)]);
+  const mv=AP?AP.items.filter(i=>i.k==='meta').map(m=>sum(findMoney(norm(m.txt),/R\$\s*([\d.]+,\d{2})/))).filter(v=>v>0):[];
+  if(mv.length)rows.push(['Plano – soma dos valores das metas',sum(mv)]);
+  ogD.filter(a=>['resv','impacto'].includes(a.docKey)).forEach(a=>{const v=findMoney(norm(a.txt),/(?:valor|reserva|empenho|dotacao|impacto)[^\d\n]{0,50}R\$\s*([\d.]+,\d{2})/)[0];if(v!=null)rows.push([(a.docKey==='resv'?'Reserva orçamentária':'Impacto orçamentário')+' ('+a.name+')',v])});
+  const em=money(I.emenda.valor);if(/^Emenda/.test(I.fonte)&&em!=null)rows.push(['Emenda (Identificação)',em]);
+  const contra=AP?AP.contra[0]:null,repasse=AP?AP.repasse[0]:null;
+  if(vg==null)C('og','warn','Valor global','Valor global não informado na Identificação: coerência de valores não realizada.','');
+  else if(rows.length<2)C('og','warn','Coerência entre valores globais','Há apenas o valor da Identificação: importe o Plano de Trabalho e os documentos orçamentários do Órgão Gestor para o cruzamento.','');
+  else{const ev=rows.map(r=>r[0]+': '+fmtMoney(r[1]));
+   const div=rows.filter(r=>!near(r[1],vg)&&!(r[0].startsWith('Emenda')&&contra!=null&&near(r[1]+contra,vg)));
+   if(div.length)C('og','err','Coerência entre valores globais','Divergência em relação ao valor global ('+fmtMoney(vg)+'): '+div.map(r=>r[0]).join('; ')+'.',it('plano'),ev);
+   else C('og','ok','Coerência entre valores globais','Todos os valores conferem com o valor global ('+fmtMoney(vg)+').',it('plano'),ev)}
+  if(!AP||!mv.length)C('og','na','Somatória de metas','Metas sem valor financeiro identificável; conferir a somatória dos custos por meta na análise manual.',it('plano'));
+  else if(vg!=null&&!near(sum(mv),vg))C('og','err','Somatória de metas','A soma dos valores das metas ('+fmtMoney(sum(mv))+') difere do valor global ('+fmtMoney(vg)+').',it('plano'));
+  else C('og','ok','Somatória de metas','A soma dos valores das metas confere com o valor global.',it('plano'));
+  if(contra!=null&&repasse!=null){if(near(contra+repasse,vg!=null?vg:contra+repasse))C('og','ok','Contrapartida','Repasse ('+fmtMoney(repasse)+') + contrapartida ('+fmtMoney(contra)+') = '+fmtMoney(contra+repasse)+'.',it('plano'));else C('og','err','Contrapartida','Repasse ('+fmtMoney(repasse)+') + contrapartida ('+fmtMoney(contra)+') = '+fmtMoney(contra+repasse)+', diferente do valor global ('+fmtMoney(vg)+').',it('plano'))}
+  else if(contra!=null)C('og','warn','Contrapartida','Contrapartida de '+fmtMoney(contra)+' citada, mas o valor do repasse não foi localizado para somar.',it('plano'));
+  else C('og','na','Contrapartida','Nenhuma contrapartida citada no Plano.',it('plano'));
+  if(this.semRepasse())C('og','na','Documentos orçamentários do Órgão Gestor','Ajuste sem repasse de recursos.','');
+  else if(!ogD.length)C('og','warn','Documentos do Órgão Gestor','Nenhum documento do Órgão Gestor importado (reserva, impacto orçamentário, pareceres): a coerência foi conferida apenas com a Identificação e o Plano.','');
+  else{const has=k=>ogD.some(a=>a.docKey===k);const falta=[!has('resv')&&'Reserva orçamentária',!has('impacto')&&'Impacto orçamentário/Declaração do Ordenador'].filter(Boolean);
+   C('og',falta.length?'warn':'ok','Documentos do Órgão Gestor',(ogD.length)+' documento(s) importado(s)'+(falta.length?'; não identificados: '+falta.join(', ')+'.':'.'),it('resv'))}
+
+  /* ----- Temporalidade ----- */
+  [['osc',oscD],['og',ogD]].forEach(([g,L])=>{if(!L.length)return;const bad=L.filter(a=>this.worstOf(a.tflags||[])!=='ok');
+   C(g,bad.length?(bad.some(a=>this.worstOf(a.tflags)==='err')?'err':'warn'):'ok','Temporalidade dos documentos',bad.length?bad.length+' de '+L.length+' documento(s) com alerta de data de geração:':'Todos os '+L.length+' documento(s) com data de geração coerente e dentro do prazo.','',bad.map(a=>a.name+' — '+(a.tflags.find(f=>f.l!=='ok')||{}).m))});
+
+  const counts={err:0,warn:0,ok:0,na:0};out.forEach(c=>counts[c.lvl]++);
+  this.verif={at:new Date().toISOString(),fp:this.fp(),n:D.length,checks:out,counts};
+  this.toast('1ª Verificação concluída: '+counts.err+' divergência(s), '+counts.warn+' alerta(s).')},
+ release(mode){
+  if(mode==='triagem'){if(!this.verif){this.toast('Execute a 1ª Verificação primeiro.');return}
+   if(this.verif.counts.err&&!this.ack){this.toast('Confirme a ciência das divergências para liberar.');return}}
+  else if((this.justTxt||'').trim().length<20){this.toast('Informe a justificativa técnica (mínimo de 20 caracteres).');return}
+  this.gate={released:true,mode,just:mode==='just'?this.justTxt.trim():'',ack:!!this.ack&&mode==='triagem',at:new Date().toISOString()};
+  if(mode==='triagem'&&this.regObs)this.registrarAlertas();
+  this.toast('Análise manual liberada.')},
+ relock(){if(!confirm('Bloquear novamente os campos dos itens? As marcações já feitas são mantidas.'))return;this.gate={released:false,mode:'',just:'',ack:false,at:''};this.ack=false},
+ registrarAlertas(){if(!this.verif)return;const dt=new Date().toLocaleDateString('pt-BR');
+  this.verif.checks.filter(c=>(c.lvl==='err'||c.lvl==='warn')&&c.item&&this.st[c.item]).forEach(c=>{const o=this.st[c.item],line='1ª Verificação ('+dt+'): '+c.t+' – '+c.m;
+   if(!o.obs.includes(c.t+' – '+c.m)){o.obs=o.obs?o.obs+'\n'+line:line;this.openObs[c.item]=true}})},
+
+ /* ============ EXPORTAÇÃO ============ */
+ dmy(){const d=new Date();return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear()},
+ exportJSON(data){const d=data||this.snap(true);download(new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),'Lista Verificação_'+this.dmy()+'.json');this.toast('JSON exportado.')},
+ pdfVerif(doc,y,M,W){
+  const lab={err:'DIVERGÊNCIA',warn:'ALERTA',ok:'CONFORME',na:'N/A'};
+  const colr=t=>t==='DIVERGÊNCIA'?[254,202,202]:t==='ALERTA'?[254,243,199]:t==='CONFORME'?[209,250,229]:[226,232,240];
+  if(y>700){doc.addPage();y=40}
+  doc.setFont('helvetica','bold').setFontSize(10).setTextColor(0).text('Importação, 1ª Verificação e liberação da análise manual',M,y+10);y+=16;
+  const g=this.gate;
+  const gl=g.released?('Análise manual liberada em '+this.fmtDT(g.at)+(g.mode==='just'?' mediante justificativa técnica: '+g.just:' após a 1ª Verificação'+(g.ack?' (ciente das divergências apontadas)':'')+'.')):'Análise manual NÃO liberada.';
+  const ls=doc.splitTextToSize(gl,W-2*M);doc.setFont('helvetica','normal').setFontSize(8.5).text(ls,M,y+8);y+=ls.length*11+8;
+  if(this.audit.length){
+   doc.autoTable({startY:y,head:[['Documento importado','Origem / tipo','Geração do arquivo','Validade','Alertas']],theme:'grid',margin:{left:M,right:M,top:40},
+    styles:{fontSize:7.5,cellPadding:3,overflow:'linebreak',valign:'top'},headStyles:{fillColor:[30,64,175],textColor:255},
+    body:this.audit.map(a=>[a.name+'\n'+(a.nat||''),(a.origem==='og'?'Órgão Gestor':'OSC/Entidade')+'\n'+(a.label||'não identificado'),this.genTxt(a)+(a.gen&&a.gen.src?'\n('+a.gen.src+')':''),a.validade||'—',[...(a.flags||[]),...(a.tflags||[])].filter(f=>f.l!=='ok').map(f=>'- '+f.m).join('\n')||'Sem alertas'])});
+   y=doc.lastAutoTable.finalY+12}
+  if(this.verif){
+   if(y>700){doc.addPage();y=40}
+   doc.setFont('helvetica','bold').setFontSize(9).setTextColor(0).text('1ª Verificação executada em '+this.fmtDT(this.verif.at)+': '+this.verif.counts.err+' divergência(s), '+this.verif.counts.warn+' alerta(s), '+this.verif.counts.ok+' conforme(s)'+(this.verifStale()?' (desatualizada)':''),M,y+8);y+=14;
+   doc.autoTable({startY:y,head:[['Grupo','Resultado','Verificação','Detalhe']],theme:'grid',margin:{left:M,right:M,top:40},
+    styles:{fontSize:7.5,cellPadding:3,overflow:'linebreak',valign:'top'},headStyles:{fillColor:[30,64,175],textColor:255},
+    columnStyles:{0:{cellWidth:62},1:{cellWidth:62,halign:'center',fontStyle:'bold'},2:{cellWidth:130}},
+    body:this.verif.checks.map(c=>[c.grp==='og'?'Órgão Gestor':'OSC/Entidade',lab[c.lvl],c.t,c.m+((c.ev&&c.ev.length)?'\n'+c.ev.map(e=>'- '+e).join('\n'):'')]),
+    didParseCell:h=>{if(h.section==='body'&&h.column.index===1)h.cell.styles.fillColor=colr(h.cell.raw)}});
+   y=doc.lastAutoTable.finalY+14}
+  return y},
+ async buildPDF(simple){
+  try{
+   if(!window.jspdf){this.toast('Biblioteca de PDF indisponível (verifique a conexão).');return}
+   const key=this.pkey();const ver=(this.pdfSeq[key]||0)+1;
+   const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4'});const W=doc.internal.pageSize.getWidth();const M=40;let y=36;const R=ROTAS_V[this.ident.rota];
+   if(this.brasao){try{const fmt=/image\/jpe?g/.test(this.brasao)?'JPEG':'PNG';doc.addImage(this.brasao,fmt,M,y,52,52)}catch(e){}}
+   const tx=this.brasao?M+64:M;doc.setFont('helvetica','bold').setFontSize(11).text(this.meta.municipio||'',tx,y+14);
+   doc.setFont('helvetica','normal').setFontSize(9).text(this.meta.unidade||'',tx,y+27);
+   doc.setFont('helvetica','bold').setFontSize(13).text('LISTA DE VERIFICAÇÃO – AJUSTES OSCs/ENTIDADES',tx,y+44);
+   doc.setFont('helvetica','normal').setFontSize(8.5).text(R.l+' · '+R.lei,tx,y+55,{maxWidth:W-tx-M});
+   y=108;const i=this.ident;
+   const body=[['Rota de verificação',R.l+'\n'+R.lei],['Tipo de ajuste',TIPOS[i.tipo]]];
+   if(R.alt)body.push(['Ajuste de origem',(i.origem_mod||'—')+(i.origem_num?'  ·  Nº/Ano '+i.origem_num:'')]);else body.push(['Rota de seleção',SEL[R.fam][i.route]]);
+   body.push(['Processo SEI nº',i.processo||'—'],['Secretaria / Órgão Gestor',i.secretaria||'—'],['OSC / Entidade',(i.osc||'—')+(i.cnpj?'  ·  CNPJ '+i.cnpj:'')],['Objeto',i.objeto||'—'],['Valor / Vigência',(i.valor?'R$ '+i.valor:'—')+'  ·  '+(i.vigencia||'—')],['Fonte do recurso',this.fonteText()],['Gestor do ajuste',i.gestor||'—'],['Data da análise',i.data?fmtBR(new Date(i.data+'T12:00:00')):'—']);
+   doc.autoTable({startY:y,theme:'grid',styles:{fontSize:8.5,cellPadding:3},columnStyles:{0:{fontStyle:'bold',cellWidth:120,fillColor:[241,245,249]}},margin:{left:M,right:M},body});
+   y=doc.lastAutoTable.finalY+10;
+   doc.setFont('helvetica','bold').setFontSize(9).setTextColor(0).text('Base legal',M,y+8);y+=14;
+   this.leisAtivas().filter(l=>l.t).forEach(l=>{const lines=doc.splitTextToSize('• '+l.t,W-2*M);if(y>780){doc.addPage();y=50}
+    const link=/^https?:/.test(l.url||'');doc.setFont('helvetica','normal').setFontSize(8.5);
+    lines.forEach((ln,k)=>{if(link){doc.setTextColor(30,64,175);doc.textWithLink(ln,M,y+8+k*11,{url:l.url})}else{doc.setTextColor(0);doc.text(ln,M,y+8+k*11)}});
+    y+=lines.length*11+2;doc.setTextColor(0)});
+   y+=6;const o=this.overall();
+   doc.setFont('helvetica','bold').setFontSize(9).setTextColor(0).text(`Resumo: ${o.sim} Sim · ${o.nao} Não · ${o.pend} Pendentes · ${o.na} N/A  (${o.pct}% concluído)`,M,y+8);y+=18;
+   y=this.pdfVerif(doc,y,M,W);
+   const label={s:'SIM',n:'NÃO',x:'N/A',p:'PENDENTE'};
+   this.activePhases().forEach(p=>{
+    const on=this.phaseOn(p);
+    const rows=p.items.filter(it=>this.applicable(it)).map(it=>{const s=this.st[it.id];let extra=(it.subs?it.subs.map((l,k)=>(s.subs[k]?'[x] ':'[ ] ')+l).join('\n')+'\n':'');
+      const obs=[s.sei?'ID SEI: '+s.sei:'',this.fieldsText(it),s.obs].filter(Boolean).join('\n');return[it.id+'  '+it.t+(extra?'\n'+extra.trim():''),it.b,it.r,label[s.s],obs]});
+    if(y>740){doc.addPage();y=40}
+    doc.setFont('helvetica','bold').setFontSize(10).setTextColor(0).text(p.n+' – '+p.t,M,y+10);y+=14;
+    if(!on||!rows.length){doc.setFont('helvetica','italic').setFontSize(8.5).text('Não se aplica à rota/tipo selecionado.',M,y+8);y+=20;return}
+    doc.autoTable({startY:y,head:[['Ato / Documento / Requisito','Base normativa','Responsável','Situação','Observações / ID']],body:rows,theme:'grid',margin:{left:M,right:M,top:40},
+     styles:{fontSize:7.5,cellPadding:3,overflow:'linebreak',valign:'top'},headStyles:{fillColor:[30,64,175],textColor:255},
+     columnStyles:{0:{cellWidth:185},1:{cellWidth:75},2:{cellWidth:70},3:{cellWidth:46,halign:'center',fontStyle:'bold'},4:{cellWidth:'auto'}},
+     didParseCell:h=>{if(h.section==='body'&&h.column.index===3){const t=h.cell.raw;h.cell.styles.fillColor=t==='SIM'?[209,250,229]:t==='NÃO'?[254,202,202]:t==='N/A'?[226,232,240]:[254,243,199]}}});
+    y=doc.lastAutoTable.finalY+14});
+   if(y>690){doc.addPage();y=60}
+   const cx=W/2;
+   doc.setFont('helvetica','normal').setFontSize(9.5).setTextColor(0).text((this.meta.cidade||'Paraguaçu Paulista')+', na data da assinatura digital ou inserção no SEI.',cx,y+14,{align:'center'});y+=56;
+   const sg=this.signers.filter(s=>s.nome||s.cargo);const list=sg.length?sg:[{nome:'[NOME]',cargo:'[Cargo]'}];
+   list.forEach(s=>{if(y>770){doc.addPage();y=60}doc.setFont('helvetica','bold').setFontSize(10).text(s.nome||'[NOME]',cx,y,{align:'center'});doc.setFont('helvetica','normal').setFontSize(9).text(s.cargo||'[Cargo]',cx,y+12,{align:'center'});y+=40});
+   const n=doc.getNumberOfPages();for(let k=1;k<=n;k++){doc.setPage(k);doc.setFont('helvetica','normal').setFontSize(7.5).setTextColor(90);
+    doc.text('Processo SEI nº '+(i.processo||'—')+' · Lista de Verificação · v'+ver,M,823);doc.text('Página '+k+' de '+n,W-M,823,{align:'right'})}
+   doc.setProperties({title:'Lista de Verificação – '+(i.osc||'OSC/Entidade'),subject:R.l+' – '+R.lei,author:this.meta.unidade||'',creator:'Lista de Verificação – Ajustes OSCs/Entidades'});
+   let bytes=doc.output('arraybuffer');
+   if(!simple){try{const {PDFDocument}=PDFLib;const pd=await PDFDocument.load(bytes);
+     const sn=this.snap(true);sn.pdfSeq=ver;
+     await pd.attach(new TextEncoder().encode(JSON.stringify(sn)),'lista-verificacao.json',{mimeType:'application/json',description:'Dados da lista de verificação (reimportável)',creationDate:new Date(),modificationDate:new Date()});
+     pd.setLanguage('pt-BR');bytes=await pd.save()}catch(e){console.error(e);this.toast('PDF gerado sem dados embutidos.')}}
+   return{bytes,name:'Lista Verificação_'+this.dmy()+'_v'+ver+'.pdf',ver,key};
+  }catch(e){console.error(e);this.toast('Erro ao gerar PDF: '+e.message);return null}},
+ async exportPDF(simple){
+  this.toast('Gerando visualização…');const r=await this.buildPDF(simple);if(!r)return;
+  this.closePreview();
+  this.pv={url:URL.createObjectURL(new Blob([r.bytes],{type:'application/pdf'})),name:r.name,ver:r.ver,size:r.bytes.byteLength,bytes:r.bytes,key:r.key};
+  this.modal='pdf'},
+ confirmPDF(){const p=this.pv;if(!p.bytes)return;download(new Blob([p.bytes],{type:'application/pdf'}),p.name);
+  this.pdfSeq[p.key]=p.ver;this.persistSeq();this.toast('PDF salvo: v'+p.ver+'.');this.closePreview()},
+ closePreview(){if(this.pv&&this.pv.url){try{URL.revokeObjectURL(this.pv.url)}catch(e){}}this.pv={url:'',name:'',ver:0,size:0,bytes:null,key:''};if(this.modal==='pdf')this.modal=''}
+}}
+</script>
+</body>
+</html>

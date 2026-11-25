@@ -1,0 +1,157 @@
+﻿===== declaracao_custeio.docx =====
+
+
+Declaração – Custeio das Atividades
+
+- Nome do beneficiário:
+- CNPJ:
+- Endereço completo:
+- Nome do responsável:
+- Telefone de contato:
+- E-mail:
+
+		O responsável que abaixo subscreve, DECLARA, para os devidos fins, que o valor pleiteado por meio de Emenda Impositiva para o “custeio” das atividades do beneficiário é suficiente para suprir o objetivo específico do objeto da Emenda, conforme discriminado no Plano Resumido de Trabalho.
+
+		Informa que o valor pleiteado tem por base de cálculo ou critérios, os seguintes dados:
+
+[demonstrar a base utilizada para compor o valor pleiteado, podendo, por exemplo, citar dados financeiros relativos ao efetivo custeio das atividades em anos anteriores]
+___________________________________________________________________________
+
+___________________________________________________________________________
+
+___________________________________________________________________________
+
+___________________________________________________________________________
+
+___________________________________________________________________________
+
+	
+		Por ser verdade, firma a presente.
+
+		Estância Turística de Paraguaçu Paulista, ___ de _________ de _____.
+
+		__________________________________
+
+		Nome e assinatura física do responsável
+
+
+
+===== plano_trabalho_resumido.docx =====
+
+
+Plano de Trabalho Resumido
+
+1. Dados Cadastrais
+- Nome do beneficiário: [Ex.: Secretaria Municipal de Educação; Associação Parag. Combate ao Câncer]
+- Subórgão: (se houver) [Ex.: EMEF Cel Antonio Nogueira - Rua Maria Paula Gambier Costa, 586]
+- CNPJ: [Quando a beneficiária for organização social privada sem fins lucrativos)  
+- Endereço completo:
+- Nome do responsável:
+- Telefone de contato:
+- E-mail:
+
+2. Dados Orçamentários
+- Valor do objeto: R$
+- Órgão Executor (Secretaria Municipal responsável pela execução direta do objeto ou pela formalização do repasse ao beneficiário)
+
+3. Projeto a ser executado - finalidade
+   (descrever de forma sucinta para qual finalidade o recurso da emenda será utilizado) 
+[Ex.: Aquisição e instalação de dez aparelhos de ar condicionado...; Custeio das atividades administrativas...]
+
+4. Público alvo
+   (descrever qual será o público beneficiado pela aplicação da emenda impositiva) 
+[Ex.: O público-alvo será os alunos dos anos xx da Escola, situada na rua…; O público-alvo será os assistidos pela Associação …]
+
+5. Objetivo específico do objeto
+(descrever de forma sucinta qual o objetivo específico do objeto, o que se espera alcançar ou qual o problema a ser resolvido) 
+[Ex.: A aquisição e instalação dos aparelhos de ar condicionado visa a climatizar as salas de aulas para melhor conforto e aprendizagem dos alunos...; Os recursos visam custear despesas com a manutenção da associação, tais como ...]
+
+6. Meta Proposta
+(Especificar a entrega física – quantidade, local e prazo esperado)
+[Ex.: Aquisição e instalação de dez aparelhos de ar condicionado para a Escola xx, até 2º quadrimestre do ano]
+
+7. Indicador de desempenho
+(Definir a métrica que será usada para provar que a meta foi batida)
+[Ex.: Instalação efetiva dos aparelhos na escola indicada]
+
+8. Impacto Esperado
+(Qual a mudança real que se dará na vida do cidadão após a execução do objeto da emenda)
+[Ex.: Os alunos passarão a contar com sala de aula adequada e climatizada, contribuindo com o aprendizado, com a saúde, …..]
+
+9. Observações
+(Espaço reservado para informações relevantes, se houver, necessárias a melhor compreensão do projeto a ser executado ou, ainda, dados sobre a divisão do valor do objeto por dois ou mais vereadores)
+
+10. Local e data
+Paraguaçu Paulista (SP), ____ de _______ de ______
+
+11. Nome e assinatura física do responsável
+
+____________________________________________
+Nome
+
+
+===== relatorio_gestao.docx =====
+
+
+PREFEITURA MUNICIPAL DA ESTÂNCIA TURÍSTICA DE PARAGUAÇU PAULISTA
+RELATÓRIO DE GESTÃO
+Exercício Financeiro: [ANO]
+
+1. Identificação da Emenda
+Tipo de Emenda:
+Número e Autor da Emenda:
+Beneficiário:
+Finalidade:
+Valor: R$ ___________
+
+2. Alinhamento Programático (Vínculo com o Planejamento)
+Órgão Executor: Secretaria Municipal de ________________
+Tipo de Despesa: [Custeio ou Investimento]
+
+3. Quadro Técnico de Resultados
+3.1 Objetivo
+(Manter o mesmo descritivo do plano de trabalho)
+
+3.2 Meta Proposta
+(Manter o mesmo descritivo do plano de trabalho)
+
+3.3 Indicador de Desempenho
+(Manter o mesmo descritivo do plano de trabalho)
+
+3.4 Impacto Esperado
+(Manter o mesmo descritivo do plano de trabalho)
+
+4. Execução da Meta
+Instrumento
+Empenho
+Nota(s)
+Valor
+Data do Recebimento
+Data do Pagamento
+
+OU
+
+Instrumento
+Empenho
+Nota(s)
+Descrição do Produto
+Quantidade
+Valor
+Data do Recebimento
+Data do Pagamento
+nº do Patrimônio
+
+5. Resultado
+(Descrever respondendo o impacto esperado do plano de trabalho)
+A meta proposta foi executada na totalidade, observando os princípios legais.
+O recurso de Emenda Parlamentar foi aplicado no objeto proposto, conforme o Plano de Trabalho nº ........ (documento SEI nº _____ do Processo nº ________),
+Apresentou um resultado de melhoria no atendimento ao público e o fiel cumprimento das metas finalísticas estipuladas no plano de trabalho.
+
+6. CONCLUSÃO
+Conclui-se com a devida demonstração de que os recursos públicos da Emenda Parlamentar foram aplicados em estrita consonância com o plano de trabalho na execução física e financeira.
+Paraguaçu Paulista, na da assinatura digital.
+
+[NOME DO SIGNATÁRIO]
+Secretário Municipal de _________________
+
+
